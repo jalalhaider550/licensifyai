@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileCheck, Scale } from "lucide-react";
+import { ArrowRight, Shield, Scale, CheckCircle2 } from "lucide-react";
 
 export const HeroSection = () => {
   return (
@@ -13,14 +13,27 @@ export const HeroSection = () => {
           </div>
 
           <h1 className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in-up">
-            Automate Fintech Licensing with Regulatory Precision
+            Automate Fintech License Applications with AI
           </h1>
 
           <p className="mt-6 text-lg text-muted-foreground leading-relaxed animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-            Onboard clients, extract entity data from documents, and generate
-            submission-ready application packages for the FCA and FinCEN — in a
-            fraction of the time.
+            Licensify AI helps law firms and regulatory consultants prepare fintech license applications faster. 
+            Onboard clients, extract data from documents, generate compliance documents, and assemble 
+            submission-ready application packages — all in one platform.
           </p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
+            {[
+              "AI document extraction",
+              "Compliance document generation",
+              "Application packaging",
+            ].map((item) => (
+              <span key={item} className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+                {item}
+              </span>
+            ))}
+          </div>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center animate-fade-in-up" style={{ animationDelay: "160ms" }}>
             <Button variant="hero" size="xl" asChild>
@@ -37,7 +50,7 @@ export const HeroSection = () => {
           <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-3 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
             {[
               { value: "87%", label: "Average time saved per application" },
-              { value: "12+", label: "License types supported" },
+              { value: "12+", label: "License types supported (UK & US)" },
               { value: "100%", label: "Regulatory compliance coverage" },
             ].map((stat) => (
               <div key={stat.label} className="border border-border rounded-sm bg-card p-5">
