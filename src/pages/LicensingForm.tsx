@@ -266,10 +266,30 @@ const LicensingForm = () => {
         body: { action: "generate-license-template", ...getFormPayload() },
       });
       if (error) throw error;
-      setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
-      setEditorContent(data.content || "Generation failed.");
-      setEditorOpen(true);
-      toast.success("License application template generated!");
+
+      const content = data.content || "";
+      let parsed: { sections: TemplateSection[] } | null = null;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      } catch {
+        parsed = null;
+      }
+
+      if (parsed?.sections?.length) {
+        setTemplateSections(parsed.sections);
+        setTemplateMode(true);
+        setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      } else {
+        // Fallback to markdown editor
+        setTemplateMode(false);
+        setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+        setEditorContent(content);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to generate");
     } finally {
