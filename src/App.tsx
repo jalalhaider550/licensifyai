@@ -16,6 +16,7 @@ import Licenses from "./pages/Licenses";
 import Applications from "./pages/Applications";
 import Documents from "./pages/Documents";
 import ComplianceDocuments from "./pages/ComplianceDocuments";
+import UKRequirements from "./pages/UKRequirements";
 import Tasks from "./pages/Tasks";
 import ActivityFeed from "./pages/ActivityFeed";
 import Settings from "./pages/Settings";
