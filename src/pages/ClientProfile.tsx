@@ -439,7 +439,7 @@ const ClientProfile = () => {
         </div>
 
         {/* ====== UPLOAD DOCUMENTS SECTION ====== */}
-        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
+        <div id="upload-documents-section" className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-1">
             <FolderOpen className="h-5 w-5 text-primary" />
             <h2 className="font-display text-lg font-semibold text-foreground">Upload Documents</h2>
