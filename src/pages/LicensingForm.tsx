@@ -78,6 +78,8 @@ const LicensingForm = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editorTitle, setEditorTitle] = useState("");
+  const [templateSections, setTemplateSections] = useState<TemplateSection[]>([]);
+  const [templateMode, setTemplateMode] = useState(false);
 
   // Missing info
   const [missingItems, setMissingItems] = useState<string[]>([]);
