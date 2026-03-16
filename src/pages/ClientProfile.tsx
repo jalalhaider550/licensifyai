@@ -2,10 +2,13 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone,
   Loader2, Download, X, Brain, BookOpen, FolderOpen, Briefcase,
-  FileBarChart, FilePlus, ChevronDown
+  FileBarChart, FilePlus, Shield, Check, Globe, Mail, MapPin, Hash
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +35,9 @@ const DOCUMENT_TYPES = [
 
 type DocTypeValue = (typeof DOCUMENT_TYPES)[number]["value"];
 
+interface TemplateField { label: string; value: string }
+interface TemplateSection { title: string; fields: TemplateField[] }
+
 const ClientProfile = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -48,12 +54,15 @@ const ClientProfile = () => {
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editorTitle, setEditorTitle] = useState("");
+  const [templateSections, setTemplateSections] = useState<TemplateSection[]>([]);
+  const [templateMode, setTemplateMode] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -73,7 +82,7 @@ const ClientProfile = () => {
     fetchData();
   }, [user, id]);
 
-  const isBusy = uploading || extracting || generatingPlan;
+  const isBusy = uploading || extracting || generatingPlan || generatingTemplate;
 
   const processFile = async (file: File) => {
     if (!client || !user) return;
@@ -94,7 +103,6 @@ const ClientProfile = () => {
     setUploading(true);
 
     try {
-      // 1. Extract text
       toast.info(`Reading ${docTypeMeta.label}…`);
       let documentText = "";
       try {
@@ -112,11 +120,9 @@ const ClientProfile = () => {
         return;
       }
 
-      // 2. Upload to storage
       const filePath = `${user.id}/${id}/${selectedDocType}-${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
 
-      // 3. Save document record
       await supabase.from("documents").insert({
         client_id: id!,
         user_id: user.id,
@@ -126,7 +132,6 @@ const ClientProfile = () => {
         ai_status: docTypeMeta.aiProcess ? "pending" : "uploaded",
       });
 
-      // Refresh documents list
       const { data: updatedDocs } = await supabase
         .from("documents")
         .select("*")
@@ -136,7 +141,6 @@ const ClientProfile = () => {
 
       setUploading(false);
 
-      // 4. If AI-processable doc type, extract and generate business plan
       if (docTypeMeta.aiProcess) {
         setExtracting(true);
         toast.info("AI is analyzing your document…");
@@ -162,10 +166,7 @@ const ClientProfile = () => {
 
         setExtractedData(parsed);
         setExtracting(false);
-        toast.success("Document analyzed! Generating business plan…");
-
-        // Auto-generate business plan
-        await generateBusinessPlan(parsed);
+        toast.success("Document analyzed! Choose what to generate below.");
       } else {
         toast.success("Document uploaded successfully.");
       }
@@ -201,35 +202,41 @@ const ClientProfile = () => {
 
   const handleDragLeave = useCallback(() => setDragOver(false), []);
 
+  const getPayload = () => ({
+    client: {
+      company_name: client.company_name,
+      jurisdiction: client.jurisdiction,
+      registration_number: client.registration_number,
+      registered_address: client.registered_address,
+      services: client.services,
+      contact_email: client.contact_email,
+      incorporation_date: client.incorporation_date,
+    },
+    directors: directors.map((d) => ({ full_name: d.full_name, role: d.role })),
+    shareholders: shareholders.map((s) => ({ name: s.name, percentage: s.percentage })),
+    extractedData: extractedData,
+    licenseType: "General",
+    currency: client.jurisdiction === "US" ? "USD" : "GBP",
+  });
+
   const generateBusinessPlan = async (extractedInfo?: any) => {
     if (!client) return;
     setGeneratingPlan(true);
 
     try {
+      const payload = getPayload();
+      if (extractedInfo) payload.extractedData = extractedInfo;
       const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
-        body: {
-          action: "generate-business-plan",
-          client: {
-            company_name: client.company_name,
-            jurisdiction: client.jurisdiction,
-            registration_number: client.registration_number,
-            registered_address: client.registered_address,
-            services: client.services,
-            contact_email: client.contact_email,
-            incorporation_date: client.incorporation_date,
-          },
-          directors: directors.map((d) => ({ full_name: d.full_name, role: d.role })),
-          shareholders: shareholders.map((s) => ({ name: s.name, percentage: s.percentage })),
-          extractedData: extractedInfo || extractedData,
-        },
+        body: { action: "generate-business-plan", ...payload },
       });
 
       if (error) throw error;
 
+      setTemplateMode(false);
       setEditorTitle(`Business Plan — ${client.company_name}`);
       setEditorContent(data.content || "Generation failed. Please try again.");
       setEditorOpen(true);
-      toast.success("Business plan generated! Review and edit below.");
+      toast.success("Business plan generated!");
     } catch (err: any) {
       console.error("Business plan error:", err);
       toast.error(err.message || "Failed to generate business plan");
@@ -238,8 +245,56 @@ const ClientProfile = () => {
     }
   };
 
+  const generateLicenseTemplate = async () => {
+    if (!client) return;
+    setGeneratingTemplate(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+        body: { action: "generate-license-template", ...getPayload() },
+      });
+
+      if (error) throw error;
+
+      const content = data.content || "";
+      let parsed: { sections: TemplateSection[] } | null = null;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      } catch {
+        parsed = null;
+      }
+
+      if (parsed?.sections?.length) {
+        setTemplateSections(parsed.sections);
+        setTemplateMode(true);
+        setEditorTitle(`License Application Template — ${client.company_name}`);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      } else {
+        setTemplateMode(false);
+        setEditorTitle(`License Application Template — ${client.company_name}`);
+        setEditorContent(content);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      }
+    } catch (err: any) {
+      console.error("License template error:", err);
+      toast.error(err.message || "Failed to generate template");
+    } finally {
+      setGeneratingTemplate(false);
+    }
+  };
+
+  const templateToText = () => {
+    return templateSections.map((s) =>
+      `## ${s.title}\n\n${s.fields.map((f) => `${f.label}: ${f.value}`).join("\n")}`
+    ).join("\n\n");
+  };
+
   const exportAsWord = async () => {
-    const paragraphs = editorContent.split("\n").map((line) => {
+    const text = templateMode ? templateToText() : editorContent;
+    const paragraphs = text.split("\n").map((line) => {
       if (line.startsWith("# ")) return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
       if (line.startsWith("## ")) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
       if (line.startsWith("### ")) return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
@@ -252,8 +307,9 @@ const ClientProfile = () => {
   };
 
   const exportAsPDF = () => {
+    const text = templateMode ? templateToText() : editorContent;
     const pdf = new jsPDF();
-    const lines = pdf.splitTextToSize(editorContent, 170);
+    const lines = pdf.splitTextToSize(text, 170);
     let y = 20;
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
@@ -310,13 +366,55 @@ const ClientProfile = () => {
                   </Button>
                 </div>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <textarea
-                  value={editorContent}
-                  onChange={(e) => setEditorContent(e.target.value)}
-                  className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
-                  style={{ minHeight: "60vh" }}
-                />
+              <div className="flex-1 overflow-auto">
+                {templateMode && templateSections.length > 0 ? (
+                  <div className="p-4 sm:p-6 space-y-6">
+                    {templateSections.map((section, si) => (
+                      <div key={si} className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                        <h3 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                          <span className="h-6 w-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{si + 1}</span>
+                          {section.title}
+                        </h3>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {section.fields.map((field, fi) => (
+                            <div key={fi} className={`space-y-1.5 ${field.value.length > 80 ? "sm:col-span-2" : ""}`}>
+                              <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                              {field.value.length > 80 ? (
+                                <Textarea
+                                  value={field.value}
+                                  onChange={(e) => {
+                                    const updated = [...templateSections];
+                                    updated[si].fields[fi].value = e.target.value;
+                                    setTemplateSections(updated);
+                                  }}
+                                  rows={3}
+                                  className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                                />
+                              ) : (
+                                <Input
+                                  value={field.value}
+                                  onChange={(e) => {
+                                    const updated = [...templateSections];
+                                    updated[si].fields[fi].value = e.target.value;
+                                    setTemplateSections(updated);
+                                  }}
+                                  className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <textarea
+                    value={editorContent}
+                    onChange={(e) => setEditorContent(e.target.value)}
+                    className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
+                    style={{ minHeight: "60vh" }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -354,7 +452,7 @@ const ClientProfile = () => {
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Upload documents for this client</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Upload a business model, pitch deck, company overview, or draft plan and the AI will read it and generate a business plan automatically.
+                    Upload a business model, pitch deck, or company overview. AI will read it and let you generate a business plan or license application template.
                   </p>
                 </div>
                 <Button onClick={() => document.getElementById("upload-documents-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
@@ -367,24 +465,35 @@ const ClientProfile = () => {
 
         {/* Company Info Cards */}
         <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+          {/* Company Details */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Company Details</h3>
             </div>
             <dl className="space-y-3 text-sm">
-              {client.incorporation_date && (
-                <div>
-                  <dt className="text-xs text-muted-foreground uppercase tracking-wider">Incorporation Date</dt>
-                  <dd className="mt-0.5 font-mono text-foreground">{client.incorporation_date}</dd>
-                </div>
-              )}
-              {client.registered_address && (
-                <div>
-                  <dt className="text-xs text-muted-foreground uppercase tracking-wider">Registered Address</dt>
-                  <dd className="mt-0.5 text-foreground">{client.registered_address}</dd>
-                </div>
-              )}
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Hash className="h-3 w-3" /> Registration Number
+                </dt>
+                <dd className="mt-0.5 font-mono text-foreground">{client.registration_number || <span className="text-muted-foreground italic">Not provided</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Globe className="h-3 w-3" /> Jurisdiction
+                </dt>
+                <dd className="mt-0.5 text-foreground">{client.jurisdiction || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider">Incorporation Date</dt>
+                <dd className="mt-0.5 font-mono text-foreground">{client.incorporation_date || <span className="text-muted-foreground italic">Not provided</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Registered Address
+                </dt>
+                <dd className="mt-0.5 text-foreground">{client.registered_address || <span className="text-muted-foreground italic">Not provided</span>}</dd>
+              </div>
               {client.services && client.services.length > 0 && (
                 <div>
                   <dt className="text-xs text-muted-foreground uppercase tracking-wider">Services</dt>
@@ -398,35 +507,45 @@ const ClientProfile = () => {
             </dl>
           </div>
 
+          {/* Ownership Structure */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <UsersIcon className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Ownership Structure</h3>
             </div>
-            {shareholders.length > 0 ? (
-              <div className="space-y-2 mb-4">
-                {shareholders.map((sh) => (
-                  <div key={sh.id} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{sh.name}</span>
-                    <span className="font-mono text-muted-foreground">{sh.percentage}%</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground mb-4">No shareholders added yet.</p>
-            )}
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Directors</h4>
-            {directors.length > 0 ? (
-              <ul className="space-y-1">
-                {directors.map((d) => (
-                  <li key={d.id} className="text-sm text-foreground">{d.full_name}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">No directors added yet.</p>
-            )}
+            <div className="mb-4">
+              <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Shareholders</h4>
+              {shareholders.length > 0 ? (
+                <div className="space-y-2">
+                  {shareholders.map((sh) => (
+                    <div key={sh.id} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                      <span className="text-foreground">{sh.name}</span>
+                      <span className="font-mono text-muted-foreground">{sh.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No shareholders added yet.</p>
+              )}
+            </div>
+            <div>
+              <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Directors</h4>
+              {directors.length > 0 ? (
+                <div className="space-y-2">
+                  {directors.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                      <span className="text-foreground">{d.full_name}</span>
+                      <span className="text-xs text-muted-foreground">{d.role || "Director"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No directors added yet.</p>
+              )}
+            </div>
           </div>
 
+          {/* Contact Information */}
           <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Phone className="h-4 w-4 text-primary" />
@@ -434,12 +553,16 @@ const ClientProfile = () => {
             </div>
             <dl className="space-y-3 text-sm">
               <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wider">Email</dt>
-                <dd className="mt-0.5 text-foreground">{client.contact_email || "—"}</dd>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Mail className="h-3 w-3" /> Email
+                </dt>
+                <dd className="mt-0.5 text-foreground">{client.contact_email || <span className="text-muted-foreground italic">Not provided</span>}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground uppercase tracking-wider">Phone</dt>
-                <dd className="mt-0.5 font-mono text-foreground">{client.contact_phone || "—"}</dd>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Phone className="h-3 w-3" /> Phone
+                </dt>
+                <dd className="mt-0.5 font-mono text-foreground">{client.contact_phone || <span className="text-muted-foreground italic">Not provided</span>}</dd>
               </div>
             </dl>
           </div>
@@ -452,7 +575,7 @@ const ClientProfile = () => {
             <h2 className="font-display text-lg font-semibold text-foreground">Upload Documents</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Select the type of document to upload. Business-related documents will be read by AI to generate a licensing-ready business plan.
+            Select the type of document to upload. Business-related documents will be read by AI to generate a business plan or license application template.
           </p>
 
           {/* Step 1: Select document type */}
@@ -483,7 +606,7 @@ const ClientProfile = () => {
             </Select>
           </div>
 
-          {/* Step 2: Upload file — drag-and-drop zone */}
+          {/* Step 2: Upload file */}
           <div className="mb-4">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
               Step 2 — Upload File
@@ -524,10 +647,10 @@ const ClientProfile = () => {
                       <p className="text-xs text-muted-foreground">Extracting business information</p>
                     </>
                   )}
-                  {generatingPlan && (
+                  {(generatingPlan || generatingTemplate) && (
                     <>
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm font-medium text-foreground">Generating business plan…</p>
+                      <p className="text-sm font-medium text-foreground">Generating document…</p>
                       <p className="text-xs text-muted-foreground">This may take a minute</p>
                     </>
                   )}
@@ -602,24 +725,54 @@ const ClientProfile = () => {
             </div>
           )}
 
-          {/* Manual Generate button */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Button
-              onClick={() => generateBusinessPlan()}
-              disabled={isBusy}
-              className="gap-2"
-            >
-              {generatingPlan ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
-              ) : (
-                <><FileText className="h-4 w-4" /> Generate Business Plan</>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground">
+          {/* Generation Options — always visible */}
+          <div className="rounded-xl border border-border bg-background p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Brain className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Generate Document</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
               {extractedData
-                ? "Uses extracted data + client profile to generate a detailed plan."
+                ? "Document analyzed successfully. Choose what to generate from the extracted data."
                 : "Upload a document first for best results, or generate from client data only."}
             </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Option 1: Business Plan */}
+              <button
+                onClick={() => generateBusinessPlan()}
+                disabled={isBusy}
+                className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    {generatingPlan ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <FileText className="h-4 w-4 text-primary" />}
+                  </div>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 1</span>
+                </div>
+                <h4 className="font-display text-sm font-semibold text-foreground">Generate Business Plan</h4>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Full regulatory business plan with Executive Summary, Business Model, Compliance Strategy, AML Controls, and Financial Overview.
+                </p>
+              </button>
+
+              {/* Option 2: License Template */}
+              <button
+                onClick={generateLicenseTemplate}
+                disabled={isBusy}
+                className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    {generatingTemplate ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Shield className="h-4 w-4 text-primary" />}
+                  </div>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 2</span>
+                </div>
+                <h4 className="font-display text-sm font-semibold text-foreground">Generate License Application Template</h4>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Complete license preparation form with Company Info, Directors, Shareholders, Financials, Safeguarding, and Compliance sections.
+                </p>
+              </button>
+            </div>
           </div>
         </div>
 
