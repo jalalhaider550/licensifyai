@@ -209,37 +209,42 @@ const LicensingForm = () => {
     }
   };
 
+  const getFormPayload = () => ({
+    client: {
+      company_name: firm.companyName,
+      jurisdiction: meta.jurisdiction,
+      registration_number: firm.regNumber,
+      registered_address: firm.address,
+      services: activities.services.split(",").map((s) => s.trim()).filter(Boolean),
+      contact_email: firm.contactEmail,
+      website: firm.website,
+    },
+    directors: directors.filter((d) => d.name).map((d) => ({ full_name: d.name, role: d.role, nationality: d.nationality })),
+    shareholders: shareholdersList.filter((s) => s.name).map((s) => ({ name: s.name, percentage: Number(s.percentage) || 0, country: s.country })),
+    extractedData: {
+      revenue_model: activities.revenueModel,
+      target_customers: activities.targetCustomers,
+      markets: activities.markets,
+      technology_platform: "",
+      compliance_considerations: compliance.amlProgram,
+      capital_amount: financial.capitalAmount,
+      source_of_funds: financial.sourceOfFunds,
+      expected_volume: financial.expectedVolume,
+      compliance_officer: compliance.complianceOfficer,
+      risk_management: compliance.riskManagement,
+    },
+    licenseType: meta.name,
+    currency: meta.currency,
+  });
+
   const generateBusinessPlan = async () => {
     setGeneratingPlan(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
-        body: {
-          action: "generate-business-plan",
-          client: {
-            company_name: firm.companyName,
-            jurisdiction: meta.jurisdiction,
-            registration_number: firm.regNumber,
-            registered_address: firm.address,
-            services: activities.services.split(",").map((s) => s.trim()).filter(Boolean),
-            contact_email: firm.contactEmail,
-          },
-          directors: directors.filter((d) => d.name).map((d) => ({ full_name: d.name, role: d.role })),
-          shareholders: shareholdersList.filter((s) => s.name).map((s) => ({ name: s.name, percentage: Number(s.percentage) || 0 })),
-          extractedData: {
-            revenue_model: activities.revenueModel,
-            target_customers: activities.targetCustomers,
-            technology_platform: "",
-            compliance_considerations: compliance.amlProgram,
-            capital_amount: financial.capitalAmount,
-            source_of_funds: financial.sourceOfFunds,
-            compliance_officer: compliance.complianceOfficer,
-          },
-          licenseType: meta.name,
-          currency: meta.currency,
-        },
+        body: { action: "generate-business-plan", ...getFormPayload() },
       });
       if (error) throw error;
-      setEditorTitle(`${meta.name} — Business Plan — ${firm.companyName}`);
+      setEditorTitle(`Business Plan — ${firm.companyName}`);
       setEditorContent(data.content || "Generation failed.");
       setEditorOpen(true);
       toast.success("Business plan generated!");
@@ -247,6 +252,24 @@ const LicensingForm = () => {
       toast.error(err.message || "Failed to generate");
     } finally {
       setGeneratingPlan(false);
+    }
+  };
+
+  const generateLicenseTemplate = async () => {
+    setGeneratingTemplate(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+        body: { action: "generate-license-template", ...getFormPayload() },
+      });
+      if (error) throw error;
+      setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+      setEditorContent(data.content || "Generation failed.");
+      setEditorOpen(true);
+      toast.success("License application template generated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate");
+    } finally {
+      setGeneratingTemplate(false);
     }
   };
 
