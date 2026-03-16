@@ -43,6 +43,7 @@ const App = () => (
             <Route path="/applications" element={<Applications />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/compliance" element={<ComplianceDocuments />} />
+            <Route path="/uk-requirements" element={<UKRequirements />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/activity" element={<ActivityFeed />} />
             <Route path="/settings" element={<Settings />} />
