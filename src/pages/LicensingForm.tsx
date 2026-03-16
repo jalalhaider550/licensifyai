@@ -28,6 +28,8 @@ const LICENSE_META: Record<string, { name: string; jurisdiction: "UK" | "US"; au
 
 interface DirectorEntry { name: string; nationality: string; role: string }
 interface ShareholderEntry { name: string; percentage: string; country: string }
+interface TemplateField { label: string; value: string }
+interface TemplateSection { title: string; fields: TemplateField[] }
 
 const SECTIONS = ["firm", "activities", "directors", "shareholders", "financial", "compliance", "upload"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -76,6 +78,8 @@ const LicensingForm = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editorTitle, setEditorTitle] = useState("");
+  const [templateSections, setTemplateSections] = useState<TemplateSection[]>([]);
+  const [templateMode, setTemplateMode] = useState(false);
 
   // Missing info
   const [missingItems, setMissingItems] = useState<string[]>([]);
@@ -244,6 +248,7 @@ const LicensingForm = () => {
         body: { action: "generate-business-plan", ...getFormPayload() },
       });
       if (error) throw error;
+      setTemplateMode(false);
       setEditorTitle(`Business Plan — ${firm.companyName}`);
       setEditorContent(data.content || "Generation failed.");
       setEditorOpen(true);
@@ -262,10 +267,30 @@ const LicensingForm = () => {
         body: { action: "generate-license-template", ...getFormPayload() },
       });
       if (error) throw error;
-      setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
-      setEditorContent(data.content || "Generation failed.");
-      setEditorOpen(true);
-      toast.success("License application template generated!");
+
+      const content = data.content || "";
+      let parsed: { sections: TemplateSection[] } | null = null;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      } catch {
+        parsed = null;
+      }
+
+      if (parsed?.sections?.length) {
+        setTemplateSections(parsed.sections);
+        setTemplateMode(true);
+        setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      } else {
+        // Fallback to markdown editor
+        setTemplateMode(false);
+        setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+        setEditorContent(content);
+        setEditorOpen(true);
+        toast.success("License application template generated!");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to generate");
     } finally {
@@ -273,8 +298,15 @@ const LicensingForm = () => {
     }
   };
 
+  const templateToText = () => {
+    return templateSections.map((s) =>
+      `## ${s.title}\n\n${s.fields.map((f) => `${f.label}: ${f.value}`).join("\n")}`
+    ).join("\n\n");
+  };
+
   const exportAsWord = async () => {
-    const paragraphs = editorContent.split("\n").map((line) => {
+    const text = templateMode ? templateToText() : editorContent;
+    const paragraphs = text.split("\n").map((line) => {
       if (line.startsWith("# ")) return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
       if (line.startsWith("## ")) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
       if (line.startsWith("### ")) return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
@@ -286,8 +318,9 @@ const LicensingForm = () => {
   };
 
   const exportAsPDF = () => {
+    const text = templateMode ? templateToText() : editorContent;
     const pdf = new jsPDF();
-    const lines = pdf.splitTextToSize(editorContent, 170);
+    const lines = pdf.splitTextToSize(text, 170);
     let y = 20;
     pdf.setFontSize(10);
     for (const line of lines) {
@@ -342,13 +375,55 @@ const LicensingForm = () => {
                 <Button size="sm" variant="ghost" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></Button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <textarea
-                value={editorContent}
-                onChange={(e) => setEditorContent(e.target.value)}
-                className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
-                style={{ minHeight: "60vh" }}
-              />
+            <div className="flex-1 overflow-auto">
+              {templateMode && templateSections.length > 0 ? (
+                <div className="p-4 sm:p-6 space-y-6">
+                  {templateSections.map((section, si) => (
+                    <div key={si} className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                      <h3 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                        <span className="h-6 w-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{si + 1}</span>
+                        {section.title}
+                      </h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {section.fields.map((field, fi) => (
+                          <div key={fi} className={`space-y-1.5 ${field.value.length > 80 ? "sm:col-span-2" : ""}`}>
+                            <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                            {field.value.length > 80 ? (
+                              <Textarea
+                                value={field.value}
+                                onChange={(e) => {
+                                  const updated = [...templateSections];
+                                  updated[si].fields[fi].value = e.target.value;
+                                  setTemplateSections(updated);
+                                }}
+                                rows={3}
+                                className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                              />
+                            ) : (
+                              <Input
+                                value={field.value}
+                                onChange={(e) => {
+                                  const updated = [...templateSections];
+                                  updated[si].fields[fi].value = e.target.value;
+                                  setTemplateSections(updated);
+                                }}
+                                className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  value={editorContent}
+                  onChange={(e) => setEditorContent(e.target.value)}
+                  className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
+                  style={{ minHeight: "60vh" }}
+                />
+              )}
             </div>
           </div>
         </div>

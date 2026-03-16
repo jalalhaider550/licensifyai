@@ -131,26 +131,112 @@ Additional Data:
 ${extractedData ? JSON.stringify(extractedData, null, 2) : "No additional data"}
 `.trim();
 
-      systemPrompt = `You are a regulatory compliance document specialist for fintech licensing. You generate complete, professional license application preparation templates that lawyers use when submitting regulatory applications to the FCA, FinCEN, or state regulators. Use ${currency || "GBP"} for all financial figures. Be thorough and specific.`;
+      systemPrompt = `You are a regulatory compliance document specialist for fintech licensing. You generate structured license application data as JSON. Use ${currency || "GBP"} for all financial figures. Be thorough and specific. Return ONLY valid JSON, no markdown, no code fences.`;
 
       userPrompt = `Generate a comprehensive license application preparation template for a ${licenseType || "fintech license"} using the following company data:
 
 ${clientSummary}
 
-The template MUST include ALL of the following sections with detailed, specific content populated from the company data above:
+Return a JSON object with this exact structure. Populate every field from the company data above. Where data is missing, use "[TO BE PROVIDED]" as the value.
 
-1. Company Information (full legal details, registration, address, website, contact)
-2. Business Activities (services offered, target customers, markets, revenue model)
-3. Directors and Management (full details of each director with roles and nationalities)
-4. Shareholders and Ownership Structure (each shareholder with percentage and country)
-5. Financial Information (capital, source of funds, expected transaction volumes — all in ${currency || "GBP"})
-6. Compliance and AML Program (compliance officer, KYC/CDD procedures, transaction monitoring, SAR reporting)
-7. Risk Management Framework (risk assessment, mitigation strategies, ongoing monitoring)
-8. Technology Infrastructure (systems, security, data protection, business continuity)
-9. Safeguarding Arrangements (for payment/EMI licenses: how client funds are protected)
-10. Operational Structure (staffing, outsourcing, governance, internal controls)
+{
+  "sections": [
+    {
+      "title": "Company Information",
+      "fields": [
+        { "label": "Legal Entity Name", "value": "..." },
+        { "label": "Registration Number", "value": "..." },
+        { "label": "Registered Address", "value": "..." },
+        { "label": "Website", "value": "..." },
+        { "label": "Contact Email", "value": "..." },
+        { "label": "Jurisdiction", "value": "..." },
+        { "label": "License Type Applied For", "value": "..." },
+        { "label": "Regulatory Authority", "value": "..." }
+      ]
+    },
+    {
+      "title": "Business Activities",
+      "fields": [
+        { "label": "Services Offered", "value": "..." },
+        { "label": "Target Customers", "value": "..." },
+        { "label": "Markets Served", "value": "..." },
+        { "label": "Revenue Model", "value": "..." }
+      ]
+    },
+    {
+      "title": "Directors and Management",
+      "fields": [
+        { "label": "Director 1 — Name", "value": "..." },
+        { "label": "Director 1 — Nationality", "value": "..." },
+        { "label": "Director 1 — Role", "value": "..." }
+      ]
+    },
+    {
+      "title": "Shareholders and Ownership Structure",
+      "fields": [
+        { "label": "Shareholder 1 — Name", "value": "..." },
+        { "label": "Shareholder 1 — Ownership %", "value": "..." },
+        { "label": "Shareholder 1 — Country", "value": "..." }
+      ]
+    },
+    {
+      "title": "Financial Information",
+      "fields": [
+        { "label": "Initial Capital (${currency || "GBP"})", "value": "..." },
+        { "label": "Source of Funds", "value": "..." },
+        { "label": "Expected Monthly Transaction Volume (${currency || "GBP"})", "value": "..." },
+        { "label": "Projected Annual Revenue (${currency || "GBP"})", "value": "..." }
+      ]
+    },
+    {
+      "title": "Compliance and AML Program",
+      "fields": [
+        { "label": "Compliance Officer / MLRO", "value": "..." },
+        { "label": "KYC / CDD Procedures", "value": "..." },
+        { "label": "Transaction Monitoring", "value": "..." },
+        { "label": "SAR Reporting Process", "value": "..." },
+        { "label": "Staff Training Program", "value": "..." }
+      ]
+    },
+    {
+      "title": "Risk Management Framework",
+      "fields": [
+        { "label": "Risk Assessment Methodology", "value": "..." },
+        { "label": "Key Risks Identified", "value": "..." },
+        { "label": "Mitigation Strategies", "value": "..." },
+        { "label": "Ongoing Monitoring", "value": "..." }
+      ]
+    },
+    {
+      "title": "Technology Infrastructure",
+      "fields": [
+        { "label": "Core Technology Platform", "value": "..." },
+        { "label": "Data Security Measures", "value": "..." },
+        { "label": "Data Protection / GDPR Compliance", "value": "..." },
+        { "label": "Business Continuity Plan", "value": "..." }
+      ]
+    },
+    {
+      "title": "Safeguarding Arrangements",
+      "fields": [
+        { "label": "Safeguarding Method", "value": "..." },
+        { "label": "Safeguarding Bank", "value": "..." },
+        { "label": "Reconciliation Frequency", "value": "..." }
+      ]
+    },
+    {
+      "title": "Operational Structure",
+      "fields": [
+        { "label": "Number of Staff", "value": "..." },
+        { "label": "Outsourced Functions", "value": "..." },
+        { "label": "Governance Structure", "value": "..." },
+        { "label": "Internal Controls", "value": "..." }
+      ]
+    }
+  ]
+}
 
-Write the full document in markdown format. Each section should be detailed with subsections. Where data is missing, include clear placeholder markers like [TO BE PROVIDED] so lawyers know what still needs to be completed. This should be a ready-to-use template for regulatory submission.`;
+Include ALL directors and shareholders as separate fields (Director 1, Director 2, etc.). Add additional fields within sections where the company data warrants it. Return ONLY the JSON.`;
 
     } else {
       const { documentType, documentName, client, directors, shareholders } = body;
