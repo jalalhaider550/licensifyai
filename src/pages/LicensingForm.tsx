@@ -71,6 +71,8 @@ const LicensingForm = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
+  const [documentProcessed, setDocumentProcessed] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editorTitle, setEditorTitle] = useState("");
