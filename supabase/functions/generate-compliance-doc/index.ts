@@ -18,7 +18,33 @@ serve(async (req) => {
     let systemPrompt: string;
     let userPrompt: string;
 
-    if (action === "extract-business-model") {
+    if (action === "extract-form-fields") {
+      const { documentText, clientName, licenseType } = body;
+
+      systemPrompt = `You are a regulatory compliance analyst specialising in fintech licensing. Read the business document and extract ALL relevant information to populate a licensing application form. Return a JSON object with these fields (use null if not found):
+- company_name: string
+- registration_number: string
+- address: string
+- website: string
+- contact_email: string
+- services: array of strings
+- target_customers: string
+- markets: string
+- revenue_model: string
+- capital_amount: string
+- source_of_funds: string
+- expected_volume: string
+- compliance_officer: string
+- aml_program: string
+- risk_management: string
+- directors: array of {name, nationality, role}
+- shareholders: array of {name, percentage, country}
+
+Return ONLY valid JSON. No markdown.`;
+
+      userPrompt = `Extract form fields for a ${licenseType || "fintech license"} application from this document for ${clientName || "the company"}:\n\n${documentText}`;
+
+    } else if (action === "extract-business-model") {
       const { documentText, clientName } = body;
       
       systemPrompt = `You are a regulatory compliance analyst specializing in fintech licensing. Your task is to read business model documents and extract structured information. Return a JSON object with the following fields:
@@ -35,7 +61,7 @@ Be thorough and extract as much relevant detail as possible. Return ONLY valid J
       userPrompt = `Extract structured business information from the following document for ${clientName || "the company"}:\n\n${documentText}`;
 
     } else if (action === "generate-business-plan") {
-      const { client, directors, shareholders, extractedData } = body;
+      const { client, directors, shareholders, extractedData, licenseType, currency } = body;
 
       const clientSummary = `
 Company: ${client.company_name}
@@ -45,6 +71,8 @@ Registered Address: ${client.registered_address || "Not provided"}
 Services: ${client.services?.join(", ") || "Not specified"}
 Contact Email: ${client.contact_email || "Not provided"}
 Incorporation Date: ${client.incorporation_date || "Not provided"}
+License Type: ${licenseType || "Not specified"}
+Currency: ${currency || "GBP"}
 
 Directors:
 ${directors?.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"})`).join("\n") : "No directors recorded"}
@@ -56,7 +84,7 @@ Extracted Business Model Data:
 ${extractedData ? JSON.stringify(extractedData, null, 2) : "No extracted data available"}
 `.trim();
 
-      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed business plans suitable for regulatory licensing applications (UK FCA and US FinCEN/state regulators). Your documents should be comprehensive, well-structured, and include specific references to the company's data.`;
+      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed business plans suitable for regulatory licensing applications (UK FCA and US FinCEN/state regulators). Your documents should be comprehensive, well-structured, and include specific references to the company's data. Use ${currency || "GBP"} for all financial figures.`;
 
       userPrompt = `Generate a comprehensive, detailed fintech business plan for regulatory submission using the following company data:
 
@@ -77,10 +105,9 @@ The business plan MUST include ALL of the following sections with detailed conte
 11. Growth Strategy
 12. Financial Overview
 
-Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs.`;
+Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs. Use ${currency || "GBP"} for all financial references.`;
 
     } else {
-      // Default: original compliance doc generation
       const { documentType, documentName, client, directors, shareholders } = body;
 
       const clientSummary = `
@@ -100,7 +127,7 @@ Shareholders:
 ${shareholders.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%)`).join("\n") : "No shareholders recorded"}
 `.trim();
 
-      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed compliance documents for fintech license applications. Your documents should be structured with clear headings, sections, and subsections. Use formal legal language appropriate for regulatory submissions. Include specific references to relevant regulations where appropriate. Always tailor the document to the specific company data provided.`;
+      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed compliance documents for fintech license applications. Your documents should be structured with clear headings, sections, and subsections. Use formal legal language appropriate for regulatory submissions.`;
 
       userPrompt = `Generate a comprehensive "${documentName}" document for the following company. Use all the company data provided to make the document specific and relevant.
 

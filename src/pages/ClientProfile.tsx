@@ -335,11 +335,18 @@ const ClientProfile = () => {
                   {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
                 </p>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/compliance">
-                  <FileText className="mr-1 h-4 w-4" /> Generate Compliance Docs
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" asChild>
+                  <Link to={`/select-license/${id}`}>
+                    <FileText className="mr-1 h-4 w-4" /> Start Licensing Project
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/compliance">
+                    <FileText className="mr-1 h-4 w-4" /> Compliance Docs
+                  </Link>
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-4">

@@ -12,6 +12,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientProfile from "./pages/ClientProfile";
+import SelectLicense from "./pages/SelectLicense";
+import LicensingForm from "./pages/LicensingForm";
 import Licenses from "./pages/Licenses";
 import Applications from "./pages/Applications";
 import Documents from "./pages/Documents";
@@ -39,12 +41,13 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientProfile />} />
+            <Route path="/select-license/:clientId" element={<SelectLicense />} />
+            <Route path="/licensing-project/:clientId/:licenseType" element={<LicensingForm />} />
             <Route path="/licenses" element={<Licenses />} />
             <Route path="/applications" element={<Applications />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/compliance" element={<ComplianceDocuments />} />
             <Route path="/licensing-requirements" element={<LicensingRequirements />} />
-            {/* Legacy route redirect */}
             <Route path="/uk-requirements" element={<LicensingRequirements />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/activity" element={<ActivityFeed />} />
