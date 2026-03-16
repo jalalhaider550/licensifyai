@@ -1,26 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, MoreHorizontal } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { AddClientDialog } from "@/components/app/AddClientDialog";
 
 interface Client {
   id: string;
-  name: string;
+  company_name: string;
   jurisdiction: string;
-  status: "active" | "pending" | "completed";
-  licenses: number;
-  lastUpdated: string;
+  status: string;
+  updated_at: string;
 }
-
-const mockClients: Client[] = [
-  { id: "1", name: "NeoBank Ltd", jurisdiction: "UK", status: "active", licenses: 2, lastUpdated: "2 hours ago" },
-  { id: "2", name: "PayStream Inc", jurisdiction: "US", status: "active", licenses: 1, lastUpdated: "4 hours ago" },
-  { id: "3", name: "FinWave Technologies", jurisdiction: "UK", status: "pending", licenses: 1, lastUpdated: "1 day ago" },
-  { id: "4", name: "CryptoFlex Ltd", jurisdiction: "UK", status: "completed", licenses: 3, lastUpdated: "2 days ago" },
-  { id: "5", name: "TransactPay Corp", jurisdiction: "US", status: "active", licenses: 1, lastUpdated: "3 days ago" },
-];
 
 const statusStyles: Record<string, string> = {
   active: "bg-primary/10 text-primary border border-primary/20",
@@ -29,11 +24,39 @@ const statusStyles: Record<string, string> = {
 };
 
 const Clients = () => {
+  const { user } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filtered = mockClients.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const fetchClients = async () => {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, company_name, jurisdiction, status, updated_at")
+      .order("updated_at", { ascending: false });
+    if (error) {
+      toast.error("Failed to load clients");
+    } else {
+      setClients(data || []);
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchClients();
+  }, [user]);
+
+  const filtered = clients.filter((c) =>
+    c.company_name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
 
   return (
     <AppShell>
@@ -45,15 +68,12 @@ const Clients = () => {
               Manage your fintech client portfolio.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/clients/new">
-              <Plus className="mr-1 h-4 w-4" />
-              Add Client
-            </Link>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add Client
           </Button>
         </div>
 
-        {/* Search */}
         <div className="mb-4 relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -64,46 +84,51 @@ const Clients = () => {
           />
         </div>
 
-        {/* Table */}
         <div className="rounded-sm border border-border bg-card">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Company</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Jurisdiction</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Licenses</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Updated</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((client) => (
-                <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link to={`/clients/${client.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                      {client.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{client.jurisdiction}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[client.status]}`}>
-                      {client.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-sm text-foreground">{client.licenses}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{client.lastUpdated}</td>
-                  <td className="px-4 py-3">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </td>
+          {filtered.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              {clients.length === 0
+                ? "No clients yet. Add your first client to get started."
+                : "No clients matching your search."}
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Company</th>
+                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Jurisdiction</th>
+                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((client) => (
+                  <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <Link to={`/clients/${client.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+                        {client.company_name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{client.jurisdiction}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[client.status] || ""}`}>
+                        {client.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{timeAgo(client.updated_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
+
+      <AddClientDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onClientAdded={fetchClients}
+      />
     </AppShell>
   );
 };
