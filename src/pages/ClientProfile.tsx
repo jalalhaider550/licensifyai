@@ -69,43 +69,51 @@ const ClientProfile = () => {
     setUploading(true);
 
     try {
-      // For text files, read directly
+      // Extract text from the document using proper parsers
+      toast.info("Reading document content…");
       let documentText = "";
-
-      if (file.type === "text/plain") {
-        documentText = await file.text();
-      } else {
-        // Upload to storage and read text content
-        const filePath = `${user.id}/${id}/business-model-${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("documents")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        // For PDF/Word, we'll send the text content we can extract
-        // For now, read as text (works for text-based PDFs)
-        documentText = await file.text();
-
-        // Store reference in documents table
-        await supabase.from("documents").insert({
-          client_id: id!,
-          user_id: user.id,
-          name: `Business Model: ${file.name}`,
-          file_type: file.type,
-          storage_path: filePath,
-          ai_status: "pending",
-        });
+      try {
+        documentText = await extractTextFromFile(file);
+      } catch (parseErr: any) {
+        console.error("Parse error:", parseErr);
+        toast.error("Could not read the document. Please try a different file format.");
+        setUploading(false);
+        return;
       }
+
+      if (!documentText || documentText.trim().length < 20) {
+        toast.error("The document appears to be empty or could not be read. Please try a different file.");
+        setUploading(false);
+        return;
+      }
+
+      // Upload file to storage for record keeping
+      const filePath = `${user.id}/${id}/business-model-${Date.now()}-${file.name}`;
+      await supabase.storage.from("documents").upload(filePath, file);
+
+      // Store reference in documents table
+      await supabase.from("documents").insert({
+        client_id: id!,
+        user_id: user.id,
+        name: `Business Model: ${file.name}`,
+        file_type: file.type,
+        storage_path: filePath,
+        ai_status: "pending",
+      });
+
+      // Refresh documents list
+      const { data: updatedDocs } = await supabase.from("documents").select("*").eq("client_id", id!);
+      setDocuments(updatedDocs || []);
 
       setUploading(false);
       setExtracting(true);
+      toast.info("AI is analyzing your document…");
 
-      // Send to AI for extraction
+      // Send extracted text to AI for business model extraction
       const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
         body: {
           action: "extract-business-model",
-          documentText,
+          documentText: documentText.slice(0, 30000),
           clientName: client.company_name,
         },
       });
@@ -116,7 +124,6 @@ const ClientProfile = () => {
       let parsed;
       try {
         const content = data.content || "";
-        // Try to extract JSON from the response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
       } catch {
@@ -124,17 +131,23 @@ const ClientProfile = () => {
       }
 
       setExtractedData(parsed);
-      toast.success("Business model document analyzed successfully!");
+      setExtracting(false);
+      toast.success("Document analyzed! Now generating your business plan…");
+
+      // Auto-generate business plan after extraction
+      await generateBusinessPlan(parsed);
     } catch (err: any) {
       console.error("Upload/extract error:", err);
       toast.error(err.message || "Failed to process document");
-    } finally {
       setUploading(false);
       setExtracting(false);
     }
+
+    // Reset file input so the same file can be re-uploaded
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleGenerateBusinessPlan = async () => {
+  const generateBusinessPlan = async (extractedInfo?: any) => {
     if (!client) return;
     setGeneratingPlan(true);
 
@@ -153,7 +166,7 @@ const ClientProfile = () => {
           },
           directors: directors.map((d) => ({ full_name: d.full_name, role: d.role })),
           shareholders: shareholders.map((s) => ({ name: s.name, percentage: s.percentage })),
-          extractedData,
+          extractedData: extractedInfo || extractedData,
         },
       });
 
@@ -162,7 +175,7 @@ const ClientProfile = () => {
       setEditorTitle(`Business Plan — ${client.company_name}`);
       setEditorContent(data.content || "Generation failed. Please try again.");
       setEditorOpen(true);
-      toast.success("Business plan generated successfully!");
+      toast.success("Business plan generated! Review and edit below.");
     } catch (err: any) {
       console.error("Business plan error:", err);
       toast.error(err.message || "Failed to generate business plan");
