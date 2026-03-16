@@ -14,7 +14,239 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          incorporation_date: string | null
+          jurisdiction: string
+          registered_address: string | null
+          registration_number: string | null
+          services: string[] | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          incorporation_date?: string | null
+          jurisdiction?: string
+          registered_address?: string | null
+          registration_number?: string | null
+          services?: string[] | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          incorporation_date?: string | null
+          jurisdiction?: string
+          registered_address?: string | null
+          registration_number?: string | null
+          services?: string[] | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      directors: {
+        Row: {
+          client_id: string
+          created_at: string
+          full_name: string
+          id: string
+          role: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          full_name: string
+          id?: string
+          role?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directors_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          ai_status: string | null
+          client_id: string
+          created_at: string
+          extracted_data: Json | null
+          file_type: string | null
+          id: string
+          name: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_status?: string | null
+          client_id: string
+          created_at?: string
+          extracted_data?: Json | null
+          file_type?: string | null
+          id?: string
+          name: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_status?: string | null
+          client_id?: string
+          created_at?: string
+          extracted_data?: Json | null
+          file_type?: string | null
+          id?: string
+          name?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_applications: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          license_type: string
+          missing_documents: number | null
+          readiness_score: number | null
+          regulatory_authority: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          license_type: string
+          missing_documents?: number | null
+          readiness_score?: number | null
+          regulatory_authority: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          license_type?: string
+          missing_documents?: number | null
+          readiness_score?: number | null
+          regulatory_authority?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_applications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          firm_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          firm_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          firm_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shareholders: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          percentage: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          percentage?: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shareholders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
