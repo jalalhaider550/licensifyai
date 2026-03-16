@@ -28,6 +28,8 @@ const LICENSE_META: Record<string, { name: string; jurisdiction: "UK" | "US"; au
 
 interface DirectorEntry { name: string; nationality: string; role: string }
 interface ShareholderEntry { name: string; percentage: string; country: string }
+interface TemplateField { label: string; value: string }
+interface TemplateSection { title: string; fields: TemplateField[] }
 
 const SECTIONS = ["firm", "activities", "directors", "shareholders", "financial", "compliance", "upload"] as const;
 type Section = (typeof SECTIONS)[number];
