@@ -1,27 +1,33 @@
+import { Upload, Brain, FileCheck, Send } from "lucide-react";
+
 const steps = [
   {
     number: "01",
-    title: "Onboard Your Client",
+    icon: Upload,
+    title: "Upload Business Documents",
     description:
-      "Create a new client workspace. Enter company details, jurisdiction, directors, and shareholders.",
+      "Upload a business model document, pitch deck, or company description. Accepted formats include PDF, Word, and text files.",
   },
   {
     number: "02",
-    title: "Upload Documents",
+    icon: Brain,
+    title: "AI Reads & Extracts Data",
     description:
-      "Upload corporate documents — certificates, filings, business plans. AI extracts structured data automatically.",
+      "The AI automatically reads the document, extracts services offered, revenue model, target customers, technology, and compliance considerations.",
   },
   {
     number: "03",
+    icon: FileCheck,
     title: "Generate Compliance Documents",
     description:
-      "The platform drafts AML policies, compliance manuals, and risk frameworks using your client's data.",
+      "Generate detailed business plans, AML policies, compliance manuals, and risk frameworks tailored to your client's data.",
   },
   {
     number: "04",
-    title: "Package & Submit",
+    icon: Send,
+    title: "Review, Edit & Export",
     description:
-      "Review generated documents, fill any gaps, and export the complete application package as PDF or Word.",
+      "Review generated documents in the built-in editor, make corrections, and export as Word or PDF for regulatory submission.",
   },
 ];
 
@@ -30,16 +36,27 @@ export const HowItWorksSection = () => {
     <section id="how-it-works" className="border-t border-border">
       <div className="container mx-auto px-6 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground">
-            From Intake to Submission in Four Steps
+          <span className="text-xs font-semibold uppercase tracking-widest text-primary">Simple Workflow</span>
+          <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+            From Document Upload to Regulatory Submission
           </h2>
+          <p className="mt-4 text-muted-foreground">
+            Four steps to prepare a complete licensing application package.
+          </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step) => (
-            <div key={step.number} className="relative">
-              <div className="font-mono text-4xl font-bold text-border">{step.number}</div>
-              <h3 className="mt-3 font-display text-base font-semibold text-foreground">
+        <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, i) => (
+            <div key={step.number} className="relative group">
+              {/* Connector line */}
+              {i < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-8 left-[calc(100%+1rem)] w-[calc(100%-2rem)] h-px bg-gradient-to-r from-primary/30 to-primary/10" />
+              )}
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary mb-5 group-hover:from-primary/25 group-hover:to-primary/10 transition-colors">
+                <step.icon className="h-7 w-7" />
+              </div>
+              <div className="font-mono text-xs font-bold text-primary/50 mb-2">STEP {step.number}</div>
+              <h3 className="font-display text-base font-semibold text-foreground">
                 {step.title}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

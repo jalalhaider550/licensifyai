@@ -16,7 +16,7 @@ import Licenses from "./pages/Licenses";
 import Applications from "./pages/Applications";
 import Documents from "./pages/Documents";
 import ComplianceDocuments from "./pages/ComplianceDocuments";
-import UKRequirements from "./pages/UKRequirements";
+import LicensingRequirements from "./pages/LicensingRequirements";
 import Tasks from "./pages/Tasks";
 import ActivityFeed from "./pages/ActivityFeed";
 import Settings from "./pages/Settings";
@@ -43,7 +43,9 @@ const App = () => (
             <Route path="/applications" element={<Applications />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/compliance" element={<ComplianceDocuments />} />
-            <Route path="/uk-requirements" element={<UKRequirements />} />
+            <Route path="/licensing-requirements" element={<LicensingRequirements />} />
+            {/* Legacy route redirect */}
+            <Route path="/uk-requirements" element={<LicensingRequirements />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/activity" element={<ActivityFeed />} />
             <Route path="/settings" element={<Settings />} />

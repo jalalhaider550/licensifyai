@@ -1,64 +1,73 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Scale, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 
 export const HeroSection = () => {
   return (
-    <section className="relative pt-14">
-      <div className="container mx-auto px-6 py-24 md:py-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-sm border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground animate-fade-in">
-            <Scale className="h-3 w-3" />
-            UK &amp; US Fintech Licensing Automation
+    <section className="relative pt-14 overflow-hidden">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10 pointer-events-none" />
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container relative mx-auto px-6 py-24 md:py-36">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary animate-fade-in">
+            <Sparkles className="h-3.5 w-3.5" />
+            AI-Powered Fintech License Automation
           </div>
 
-          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl animate-fade-in-up">
-            Automate Fintech License Applications with AI
+          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl animate-fade-in-up">
+            Prepare Fintech Licenses{" "}
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              10× Faster
+            </span>{" "}
+            with AI
           </h1>
 
-          <p className="mt-6 text-lg text-muted-foreground leading-relaxed animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-            Licensify AI helps law firms and regulatory consultants prepare fintech license applications faster. 
-            Onboard clients, extract data from documents, generate compliance documents, and assemble 
-            submission-ready application packages — all in one platform.
+          <p className="mt-6 text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+            Upload business documents, let AI extract key data and generate compliance documents — 
+            AML policies, business plans, risk frameworks — ready for regulatory submission.
           </p>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
+          <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
             {[
               "AI document extraction",
               "Compliance document generation",
-              "Application packaging",
+              "UK & US licensing support",
             ].map((item) => (
-              <span key={item} className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" />
+              <span key={item} className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
                 {item}
               </span>
             ))}
           </div>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center animate-fade-in-up" style={{ animationDelay: "160ms" }}>
-            <Button variant="hero" size="xl" asChild>
+            <Button size="lg" className="text-base px-8 py-6 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all" asChild>
               <Link to="/signup">
                 Start Free Trial
-                <ArrowRight className="ml-1 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="hero-outline" size="xl" asChild>
+            <Button variant="outline" size="lg" className="text-base px-8 py-6 rounded-xl" asChild>
               <Link to="/login">Log In to Dashboard</Link>
             </Button>
           </div>
+        </div>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-3 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
-            {[
-              { value: "87%", label: "Average time saved per application" },
-              { value: "12+", label: "License types supported (UK & US)" },
-              { value: "100%", label: "Regulatory compliance coverage" },
-            ].map((stat) => (
-              <div key={stat.label} className="border border-border rounded-sm bg-card p-5">
-                <div className="font-mono text-2xl font-bold text-foreground">{stat.value}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+        {/* Stats */}
+        <div className="mt-20 mx-auto max-w-3xl grid grid-cols-1 gap-4 sm:grid-cols-3 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+          {[
+            { value: "87%", label: "Time saved per application" },
+            { value: "12+", label: "License types supported" },
+            { value: "100%", label: "Regulatory compliance" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-border bg-card/80 backdrop-blur-sm p-6 text-center hover:shadow-md transition-shadow">
+              <div className="font-mono text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{stat.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{stat.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
