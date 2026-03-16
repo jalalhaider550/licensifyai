@@ -14,6 +14,12 @@ import Clients from "./pages/Clients";
 import ClientProfile from "./pages/ClientProfile";
 import Licenses from "./pages/Licenses";
 import Applications from "./pages/Applications";
+import Documents from "./pages/Documents";
+import ComplianceDocuments from "./pages/ComplianceDocuments";
+import Tasks from "./pages/Tasks";
+import ActivityFeed from "./pages/ActivityFeed";
+import Settings from "./pages/Settings";
+import Help from "./pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +40,12 @@ const App = () => (
             <Route path="/clients/:id" element={<ClientProfile />} />
             <Route path="/licenses" element={<Licenses />} />
             <Route path="/applications" element={<Applications />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/compliance" element={<ComplianceDocuments />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/activity" element={<ActivityFeed />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/help" element={<Help />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
