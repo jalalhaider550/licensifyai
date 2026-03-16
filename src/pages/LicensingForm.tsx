@@ -568,7 +568,7 @@ const LicensingForm = () => {
                 <div className="space-y-5">
                   <h2 className="font-display text-lg font-semibold text-foreground">Document Upload & AI Auto-Fill</h2>
                   <p className="text-sm text-muted-foreground">
-                    Upload a document describing the fintech business model (PDF or Word). AI will read it and auto-fill the form fields above.
+                    Upload a document describing the fintech business model (PDF or Word). AI will read it, extract key information, and auto-fill the form.
                   </p>
                   <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleFileUpload} className="hidden" />
                   <button
@@ -594,19 +594,72 @@ const LicensingForm = () => {
                     )}
                   </button>
 
-                  <div className="border-t border-border pt-5">
-                    <h3 className="text-sm font-semibold text-foreground mb-2">Generate Business Plan</h3>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Use the form data to generate a comprehensive regulatory business plan.
-                    </p>
-                    <Button onClick={generateBusinessPlan} disabled={generatingPlan || uploading} className="gap-2">
-                      {generatingPlan ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
-                      ) : (
-                        <><FileText className="h-4 w-4" /> Generate Business Plan</>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Document processed — show generation options */}
+                  {documentProcessed && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Check className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold text-foreground">Document processed — Choose what to generate</h3>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {/* Option 1: Business Plan */}
+                        <button
+                          onClick={generateBusinessPlan}
+                          disabled={generatingPlan || generatingTemplate}
+                          className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              {generatingPlan ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <FileText className="h-4 w-4 text-primary" />}
+                            </div>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 1</span>
+                          </div>
+                          <h4 className="font-display text-sm font-semibold text-foreground">Generate Business Plan</h4>
+                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                            Full regulatory business plan with Executive Summary, Business Model, Compliance Strategy, AML Controls, Financial Overview, and more.
+                          </p>
+                        </button>
+
+                        {/* Option 2: License Template */}
+                        <button
+                          onClick={generateLicenseTemplate}
+                          disabled={generatingPlan || generatingTemplate}
+                          className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              {generatingTemplate ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Shield className="h-4 w-4 text-primary" />}
+                            </div>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 2</span>
+                          </div>
+                          <h4 className="font-display text-sm font-semibold text-foreground">Generate License Application Template</h4>
+                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                            Complete license preparation template with Company Info, Directors, Shareholders, Financials, Safeguarding, and Compliance sections.
+                          </p>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual generation when no doc uploaded */}
+                  {!documentProcessed && (
+                    <div className="border-t border-border pt-5">
+                      <h3 className="text-sm font-semibold text-foreground mb-2">Or generate from form data</h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Upload a document first for best results, or generate using the form data you've entered.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={generateBusinessPlan} disabled={generatingPlan || uploading} variant="outline" size="sm" className="gap-2">
+                          {generatingPlan ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                          Business Plan
+                        </Button>
+                        <Button onClick={generateLicenseTemplate} disabled={generatingTemplate || uploading} variant="outline" size="sm" className="gap-2">
+                          {generatingTemplate ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
+                          License Template
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
