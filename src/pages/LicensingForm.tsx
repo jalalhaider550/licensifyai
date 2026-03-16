@@ -424,7 +424,7 @@ const LicensingForm = () => {
                   style={{ minHeight: "60vh" }}
                 />
               )}
-          </div>
+            </div>
         </div>
       )}
 
