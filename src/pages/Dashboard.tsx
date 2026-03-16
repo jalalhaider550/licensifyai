@@ -1,22 +1,38 @@
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { Users, FileText, AlertCircle, Clock } from "lucide-react";
-
-const stats = [
-  { label: "Active Clients", value: "12", icon: Users, change: "+2 this month" },
-  { label: "Licensing Projects", value: "8", icon: FileText, change: "3 in progress" },
-  { label: "Tasks Pending", value: "14", icon: AlertCircle, change: "5 high priority" },
-  { label: "Recent Activity", value: "24", icon: Clock, change: "Actions this week" },
-];
-
-const recentActivity = [
-  { action: "Document uploaded", client: "NeoBank Ltd", time: "2 hours ago", type: "upload" },
-  { action: "AML Policy generated", client: "PayStream Inc", time: "4 hours ago", type: "generate" },
-  { action: "Client onboarded", client: "FinWave Technologies", time: "1 day ago", type: "onboard" },
-  { action: "EMI application submitted", client: "CryptoFlex Ltd", time: "2 days ago", type: "submit" },
-  { action: "Risk framework reviewed", client: "NeoBank Ltd", time: "3 days ago", type: "review" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const [clientCount, setClientCount] = useState(0);
+  const [appCount, setAppCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchStats = async () => {
+      const { count: cc } = await supabase
+        .from("clients")
+        .select("*", { count: "exact", head: true });
+      setClientCount(cc || 0);
+
+      const { count: ac } = await supabase
+        .from("license_applications")
+        .select("*", { count: "exact", head: true });
+      setAppCount(ac || 0);
+    };
+    fetchStats();
+  }, [user]);
+
+  const stats = [
+    { label: "Active Clients", value: String(clientCount), icon: Users, change: "Total onboarded" },
+    { label: "Licensing Projects", value: String(appCount), icon: FileText, change: "Active applications" },
+    { label: "Tasks Pending", value: "0", icon: AlertCircle, change: "Needs attention" },
+    { label: "Recent Activity", value: "—", icon: Clock, change: "This week" },
+  ];
+
   return (
     <AppShell>
       <div className="p-6 lg:p-8">
@@ -27,7 +43,6 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-sm border border-border bg-card p-5">
@@ -41,29 +56,11 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Recent Activity */}
-        <div className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-foreground">Recent Activity</h2>
-          <div className="mt-4 rounded-sm border border-border bg-card">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Action</th>
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Client</th>
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentActivity.map((item, i) => (
-                  <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-foreground">{item.action}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{item.client}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground font-mono text-xs">{item.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="mt-8 rounded-sm border border-border bg-card p-6">
+          <h2 className="font-display text-lg font-semibold text-foreground mb-2">Get Started</h2>
+          <p className="text-sm text-muted-foreground">
+            Add your first client to begin automating license applications. Navigate to <strong>Clients</strong> to onboard a fintech company.
+          </p>
         </div>
       </div>
     </AppShell>
