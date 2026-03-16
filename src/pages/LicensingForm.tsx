@@ -248,6 +248,7 @@ const LicensingForm = () => {
         body: { action: "generate-business-plan", ...getFormPayload() },
       });
       if (error) throw error;
+      setTemplateMode(false);
       setEditorTitle(`Business Plan — ${firm.companyName}`);
       setEditorContent(data.content || "Generation failed.");
       setEditorOpen(true);
