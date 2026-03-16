@@ -327,18 +327,34 @@ const ClientProfile = () => {
           <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
             <ArrowLeft className="h-3 w-3" /> Back to Clients
           </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">{client.company_name}</h1>
-              <p className="mt-1 text-sm text-muted-foreground font-mono">
-                {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
-              </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">{client.company_name}</h1>
+                <p className="mt-1 text-sm text-muted-foreground font-mono">
+                  {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/compliance">
+                  <FileText className="mr-1 h-4 w-4" /> Generate Compliance Docs
+                </Link>
+              </Button>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/compliance">
-                <FileText className="mr-1 h-4 w-4" /> Generate Compliance Docs
-              </Link>
-            </Button>
+
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Upload documents for this client</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Upload a business model, pitch deck, company overview, or draft plan and the AI will read it and generate a business plan automatically.
+                  </p>
+                </div>
+                <Button onClick={() => document.getElementById("upload-documents-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                  <Upload className="mr-1 h-4 w-4" /> Upload Documents
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -423,7 +439,7 @@ const ClientProfile = () => {
         </div>
 
         {/* ====== UPLOAD DOCUMENTS SECTION ====== */}
-        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
+        <div id="upload-documents-section" className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-1">
             <FolderOpen className="h-5 w-5 text-primary" />
             <h2 className="font-display text-lg font-semibold text-foreground">Upload Documents</h2>

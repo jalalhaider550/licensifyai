@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, MoreHorizontal } from "lucide-react";
+import { Plus, Search, ArrowRight, FolderOpen, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ const Clients = () => {
       .from("clients")
       .select("id, company_name, jurisdiction, status, updated_at")
       .order("updated_at", { ascending: false });
+
     if (error) {
       toast.error("Failed to load clients");
     } else {
@@ -60,18 +61,33 @@ const Clients = () => {
 
   return (
     <AppShell>
-      <div className="p-6 lg:p-8">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Clients</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage your fintech client portfolio.
+              Select a client to upload documents and generate a business plan.
             </p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
             Add Client
           </Button>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Document workflow</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Open a client profile, upload a PDF or Word document, and Licensify AI will read it and generate the business plan in the editor.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1"><FolderOpen className="h-3.5 w-3.5" /> Upload</span>
+              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1"><Brain className="h-3.5 w-3.5" /> AI Generate</span>
+            </div>
+          </div>
         </div>
 
         <div className="mb-4 relative max-w-sm">
@@ -84,44 +100,71 @@ const Clients = () => {
           />
         </div>
 
-        <div className="rounded-sm border border-border bg-card">
-          {filtered.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              {clients.length === 0
-                ? "No clients yet. Add your first client to get started."
-                : "No clients matching your search."}
+        {filtered.length === 0 ? (
+          <div className="rounded-sm border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            {clients.length === 0
+              ? "No clients yet. Add your first client to get started."
+              : "No clients matching your search."}
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 sm:hidden">
+              {filtered.map((client) => (
+                <div key={client.id} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-semibold text-foreground">{client.company_name}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground font-mono">{client.jurisdiction} · {timeAgo(client.updated_at)}</p>
+                    </div>
+                    <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[client.status] || ""}`}>
+                      {client.status}
+                    </span>
+                  </div>
+                  <Button asChild size="sm" className="mt-4 w-full">
+                    <Link to={`/clients/${client.id}`}>
+                      Open Client & Upload Documents <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              ))}
             </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Company</th>
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Jurisdiction</th>
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((client) => (
-                  <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <Link to={`/clients/${client.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                        {client.company_name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{client.jurisdiction}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[client.status] || ""}`}>
-                        {client.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{timeAgo(client.updated_at)}</td>
+
+            <div className="hidden sm:block overflow-hidden rounded-sm border border-border bg-card">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Company</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Jurisdiction</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Updated</th>
+                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody>
+                  {filtered.map((client) => (
+                    <tr key={client.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-foreground">{client.company_name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{client.jurisdiction}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${statusStyles[client.status] || ""}`}>
+                          {client.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{timeAgo(client.updated_at)}</td>
+                      <td className="px-4 py-3">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`/clients/${client.id}`}>
+                            Open Client <ArrowRight className="ml-1 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       <AddClientDialog
