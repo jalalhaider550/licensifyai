@@ -279,7 +279,10 @@ const ClientProfile = () => {
                 {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading || extracting || generatingPlan}>
+                <Upload className="mr-1 h-4 w-4" /> Upload Business Document
+              </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/compliance">
                   <FileText className="mr-1 h-4 w-4" /> Generate Documents
@@ -369,17 +372,16 @@ const ClientProfile = () => {
         </div>
 
         {/* Business Model Document Upload */}
-        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+        <div id="business-model-upload" className="mt-6 rounded-xl border border-border bg-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="h-5 w-5 text-primary" />
             <h2 className="font-display text-lg font-semibold text-foreground">Business Model Document</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Upload a business concept document, pitch deck, company description, or draft business plan. 
-            AI will extract key information and generate a regulatory-ready business plan.
+            Upload a fintech business model file and Licensify AI will read it, extract key details, and generate a regulatory-ready business plan in the editor.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-5">
+          <div className="flex flex-col sm:flex-row gap-4 mb-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -388,21 +390,25 @@ const ClientProfile = () => {
               className="hidden"
             />
             <Button
-              variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || extracting}
+              disabled={uploading || extracting || generatingPlan}
               className="gap-2"
             >
               {uploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading document…</>
               ) : extracting ? (
-                <><Brain className="h-4 w-4 animate-pulse" /> AI Analyzing…</>
+                <><Brain className="h-4 w-4 animate-pulse" /> Reading with AI…</>
+              ) : generatingPlan ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Generating business plan…</>
               ) : (
-                <><Upload className="h-4 w-4" /> Upload Business Document</>
+                <><Upload className="h-4 w-4" /> Upload Document</>
               )}
             </Button>
-            <span className="text-xs text-muted-foreground self-center">PDF, Word, or Text file (max 20MB)</span>
+            <span className="text-xs text-muted-foreground self-center">Accepted: PDF, DOCX, DOC, TXT · Max 20MB</span>
           </div>
+          <p className="text-xs text-muted-foreground mb-5">
+            Best results: upload a PDF or DOCX containing the company overview, services, revenue model, target customers, and compliance approach.
+          </p>
 
           {/* Extracted Data Display */}
           {extractedData && (
@@ -459,7 +465,7 @@ const ClientProfile = () => {
           {/* Generate Business Plan Button */}
           <Button
             onClick={() => generateBusinessPlan()}
-            disabled={generatingPlan}
+            disabled={generatingPlan || uploading || extracting}
             className="gap-2"
           >
             {generatingPlan ? (
