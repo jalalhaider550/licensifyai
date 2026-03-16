@@ -375,14 +375,55 @@ const LicensingForm = () => {
                 <Button size="sm" variant="ghost" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></Button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <textarea
-                value={editorContent}
-                onChange={(e) => setEditorContent(e.target.value)}
-                className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
-                style={{ minHeight: "60vh" }}
-              />
-            </div>
+            <div className="flex-1 overflow-auto">
+              {templateMode && templateSections.length > 0 ? (
+                <div className="p-4 sm:p-6 space-y-6">
+                  {templateSections.map((section, si) => (
+                    <div key={si} className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                      <h3 className="font-display text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+                        <span className="h-6 w-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{si + 1}</span>
+                        {section.title}
+                      </h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {section.fields.map((field, fi) => (
+                          <div key={fi} className={`space-y-1.5 ${field.value.length > 80 ? "sm:col-span-2" : ""}`}>
+                            <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                            {field.value.length > 80 ? (
+                              <Textarea
+                                value={field.value}
+                                onChange={(e) => {
+                                  const updated = [...templateSections];
+                                  updated[si].fields[fi].value = e.target.value;
+                                  setTemplateSections(updated);
+                                }}
+                                rows={3}
+                                className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                              />
+                            ) : (
+                              <Input
+                                value={field.value}
+                                onChange={(e) => {
+                                  const updated = [...templateSections];
+                                  updated[si].fields[fi].value = e.target.value;
+                                  setTemplateSections(updated);
+                                }}
+                                className={`text-sm ${field.value === "[TO BE PROVIDED]" ? "border-warning/50 bg-warning/5 text-warning" : ""}`}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  value={editorContent}
+                  onChange={(e) => setEditorContent(e.target.value)}
+                  className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
+                  style={{ minHeight: "60vh" }}
+                />
+              )}
           </div>
         </div>
       )}
