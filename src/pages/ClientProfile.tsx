@@ -1,8 +1,12 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone, Loader2, Download, X, Brain, BookOpen } from "lucide-react";
+import {
+  ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone,
+  Loader2, Download, X, Brain, BookOpen, FolderOpen, Briefcase,
+  FileBarChart, FilePlus, ChevronDown
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,6 +14,23 @@ import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const DOCUMENT_TYPES = [
+  { value: "business-model", label: "Business Model Document", icon: Briefcase, aiProcess: true },
+  { value: "pitch-deck", label: "Pitch Deck", icon: FileBarChart, aiProcess: true },
+  { value: "company-overview", label: "Company Overview", icon: Building2, aiProcess: true },
+  { value: "draft-business-plan", label: "Draft Business Plan", icon: BookOpen, aiProcess: true },
+  { value: "supporting-document", label: "Supporting Document", icon: FilePlus, aiProcess: false },
+] as const;
+
+type DocTypeValue = (typeof DOCUMENT_TYPES)[number]["value"];
 
 const ClientProfile = () => {
   const { id } = useParams();
@@ -20,12 +41,14 @@ const ClientProfile = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Business model upload state
+  // Upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDocType, setSelectedDocType] = useState<DocTypeValue>("business-model");
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -39,7 +62,7 @@ const ClientProfile = () => {
         supabase.from("clients").select("*").eq("id", id).single(),
         supabase.from("directors").select("*").eq("client_id", id),
         supabase.from("shareholders").select("*").eq("client_id", id),
-        supabase.from("documents").select("*").eq("client_id", id),
+        supabase.from("documents").select("*").eq("client_id", id).order("created_at", { ascending: false }),
       ]);
       setClient(c);
       setDirectors(d || []);
@@ -50,9 +73,10 @@ const ClientProfile = () => {
     fetchData();
   }, [user, id]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !client || !user) return;
+  const isBusy = uploading || extracting || generatingPlan;
+
+  const processFile = async (file: File) => {
+    if (!client || !user) return;
 
     const allowedTypes = [
       "application/pdf",
@@ -66,11 +90,12 @@ const ClientProfile = () => {
       return;
     }
 
+    const docTypeMeta = DOCUMENT_TYPES.find((t) => t.value === selectedDocType)!;
     setUploading(true);
 
     try {
-      // Extract text from the document using proper parsers
-      toast.info("Reading document content…");
+      // 1. Extract text
+      toast.info(`Reading ${docTypeMeta.label}…`);
       let documentText = "";
       try {
         documentText = await extractTextFromFile(file);
@@ -82,60 +107,68 @@ const ClientProfile = () => {
       }
 
       if (!documentText || documentText.trim().length < 20) {
-        toast.error("The document appears to be empty or could not be read. Please try a different file.");
+        toast.error("The document appears to be empty or could not be read.");
         setUploading(false);
         return;
       }
 
-      // Upload file to storage for record keeping
-      const filePath = `${user.id}/${id}/business-model-${Date.now()}-${file.name}`;
+      // 2. Upload to storage
+      const filePath = `${user.id}/${id}/${selectedDocType}-${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
 
-      // Store reference in documents table
+      // 3. Save document record
       await supabase.from("documents").insert({
         client_id: id!,
         user_id: user.id,
-        name: `Business Model: ${file.name}`,
+        name: `${docTypeMeta.label}: ${file.name}`,
         file_type: file.type,
         storage_path: filePath,
-        ai_status: "pending",
+        ai_status: docTypeMeta.aiProcess ? "pending" : "uploaded",
       });
 
       // Refresh documents list
-      const { data: updatedDocs } = await supabase.from("documents").select("*").eq("client_id", id!);
+      const { data: updatedDocs } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("client_id", id!)
+        .order("created_at", { ascending: false });
       setDocuments(updatedDocs || []);
 
       setUploading(false);
-      setExtracting(true);
-      toast.info("AI is analyzing your document…");
 
-      // Send extracted text to AI for business model extraction
-      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
-        body: {
-          action: "extract-business-model",
-          documentText: documentText.slice(0, 30000),
-          clientName: client.company_name,
-        },
-      });
+      // 4. If AI-processable doc type, extract and generate business plan
+      if (docTypeMeta.aiProcess) {
+        setExtracting(true);
+        toast.info("AI is analyzing your document…");
 
-      if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+          body: {
+            action: "extract-business-model",
+            documentText: documentText.slice(0, 30000),
+            clientName: client.company_name,
+          },
+        });
 
-      // Parse the extracted data
-      let parsed;
-      try {
-        const content = data.content || "";
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-      } catch {
-        parsed = { raw_extraction: data.content };
+        if (error) throw error;
+
+        let parsed;
+        try {
+          const content = data.content || "";
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+        } catch {
+          parsed = { raw_extraction: data.content };
+        }
+
+        setExtractedData(parsed);
+        setExtracting(false);
+        toast.success("Document analyzed! Generating business plan…");
+
+        // Auto-generate business plan
+        await generateBusinessPlan(parsed);
+      } else {
+        toast.success("Document uploaded successfully.");
       }
-
-      setExtractedData(parsed);
-      setExtracting(false);
-      toast.success("Document analyzed! Now generating your business plan…");
-
-      // Auto-generate business plan after extraction
-      await generateBusinessPlan(parsed);
     } catch (err: any) {
       console.error("Upload/extract error:", err);
       toast.error(err.message || "Failed to process document");
@@ -143,9 +176,30 @@ const ClientProfile = () => {
       setExtracting(false);
     }
 
-    // Reset file input so the same file can be re-uploaded
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file && !isBusy) processFile(file);
+    },
+    [isBusy, client, user, selectedDocType]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setDragOver(false), []);
 
   const generateBusinessPlan = async (extractedInfo?: any) => {
     if (!client) return;
@@ -234,17 +288,17 @@ const ClientProfile = () => {
 
   return (
     <AppShell>
-      <div className="p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Editor overlay */}
         {editorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-2 sm:p-4">
             <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-              <div className="flex items-center justify-between border-b border-border p-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <h2 className="font-display text-sm font-semibold text-foreground">{editorTitle}</h2>
+              <div className="flex items-center justify-between border-b border-border p-3 sm:p-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <h2 className="font-display text-sm font-semibold text-foreground truncate">{editorTitle}</h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   <Button size="sm" variant="outline" onClick={exportAsWord}>
                     <Download className="mr-1 h-3 w-3" /> Word
                   </Button>
@@ -260,7 +314,7 @@ const ClientProfile = () => {
                 <textarea
                   value={editorContent}
                   onChange={(e) => setEditorContent(e.target.value)}
-                  className="w-full h-full resize-none p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
+                  className="w-full h-full resize-none p-4 sm:p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
                   style={{ minHeight: "60vh" }}
                 />
               </div>
@@ -268,32 +322,29 @@ const ClientProfile = () => {
           </div>
         )}
 
+        {/* Header */}
         <div className="mb-6">
           <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
             <ArrowLeft className="h-3 w-3" /> Back to Clients
           </Link>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="font-display text-2xl font-bold text-foreground">{client.company_name}</h1>
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">{client.company_name}</h1>
               <p className="mt-1 text-sm text-muted-foreground font-mono">
                 {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
               </p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading || extracting || generatingPlan}>
-                <Upload className="mr-1 h-4 w-4" /> Upload Business Document
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/compliance">
-                  <FileText className="mr-1 h-4 w-4" /> Generate Documents
-                </Link>
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/compliance">
+                <FileText className="mr-1 h-4 w-4" /> Generate Compliance Docs
+              </Link>
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card p-5">
+        {/* Company Info Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Company Details</h3>
@@ -324,7 +375,7 @@ const ClientProfile = () => {
             </dl>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <UsersIcon className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Ownership Structure</h3>
@@ -353,7 +404,7 @@ const ClientProfile = () => {
             )}
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <Phone className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Contact Information</h3>
@@ -371,17 +422,49 @@ const ClientProfile = () => {
           </div>
         </div>
 
-        {/* Business Model Document Upload */}
-        <div id="business-model-upload" className="mt-6 rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Business Model Document</h2>
+        {/* ====== UPLOAD DOCUMENTS SECTION ====== */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <FolderOpen className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-lg font-semibold text-foreground">Upload Documents</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-5">
-            Upload a fintech business model file and Licensify AI will read it, extract key details, and generate a regulatory-ready business plan in the editor.
+            Select the type of document to upload. Business-related documents will be read by AI to generate a licensing-ready business plan.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-3">
+          {/* Step 1: Select document type */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+              Step 1 — Select Document Type
+            </label>
+            <Select value={selectedDocType} onValueChange={(v) => setSelectedDocType(v as DocTypeValue)}>
+              <SelectTrigger className="w-full sm:w-80">
+                <SelectValue placeholder="Choose document type…" />
+              </SelectTrigger>
+              <SelectContent>
+                {DOCUMENT_TYPES.map((dt) => {
+                  const Icon = dt.icon;
+                  return (
+                    <SelectItem key={dt.value} value={dt.value}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        {dt.label}
+                        {dt.aiProcess && (
+                          <span className="ml-1 text-[10px] font-semibold uppercase text-primary bg-primary/10 px-1.5 py-0.5 rounded">AI</span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Step 2: Upload file — drag-and-drop zone */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+              Step 2 — Upload File
+            </label>
             <input
               ref={fileInputRef}
               type="file"
@@ -389,35 +472,69 @@ const ClientProfile = () => {
               onChange={handleFileUpload}
               className="hidden"
             />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || extracting || generatingPlan}
-              className="gap-2"
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => !isBusy && fileInputRef.current?.click()}
+              className={`
+                relative cursor-pointer rounded-lg border-2 border-dashed transition-all duration-200 p-6 sm:p-8 text-center
+                ${dragOver
+                  ? "border-primary bg-primary/5 scale-[1.01]"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+                }
+                ${isBusy ? "pointer-events-none opacity-60" : ""}
+              `}
             >
-              {uploading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading document…</>
-              ) : extracting ? (
-                <><Brain className="h-4 w-4 animate-pulse" /> Reading with AI…</>
-              ) : generatingPlan ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Generating business plan…</>
+              {isBusy ? (
+                <div className="flex flex-col items-center gap-3">
+                  {uploading && (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm font-medium text-foreground">Uploading document…</p>
+                    </>
+                  )}
+                  {extracting && (
+                    <>
+                      <Brain className="h-8 w-8 animate-pulse text-primary" />
+                      <p className="text-sm font-medium text-foreground">AI is reading your document…</p>
+                      <p className="text-xs text-muted-foreground">Extracting business information</p>
+                    </>
+                  )}
+                  {generatingPlan && (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm font-medium text-foreground">Generating business plan…</p>
+                      <p className="text-xs text-muted-foreground">This may take a minute</p>
+                    </>
+                  )}
+                </div>
               ) : (
-                <><Upload className="h-4 w-4" /> Upload Document</>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Drag & drop your file here, or <span className="text-primary underline underline-offset-2">browse</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Accepted formats: PDF, DOCX, TXT · Max 20 MB
+                    </p>
+                  </div>
+                </div>
               )}
-            </Button>
-            <span className="text-xs text-muted-foreground self-center">Accepted: PDF, DOCX, DOC, TXT · Max 20MB</span>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mb-5">
-            Best results: upload a PDF or DOCX containing the company overview, services, revenue model, target customers, and compliance approach.
-          </p>
 
-          {/* Extracted Data Display */}
+          {/* AI-Extracted Data Display */}
           {extractedData && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 mb-5">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 sm:p-5 mb-5">
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <Brain className="h-4 w-4 text-primary" />
                 AI-Extracted Business Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {extractedData.services_offered && (
                   <div>
                     <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Services Offered</dt>
@@ -462,62 +579,66 @@ const ClientProfile = () => {
             </div>
           )}
 
-          {/* Generate Business Plan Button */}
-          <Button
-            onClick={() => generateBusinessPlan()}
-            disabled={generatingPlan || uploading || extracting}
-            className="gap-2"
-          >
-            {generatingPlan ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Generating Business Plan…</>
-            ) : (
-              <><FileText className="h-4 w-4" /> Generate Business Plan</>
-            )}
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            {extractedData
-              ? "AI will use the extracted data combined with client profile to generate a detailed business plan."
-              : "You can generate a business plan from the client profile data, or upload a business document first for better results."}
-          </p>
+          {/* Manual Generate button */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <Button
+              onClick={() => generateBusinessPlan()}
+              disabled={isBusy}
+              className="gap-2"
+            >
+              {generatingPlan ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
+              ) : (
+                <><FileText className="h-4 w-4" /> Generate Business Plan</>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {extractedData
+                ? "Uses extracted data + client profile to generate a detailed plan."
+                : "Upload a document first for best results, or generate from client data only."}
+            </p>
+          </div>
         </div>
 
-        {/* Documents */}
+        {/* ====== DOCUMENTS LIST ====== */}
         <div className="mt-6">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">Documents</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-lg font-semibold text-foreground">Client Documents</h2>
+          </div>
           <div className="rounded-xl border border-border bg-card">
             {documents.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No documents uploaded yet. Upload files to get started with AI extraction.
+              <div className="p-8 text-center">
+                <FolderOpen className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  No documents uploaded yet. Use the upload section above to add files for this client.
+                </p>
               </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Name</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Type</th>
-                    <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">AI Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => (
-                    <tr key={doc.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-foreground">{doc.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{doc.file_type || "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
-                          doc.ai_status === "verified"
-                            ? "bg-success/10 text-success-foreground border border-success/20"
-                            : doc.ai_status === "generated"
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : "bg-warning/10 text-warning-foreground border border-warning/20"
-                        }`}>
-                          {doc.ai_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="divide-y divide-border">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{doc.file_type || "Unknown"}</p>
+                      </div>
+                    </div>
+                    <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider shrink-0 ${
+                      doc.ai_status === "verified"
+                        ? "bg-success/10 text-success-foreground border border-success/20"
+                        : doc.ai_status === "generated"
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : doc.ai_status === "uploaded"
+                        ? "bg-muted text-muted-foreground border border-border"
+                        : "bg-warning/10 text-warning-foreground border border-warning/20"
+                    }`}>
+                      {doc.ai_status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
