@@ -298,8 +298,15 @@ const LicensingForm = () => {
     }
   };
 
+  const templateToText = () => {
+    return templateSections.map((s) =>
+      `## ${s.title}\n\n${s.fields.map((f) => `${f.label}: ${f.value}`).join("\n")}`
+    ).join("\n\n");
+  };
+
   const exportAsWord = async () => {
-    const paragraphs = editorContent.split("\n").map((line) => {
+    const text = templateMode ? templateToText() : editorContent;
+    const paragraphs = text.split("\n").map((line) => {
       if (line.startsWith("# ")) return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
       if (line.startsWith("## ")) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
       if (line.startsWith("### ")) return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
@@ -311,8 +318,9 @@ const LicensingForm = () => {
   };
 
   const exportAsPDF = () => {
+    const text = templateMode ? templateToText() : editorContent;
     const pdf = new jsPDF();
-    const lines = pdf.splitTextToSize(editorContent, 170);
+    const lines = pdf.splitTextToSize(text, 170);
     let y = 20;
     pdf.setFontSize(10);
     for (const line of lines) {
