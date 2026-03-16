@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone, Load
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
