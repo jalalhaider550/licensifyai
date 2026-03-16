@@ -465,7 +465,7 @@ const ClientProfile = () => {
           {/* Generate Business Plan Button */}
           <Button
             onClick={() => generateBusinessPlan()}
-            disabled={generatingPlan}
+            disabled={generatingPlan || uploading || extracting}
             className="gap-2"
           >
             {generatingPlan ? (
