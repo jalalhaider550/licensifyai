@@ -198,7 +198,8 @@ const LicensingForm = () => {
         setShareholdersList(parsed.shareholders.map((s: any) => ({ name: s.name || "", percentage: String(s.percentage || ""), country: s.country || "" })));
       }
 
-      toast.success("Form fields auto-filled from document!");
+      setDocumentProcessed(true);
+      toast.success("Form fields auto-filled! Choose a document to generate below.");
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to process document");
