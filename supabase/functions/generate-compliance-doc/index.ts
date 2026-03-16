@@ -107,6 +107,51 @@ The business plan MUST include ALL of the following sections with detailed conte
 
 Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs. Use ${currency || "GBP"} for all financial references.`;
 
+    } else if (action === "generate-license-template") {
+      const { client, directors, shareholders, extractedData, licenseType, currency } = body;
+
+      const clientSummary = `
+Company: ${client.company_name}
+Jurisdiction: ${client.jurisdiction}
+Registration Number: ${client.registration_number || "Not provided"}
+Registered Address: ${client.registered_address || "Not provided"}
+Website: ${client.website || "Not provided"}
+Services: ${client.services?.join(", ") || "Not specified"}
+Contact Email: ${client.contact_email || "Not provided"}
+License Type: ${licenseType || "Not specified"}
+Currency: ${currency || "GBP"}
+
+Directors:
+${directors?.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"}, ${d.nationality || "Nationality not provided"})`).join("\n") : "No directors recorded"}
+
+Shareholders:
+${shareholders?.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%, ${s.country || "Country not provided"})`).join("\n") : "No shareholders recorded"}
+
+Additional Data:
+${extractedData ? JSON.stringify(extractedData, null, 2) : "No additional data"}
+`.trim();
+
+      systemPrompt = `You are a regulatory compliance document specialist for fintech licensing. You generate complete, professional license application preparation templates that lawyers use when submitting regulatory applications to the FCA, FinCEN, or state regulators. Use ${currency || "GBP"} for all financial figures. Be thorough and specific.`;
+
+      userPrompt = `Generate a comprehensive license application preparation template for a ${licenseType || "fintech license"} using the following company data:
+
+${clientSummary}
+
+The template MUST include ALL of the following sections with detailed, specific content populated from the company data above:
+
+1. Company Information (full legal details, registration, address, website, contact)
+2. Business Activities (services offered, target customers, markets, revenue model)
+3. Directors and Management (full details of each director with roles and nationalities)
+4. Shareholders and Ownership Structure (each shareholder with percentage and country)
+5. Financial Information (capital, source of funds, expected transaction volumes — all in ${currency || "GBP"})
+6. Compliance and AML Program (compliance officer, KYC/CDD procedures, transaction monitoring, SAR reporting)
+7. Risk Management Framework (risk assessment, mitigation strategies, ongoing monitoring)
+8. Technology Infrastructure (systems, security, data protection, business continuity)
+9. Safeguarding Arrangements (for payment/EMI licenses: how client funds are protected)
+10. Operational Structure (staffing, outsourcing, governance, internal controls)
+
+Write the full document in markdown format. Each section should be detailed with subsections. Where data is missing, include clear placeholder markers like [TO BE PROVIDED] so lawyers know what still needs to be completed. This should be a ready-to-use template for regulatory submission.`;
+
     } else {
       const { documentType, documentName, client, directors, shareholders } = body;
 
