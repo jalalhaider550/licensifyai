@@ -25,7 +25,7 @@ const navItems = [
   { to: "/licenses", icon: PackageCheck, label: "Licensing Projects" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
-  { to: "/uk-requirements", icon: Scale, label: "UK Licensing Requirements" },
+  { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
   { to: "/tasks", icon: ListTodo, label: "Tasks" },
   { to: "/activity", icon: Activity, label: "Activity" },
 ];

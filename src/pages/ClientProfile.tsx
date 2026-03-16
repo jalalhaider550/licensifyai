@@ -1,10 +1,14 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone } from "lucide-react";
+import { ArrowLeft, Upload, FileText, Building2, Users as UsersIcon, Phone, Loader2, Download, X, Brain, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { saveAs } from "file-saver";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import jsPDF from "jspdf";
 
 const ClientProfile = () => {
   const { id } = useParams();
@@ -15,9 +19,21 @@ const ClientProfile = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Business model upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+
+  // Editor state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorContent, setEditorContent] = useState("");
+  const [editorTitle, setEditorTitle] = useState("");
+
   useEffect(() => {
     if (!user || !id) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       const [{ data: c }, { data: d }, { data: s }, { data: docs }] = await Promise.all([
         supabase.from("clients").select("*").eq("id", id).single(),
         supabase.from("directors").select("*").eq("client_id", id),
@@ -30,8 +46,157 @@ const ClientProfile = () => {
       setDocuments(docs || []);
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [user, id]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !client || !user) return;
+
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please upload a PDF, Word, or text file.");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // For text files, read directly
+      let documentText = "";
+
+      if (file.type === "text/plain") {
+        documentText = await file.text();
+      } else {
+        // Upload to storage and read text content
+        const filePath = `${user.id}/${id}/business-model-${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // For PDF/Word, we'll send the text content we can extract
+        // For now, read as text (works for text-based PDFs)
+        documentText = await file.text();
+
+        // Store reference in documents table
+        await supabase.from("documents").insert({
+          client_id: id!,
+          user_id: user.id,
+          name: `Business Model: ${file.name}`,
+          file_type: file.type,
+          storage_path: filePath,
+          ai_status: "pending",
+        });
+      }
+
+      setUploading(false);
+      setExtracting(true);
+
+      // Send to AI for extraction
+      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+        body: {
+          action: "extract-business-model",
+          documentText,
+          clientName: client.company_name,
+        },
+      });
+
+      if (error) throw error;
+
+      // Parse the extracted data
+      let parsed;
+      try {
+        const content = data.content || "";
+        // Try to extract JSON from the response
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+      } catch {
+        parsed = { raw_extraction: data.content };
+      }
+
+      setExtractedData(parsed);
+      toast.success("Business model document analyzed successfully!");
+    } catch (err: any) {
+      console.error("Upload/extract error:", err);
+      toast.error(err.message || "Failed to process document");
+    } finally {
+      setUploading(false);
+      setExtracting(false);
+    }
+  };
+
+  const handleGenerateBusinessPlan = async () => {
+    if (!client) return;
+    setGeneratingPlan(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+        body: {
+          action: "generate-business-plan",
+          client: {
+            company_name: client.company_name,
+            jurisdiction: client.jurisdiction,
+            registration_number: client.registration_number,
+            registered_address: client.registered_address,
+            services: client.services,
+            contact_email: client.contact_email,
+            incorporation_date: client.incorporation_date,
+          },
+          directors: directors.map((d) => ({ full_name: d.full_name, role: d.role })),
+          shareholders: shareholders.map((s) => ({ name: s.name, percentage: s.percentage })),
+          extractedData,
+        },
+      });
+
+      if (error) throw error;
+
+      setEditorTitle(`Business Plan — ${client.company_name}`);
+      setEditorContent(data.content || "Generation failed. Please try again.");
+      setEditorOpen(true);
+      toast.success("Business plan generated successfully!");
+    } catch (err: any) {
+      console.error("Business plan error:", err);
+      toast.error(err.message || "Failed to generate business plan");
+    } finally {
+      setGeneratingPlan(false);
+    }
+  };
+
+  const exportAsWord = async () => {
+    const paragraphs = editorContent.split("\n").map((line) => {
+      if (line.startsWith("# ")) return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
+      if (line.startsWith("## ")) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
+      if (line.startsWith("### ")) return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
+      return new Paragraph({ children: [new TextRun({ text: line, size: 24 })], spacing: { after: 120 } });
+    });
+    const doc = new Document({ sections: [{ children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${editorTitle.replace(/[^a-zA-Z0-9 ]/g, "")}.docx`);
+    toast.success("Exported as Word document");
+  };
+
+  const exportAsPDF = () => {
+    const pdf = new jsPDF();
+    const lines = pdf.splitTextToSize(editorContent, 170);
+    let y = 20;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    for (const line of lines) {
+      if (y > 275) { pdf.addPage(); y = 20; }
+      pdf.text(line, 20, y);
+      y += 5;
+    }
+    pdf.save(`${editorTitle.replace(/[^a-zA-Z0-9 ]/g, "")}.pdf`);
+    toast.success("Exported as PDF");
+  };
 
   if (loading) {
     return (
@@ -56,12 +221,44 @@ const ClientProfile = () => {
   return (
     <AppShell>
       <div className="p-6 lg:p-8">
+        {/* Editor overlay */}
+        {editorOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
+            <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-border p-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h2 className="font-display text-sm font-semibold text-foreground">{editorTitle}</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={exportAsWord}>
+                    <Download className="mr-1 h-3 w-3" /> Word
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={exportAsPDF}>
+                    <Download className="mr-1 h-3 w-3" /> PDF
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditorOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <textarea
+                  value={editorContent}
+                  onChange={(e) => setEditorContent(e.target.value)}
+                  className="w-full h-full resize-none p-6 text-sm leading-relaxed text-foreground bg-card font-mono focus:outline-none"
+                  style={{ minHeight: "60vh" }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6">
           <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-            <ArrowLeft className="h-3 w-3" />
-            Back to Clients
+            <ArrowLeft className="h-3 w-3" /> Back to Clients
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">{client.company_name}</h1>
               <p className="mt-1 text-sm text-muted-foreground font-mono">
@@ -69,20 +266,17 @@ const ClientProfile = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <FileText className="mr-1 h-4 w-4" />
-                Generate Documents
-              </Button>
-              <Button size="sm">
-                <Upload className="mr-1 h-4 w-4" />
-                Upload Files
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/compliance">
+                  <FileText className="mr-1 h-4 w-4" /> Generate Documents
+                </Link>
               </Button>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="rounded-sm border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Company Details</h3>
@@ -105,9 +299,7 @@ const ClientProfile = () => {
                   <dt className="text-xs text-muted-foreground uppercase tracking-wider">Services</dt>
                   <dd className="mt-1 flex flex-wrap gap-1">
                     {client.services.map((s: string) => (
-                      <span key={s} className="inline-flex rounded-sm border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {s}
-                      </span>
+                      <span key={s} className="inline-flex rounded-md border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">{s}</span>
                     ))}
                   </dd>
                 </div>
@@ -115,7 +307,7 @@ const ClientProfile = () => {
             </dl>
           </div>
 
-          <div className="rounded-sm border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <UsersIcon className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Ownership Structure</h3>
@@ -144,7 +336,7 @@ const ClientProfile = () => {
             )}
           </div>
 
-          <div className="rounded-sm border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <Phone className="h-4 w-4 text-primary" />
               <h3 className="font-display text-sm font-semibold text-foreground">Contact Information</h3>
@@ -162,9 +354,117 @@ const ClientProfile = () => {
           </div>
         </div>
 
+        {/* Business Model Document Upload */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-lg font-semibold text-foreground">Business Model Document</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-5">
+            Upload a business concept document, pitch deck, company description, or draft business plan. 
+            AI will extract key information and generate a regulatory-ready business plan.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-5">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || extracting}
+              className="gap-2"
+            >
+              {uploading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
+              ) : extracting ? (
+                <><Brain className="h-4 w-4 animate-pulse" /> AI Analyzing…</>
+              ) : (
+                <><Upload className="h-4 w-4" /> Upload Business Document</>
+              )}
+            </Button>
+            <span className="text-xs text-muted-foreground self-center">PDF, Word, or Text file (max 20MB)</span>
+          </div>
+
+          {/* Extracted Data Display */}
+          {extractedData && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 mb-5">
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" />
+                AI-Extracted Business Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {extractedData.services_offered && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Services Offered</dt>
+                    <dd className="text-foreground">
+                      {Array.isArray(extractedData.services_offered)
+                        ? extractedData.services_offered.join(", ")
+                        : extractedData.services_offered}
+                    </dd>
+                  </div>
+                )}
+                {extractedData.revenue_model && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Revenue Model</dt>
+                    <dd className="text-foreground">{extractedData.revenue_model}</dd>
+                  </div>
+                )}
+                {extractedData.target_customers && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Target Customers</dt>
+                    <dd className="text-foreground">{extractedData.target_customers}</dd>
+                  </div>
+                )}
+                {extractedData.technology_platform && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Technology Platform</dt>
+                    <dd className="text-foreground">{extractedData.technology_platform}</dd>
+                  </div>
+                )}
+                {extractedData.operational_structure && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Operational Structure</dt>
+                    <dd className="text-foreground">{extractedData.operational_structure}</dd>
+                  </div>
+                )}
+                {extractedData.compliance_considerations && (
+                  <div>
+                    <dt className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Compliance Considerations</dt>
+                    <dd className="text-foreground">{extractedData.compliance_considerations}</dd>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Generate Business Plan Button */}
+          <Button
+            onClick={handleGenerateBusinessPlan}
+            disabled={generatingPlan}
+            className="gap-2"
+          >
+            {generatingPlan ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Generating Business Plan…</>
+            ) : (
+              <><FileText className="h-4 w-4" /> Generate Business Plan</>
+            )}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            {extractedData
+              ? "AI will use the extracted data combined with client profile to generate a detailed business plan."
+              : "You can generate a business plan from the client profile data, or upload a business document first for better results."}
+          </p>
+        </div>
+
+        {/* Documents */}
         <div className="mt-6">
           <h2 className="font-display text-lg font-semibold text-foreground mb-4">Documents</h2>
-          <div className="rounded-sm border border-border bg-card">
+          <div className="rounded-xl border border-border bg-card">
             {documents.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
                 No documents uploaded yet. Upload files to get started with AI extraction.
@@ -184,7 +484,7 @@ const ClientProfile = () => {
                       <td className="px-4 py-3 text-sm text-foreground">{doc.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{doc.file_type || "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
+                        <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
                           doc.ai_status === "verified"
                             ? "bg-success/10 text-success-foreground border border-success/20"
                             : doc.ai_status === "generated"
