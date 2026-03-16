@@ -279,7 +279,10 @@ const ClientProfile = () => {
                 {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading || extracting || generatingPlan}>
+                <Upload className="mr-1 h-4 w-4" /> Upload Business Document
+              </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/compliance">
                   <FileText className="mr-1 h-4 w-4" /> Generate Documents
