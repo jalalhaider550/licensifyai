@@ -71,6 +71,8 @@ const LicensingForm = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
+  const [documentProcessed, setDocumentProcessed] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editorTitle, setEditorTitle] = useState("");
@@ -196,7 +198,8 @@ const LicensingForm = () => {
         setShareholdersList(parsed.shareholders.map((s: any) => ({ name: s.name || "", percentage: String(s.percentage || ""), country: s.country || "" })));
       }
 
-      toast.success("Form fields auto-filled from document!");
+      setDocumentProcessed(true);
+      toast.success("Form fields auto-filled! Choose a document to generate below.");
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to process document");
@@ -206,37 +209,42 @@ const LicensingForm = () => {
     }
   };
 
+  const getFormPayload = () => ({
+    client: {
+      company_name: firm.companyName,
+      jurisdiction: meta.jurisdiction,
+      registration_number: firm.regNumber,
+      registered_address: firm.address,
+      services: activities.services.split(",").map((s) => s.trim()).filter(Boolean),
+      contact_email: firm.contactEmail,
+      website: firm.website,
+    },
+    directors: directors.filter((d) => d.name).map((d) => ({ full_name: d.name, role: d.role, nationality: d.nationality })),
+    shareholders: shareholdersList.filter((s) => s.name).map((s) => ({ name: s.name, percentage: Number(s.percentage) || 0, country: s.country })),
+    extractedData: {
+      revenue_model: activities.revenueModel,
+      target_customers: activities.targetCustomers,
+      markets: activities.markets,
+      technology_platform: "",
+      compliance_considerations: compliance.amlProgram,
+      capital_amount: financial.capitalAmount,
+      source_of_funds: financial.sourceOfFunds,
+      expected_volume: financial.expectedVolume,
+      compliance_officer: compliance.complianceOfficer,
+      risk_management: compliance.riskManagement,
+    },
+    licenseType: meta.name,
+    currency: meta.currency,
+  });
+
   const generateBusinessPlan = async () => {
     setGeneratingPlan(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
-        body: {
-          action: "generate-business-plan",
-          client: {
-            company_name: firm.companyName,
-            jurisdiction: meta.jurisdiction,
-            registration_number: firm.regNumber,
-            registered_address: firm.address,
-            services: activities.services.split(",").map((s) => s.trim()).filter(Boolean),
-            contact_email: firm.contactEmail,
-          },
-          directors: directors.filter((d) => d.name).map((d) => ({ full_name: d.name, role: d.role })),
-          shareholders: shareholdersList.filter((s) => s.name).map((s) => ({ name: s.name, percentage: Number(s.percentage) || 0 })),
-          extractedData: {
-            revenue_model: activities.revenueModel,
-            target_customers: activities.targetCustomers,
-            technology_platform: "",
-            compliance_considerations: compliance.amlProgram,
-            capital_amount: financial.capitalAmount,
-            source_of_funds: financial.sourceOfFunds,
-            compliance_officer: compliance.complianceOfficer,
-          },
-          licenseType: meta.name,
-          currency: meta.currency,
-        },
+        body: { action: "generate-business-plan", ...getFormPayload() },
       });
       if (error) throw error;
-      setEditorTitle(`${meta.name} — Business Plan — ${firm.companyName}`);
+      setEditorTitle(`Business Plan — ${firm.companyName}`);
       setEditorContent(data.content || "Generation failed.");
       setEditorOpen(true);
       toast.success("Business plan generated!");
@@ -244,6 +252,24 @@ const LicensingForm = () => {
       toast.error(err.message || "Failed to generate");
     } finally {
       setGeneratingPlan(false);
+    }
+  };
+
+  const generateLicenseTemplate = async () => {
+    setGeneratingTemplate(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+        body: { action: "generate-license-template", ...getFormPayload() },
+      });
+      if (error) throw error;
+      setEditorTitle(`${meta.name} — License Application Template — ${firm.companyName}`);
+      setEditorContent(data.content || "Generation failed.");
+      setEditorOpen(true);
+      toast.success("License application template generated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate");
+    } finally {
+      setGeneratingTemplate(false);
     }
   };
 
@@ -542,7 +568,7 @@ const LicensingForm = () => {
                 <div className="space-y-5">
                   <h2 className="font-display text-lg font-semibold text-foreground">Document Upload & AI Auto-Fill</h2>
                   <p className="text-sm text-muted-foreground">
-                    Upload a document describing the fintech business model (PDF or Word). AI will read it and auto-fill the form fields above.
+                    Upload a document describing the fintech business model (PDF or Word). AI will read it, extract key information, and auto-fill the form.
                   </p>
                   <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleFileUpload} className="hidden" />
                   <button
@@ -568,19 +594,72 @@ const LicensingForm = () => {
                     )}
                   </button>
 
-                  <div className="border-t border-border pt-5">
-                    <h3 className="text-sm font-semibold text-foreground mb-2">Generate Business Plan</h3>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Use the form data to generate a comprehensive regulatory business plan.
-                    </p>
-                    <Button onClick={generateBusinessPlan} disabled={generatingPlan || uploading} className="gap-2">
-                      {generatingPlan ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
-                      ) : (
-                        <><FileText className="h-4 w-4" /> Generate Business Plan</>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Document processed — show generation options */}
+                  {documentProcessed && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Check className="h-4 w-4 text-primary" />
+                        <h3 className="text-sm font-semibold text-foreground">Document processed — Choose what to generate</h3>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {/* Option 1: Business Plan */}
+                        <button
+                          onClick={generateBusinessPlan}
+                          disabled={generatingPlan || generatingTemplate}
+                          className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              {generatingPlan ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <FileText className="h-4 w-4 text-primary" />}
+                            </div>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 1</span>
+                          </div>
+                          <h4 className="font-display text-sm font-semibold text-foreground">Generate Business Plan</h4>
+                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                            Full regulatory business plan with Executive Summary, Business Model, Compliance Strategy, AML Controls, Financial Overview, and more.
+                          </p>
+                        </button>
+
+                        {/* Option 2: License Template */}
+                        <button
+                          onClick={generateLicenseTemplate}
+                          disabled={generatingPlan || generatingTemplate}
+                          className="text-left rounded-lg border-2 border-border bg-card p-4 hover:border-primary/40 transition-all disabled:opacity-60"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              {generatingTemplate ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Shield className="h-4 w-4 text-primary" />}
+                            </div>
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Option 2</span>
+                          </div>
+                          <h4 className="font-display text-sm font-semibold text-foreground">Generate License Application Template</h4>
+                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                            Complete license preparation template with Company Info, Directors, Shareholders, Financials, Safeguarding, and Compliance sections.
+                          </p>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual generation when no doc uploaded */}
+                  {!documentProcessed && (
+                    <div className="border-t border-border pt-5">
+                      <h3 className="text-sm font-semibold text-foreground mb-2">Or generate from form data</h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Upload a document first for best results, or generate using the form data you've entered.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={generateBusinessPlan} disabled={generatingPlan || uploading} variant="outline" size="sm" className="gap-2">
+                          {generatingPlan ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                          Business Plan
+                        </Button>
+                        <Button onClick={generateLicenseTemplate} disabled={generatingTemplate || uploading} variant="outline" size="sm" className="gap-2">
+                          {generatingTemplate ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
+                          License Template
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
