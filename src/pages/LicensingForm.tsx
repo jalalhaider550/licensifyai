@@ -425,6 +425,7 @@ const LicensingForm = () => {
                 />
               )}
             </div>
+          </div>
         </div>
       )}
 
