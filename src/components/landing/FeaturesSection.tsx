@@ -10,66 +10,67 @@ import {
 const features = [
   {
     icon: Users,
-    title: "Client Onboarding",
+    title: "Client Management",
     description:
-      "Create client profiles, capture company data, ownership structures, and director information in a structured workspace.",
+      "Create structured client profiles with company data, directors, shareholders, and ownership details in one workspace.",
   },
   {
     icon: Upload,
-    title: "Document Ingestion",
+    title: "Document Upload",
     description:
-      "Upload certificates of incorporation, business plans, and corporate filings. Drag-and-drop batch upload supported.",
+      "Upload business plans, pitch decks, and corporate filings. Drag-and-drop with support for PDF, Word, and text files.",
   },
   {
     icon: FileSearch,
     title: "AI Data Extraction",
     description:
-      "Automatically extract entity names, registration numbers, directors, and shareholders from uploaded documents.",
+      "AI reads your uploaded documents and automatically extracts services, revenue models, target customers, and compliance details.",
   },
   {
     icon: FilePlus,
     title: "Document Generation",
     description:
-      "Generate first drafts of AML policies, compliance manuals, risk frameworks, and governance documentation.",
+      "Generate AML policies, compliance manuals, risk frameworks, business plans, and governance documents powered by AI.",
   },
   {
     icon: PackageCheck,
-    title: "Application Packaging",
+    title: "Licensing Workflow",
     description:
-      "Assemble submission-ready license application packages indexed by regulatory requirement. Export as PDF or Word.",
+      "Track application readiness, see missing documents, and assemble submission-ready packages for UK and US regulators.",
   },
   {
     icon: ShieldCheck,
-    title: "Compliance Tracking",
+    title: "Regulatory Reference",
     description:
-      "Track application readiness with a percentage score. See missing documents and incomplete fields at a glance.",
+      "Access UK FCA and US FinCEN licensing requirements, capital thresholds, and compliance obligations directly in the platform.",
   },
 ];
 
 export const FeaturesSection = () => {
   return (
-    <section id="features" className="border-t border-border bg-muted/50">
+    <section id="features" className="border-t border-border bg-muted/30">
       <div className="container mx-auto px-6 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground">
-            Built for Regulatory Work
+          <span className="text-xs font-semibold uppercase tracking-widest text-primary">Platform Capabilities</span>
+          <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+            Everything You Need for Fintech Licensing
           </h2>
-          <p className="mt-3 text-muted-foreground">
-            Every feature designed around the workflow of fintech licensing applications.
+          <p className="mt-4 text-muted-foreground">
+            Purpose-built tools for law firms preparing regulatory applications.
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, i) => (
             <div
               key={feature.title}
-              className="group border border-border rounded-sm bg-card p-6 transition-colors hover:border-primary/30"
+              className="group rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-0.5"
               style={{ animationDelay: `${i * 40}ms` }}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary/10 text-primary">
-                <feature.icon className="h-4 w-4" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
+                <feature.icon className="h-5 w-5" />
               </div>
-              <h3 className="mt-4 font-display text-base font-semibold text-foreground">
+              <h3 className="mt-5 font-display text-base font-semibold text-foreground">
                 {feature.title}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
