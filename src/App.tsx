@@ -23,6 +23,7 @@ import Tasks from "./pages/Tasks";
 import ActivityFeed from "./pages/ActivityFeed";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
+import ClientPortal from "./pages/ClientPortal";
 
 const queryClient = new QueryClient();
 
