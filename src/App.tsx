@@ -54,6 +54,7 @@ const App = () => (
             <Route path="/activity" element={<ActivityFeed />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/portal" element={<ClientPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
