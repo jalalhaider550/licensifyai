@@ -2,3 +2,6 @@ project_id = "cdcpxwfextljfnelkmlz"
 
 [functions.generate-compliance-doc]
 verify_jwt = false
+
+[functions.regulatory-analysis]
+verify_jwt = false

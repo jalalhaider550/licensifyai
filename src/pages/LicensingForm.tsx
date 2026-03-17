@@ -17,6 +17,7 @@ import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
+import { RegulatoryIntelligence } from "@/components/app/RegulatoryIntelligence";
 
 const LICENSE_META: Record<string, { name: string; jurisdiction: "UK" | "US"; authority: string; currency: string; currencySymbol: string }> = {
   "uk-pi": { name: "Payment Institution License", jurisdiction: "UK", authority: "FCA", currency: "GBP", currencySymbol: "£" },
@@ -759,6 +760,22 @@ const LicensingForm = () => {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Regulatory Intelligence Panel */}
+        <div className="mt-6">
+          <RegulatoryIntelligence
+            applicationData={getFormPayload()}
+            jurisdiction={meta.jurisdiction}
+            licenseType={meta.name}
+            documentContent={editorContent || undefined}
+            onImprovedDocument={(content) => {
+              setTemplateMode(false);
+              setEditorTitle(`Improved ${meta.name} Application — ${firm.companyName}`);
+              setEditorContent(content);
+              setEditorOpen(true);
+            }}
+          />
         </div>
       </div>
     </AppShell>
