@@ -181,7 +181,7 @@ export function RegulatoryIntelligence({ applicationData, jurisdiction, licenseT
       </div>
 
       {/* Make It Pass button */}
-      {!analysis.decisionAdvice.ready && documentContent && (
+      {!analysis.decisionAdvice.ready && (
         <Button onClick={makeItPass} disabled={improving} className="w-full" variant="default">
           {improving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
           {improving ? "Improving Application…" : "\"Make It Pass\" — Auto-Improve Application"}
