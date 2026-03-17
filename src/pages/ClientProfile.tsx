@@ -837,6 +837,9 @@ const ClientProfile = () => {
               </div>
             )}
           </div>
+
+          {/* Client Portal Messages */}
+          <PortalMessages clientId={id!} />
         </div>
       </div>
     </AppShell>
