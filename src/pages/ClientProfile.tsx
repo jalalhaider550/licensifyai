@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
+import { RegulatoryIntelligence } from "@/components/app/RegulatoryIntelligence";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
 import {
