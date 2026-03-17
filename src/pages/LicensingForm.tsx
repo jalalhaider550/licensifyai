@@ -761,6 +761,22 @@ const LicensingForm = () => {
             </div>
           </div>
         </div>
+
+        {/* Regulatory Intelligence Panel */}
+        <div className="mt-6">
+          <RegulatoryIntelligence
+            applicationData={getFormPayload()}
+            jurisdiction={meta.jurisdiction}
+            licenseType={meta.name}
+            documentContent={editorContent || undefined}
+            onImprovedDocument={(content) => {
+              setTemplateMode(false);
+              setEditorTitle(`Improved ${meta.name} Application — ${firm.companyName}`);
+              setEditorContent(content);
+              setEditorOpen(true);
+            }}
+          />
+        </div>
       </div>
     </AppShell>
   );
