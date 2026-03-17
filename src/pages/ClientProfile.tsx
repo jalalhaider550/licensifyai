@@ -777,6 +777,22 @@ const ClientProfile = () => {
           </div>
         </div>
 
+        {/* ====== REGULATORY INTELLIGENCE ====== */}
+        <div className="mt-6">
+          <RegulatoryIntelligence
+            applicationData={getPayload()}
+            jurisdiction={client.jurisdiction || "UK"}
+            licenseType="General"
+            documentContent={editorContent || undefined}
+            onImprovedDocument={(content) => {
+              setTemplateMode(false);
+              setEditorTitle(`Improved Application — ${client.company_name}`);
+              setEditorContent(content);
+              setEditorOpen(true);
+            }}
+          />
+        </div>
+
         {/* ====== DOCUMENTS LIST ====== */}
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-4">
