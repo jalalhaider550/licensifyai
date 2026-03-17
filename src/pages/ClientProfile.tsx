@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
 import { RegulatoryIntelligence } from "@/components/app/RegulatoryIntelligence";
+import { SendClientAccess } from "@/components/app/SendClientAccess";
+import { PortalMessages } from "@/components/app/PortalMessages";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
 import {
