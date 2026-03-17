@@ -23,6 +23,7 @@ import Tasks from "./pages/Tasks";
 import ActivityFeed from "./pages/ActivityFeed";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
+import ClientPortal from "./pages/ClientPortal";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/activity" element={<ActivityFeed />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/portal" element={<ClientPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

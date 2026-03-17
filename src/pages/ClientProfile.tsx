@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
 import { saveAs } from "file-saver";
 import { RegulatoryIntelligence } from "@/components/app/RegulatoryIntelligence";
+import { SendClientAccess } from "@/components/app/SendClientAccess";
+import { PortalMessages } from "@/components/app/PortalMessages";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
 import {
@@ -434,7 +436,7 @@ const ClientProfile = () => {
                   {client.jurisdiction} {client.registration_number ? `· Reg. ${client.registration_number}` : ""}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm" asChild>
                   <Link to={`/select-license/${id}`}>
                     <FileText className="mr-1 h-4 w-4" /> Start Licensing Project
@@ -445,6 +447,7 @@ const ClientProfile = () => {
                     <FileText className="mr-1 h-4 w-4" /> Compliance Docs
                   </Link>
                 </Button>
+                <SendClientAccess clientId={id!} clientName={client.company_name} />
               </div>
             </div>
 
@@ -834,6 +837,9 @@ const ClientProfile = () => {
               </div>
             )}
           </div>
+
+          {/* Client Portal Messages */}
+          <PortalMessages clientId={id!} />
         </div>
       </div>
     </AppShell>
