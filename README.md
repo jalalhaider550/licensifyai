@@ -1,6 +1,6 @@
 # Licensify AI
 
-Licensify AI is an AI-powered platform that automates regulatory licensing for fintech startups and law firms.
+Licensify AI is an AI-powered platform that automates regulatory licensing for law firms.
 
 ## Problem
 Regulatory licensing is slow, manual, and expensive. Lawyers spend weeks drafting applications and ensuring compliance.
