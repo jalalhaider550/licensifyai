@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
+import Cases from "./pages/Cases";
+import CaseDetail from "./pages/CaseDetail";
 import Clients from "./pages/Clients";
 import ClientProfile from "./pages/ClientProfile";
 import SelectLicense from "./pages/SelectLicense";
@@ -40,6 +42,8 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/cases" element={<Cases />} />
+            <Route path="/cases/:id" element={<CaseDetail />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientProfile />} />
             <Route path="/select-license/:clientId" element={<SelectLicense />} />
