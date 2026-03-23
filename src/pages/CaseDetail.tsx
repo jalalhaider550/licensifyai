@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -171,7 +171,12 @@ const CaseDetail = () => {
   const recommendations = parseCaseRecommendations(caseItem?.last_recommendations) as CaseRecommendation[];
   const missingItems = parseMissingInfoActions(caseItem?.ai_context?.missingItems) as MissingInfoAction[];
 
-  const getComputedStatus = (nextSummary = summary, nextFacts = factsText, recommendationCount = recommendations.length, documentCount = documents.length) =>
+  const getComputedStatus = (
+    nextSummary = summary,
+    nextFacts: string | string[] = factsText,
+    recommendationCount = recommendations.length,
+    documentCount = documents.length,
+  ) =>
     deriveCaseStatus({
       summary: nextSummary,
       keyFacts: nextFacts,
@@ -479,7 +484,7 @@ const CaseDetail = () => {
             body: {
               action: "generate-legal-draft",
               actionType: item.actionType || "draft_document",
-              draftType: item.draftType || title,
+              draftType: "draftType" in item ? item.draftType || title : title,
               caseType: caseItem.case_type,
               caseSummary: summary,
               keyFacts: normalizeFacts(factsText),
