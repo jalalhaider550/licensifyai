@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,6 +34,7 @@ import {
   deriveCaseStatus,
   formatRelativeDate,
   getCaseTypeLabel,
+  normalizeCaseActionType,
   normalizeFacts,
   normalizeCaseStatus,
   parseCaseRecommendations,
@@ -59,7 +60,6 @@ const parseContentJson = (payload: any) => {
 
 const CaseDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const db = supabase as any;
@@ -462,28 +462,16 @@ const CaseDetail = () => {
           toast.info("Choose the relevant file to improve the case record.");
           break;
         }
-        case "open_licensing": {
-          if (!linkedClient) throw new Error("Link a client to start licensing from this case.");
-          navigate(`/select-license/${linkedClient.id}?caseId=${caseItem.id}`);
-          break;
-        }
-        case "open_client": {
-          if (!linkedClient) throw new Error("No linked client is available for this case.");
-          navigate(`/clients/${linkedClient.id}`);
-          break;
-        }
-        case "refresh_case": {
-          await refreshCaseUnderstanding(undefined);
-          break;
-        }
         case "draft_document":
         case "review_matter":
+        case "generate_strategy":
         default: {
           const title = "title" in item ? item.title : item.label;
+          const normalizedActionType = normalizeCaseActionType(item.actionType, title);
           const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
             body: {
               action: "generate-legal-draft",
-              actionType: item.actionType || "draft_document",
+              actionType: normalizedActionType,
               draftType: "draftType" in item ? item.draftType || title : title,
               caseType: caseItem.case_type,
               caseSummary: summary,
@@ -508,7 +496,7 @@ const CaseDetail = () => {
             activity_type: "action",
             title,
             content: `Opened legal action workspace for ${title}.`,
-            metadata: { action_type: item.actionType || "draft_document" },
+            metadata: { action_type: normalizedActionType },
           });
 
           const nextStatus = getComputedStatus(summary, factsText, recommendations.length, documents.length);

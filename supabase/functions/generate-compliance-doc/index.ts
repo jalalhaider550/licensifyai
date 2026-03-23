@@ -243,7 +243,7 @@ Include ALL directors and shareholders as separate fields (Director 1, Director 
 
       systemPrompt = `You are a senior lawyer drafting professional legal work product. Generate polished, legally structured content that is ready for review and practical use with minimal edits. Use a formal tone, precise terminology, proper headings, defined parties where possible, and bracketed placeholders only when critical facts are missing.`;
 
-      userPrompt = `Prepare a ${actionType === "review_matter" ? "legal review memorandum" : "formal legal draft"} for the following matter.
+      userPrompt = `Prepare a ${actionType === "review_matter" ? "legal review memorandum" : actionType === "generate_strategy" ? "legal strategy memorandum" : "formal legal draft"} for the following matter.
 
 Draft type: ${draftType || "legal action draft"}
 Case type: ${caseType || "general_legal"}
@@ -259,6 +259,8 @@ Requirements:
 - Begin with a clear title.
 - Include a concise background/factual matrix.
 - If drafting a notice, include subject line, parties, legal basis, demanded action, deadline placeholder if unknown, reservation of rights, and signature block.
+- If actionType is review_matter, output these headings in order: Overview, Key Issues, Legal Risks, Recommendations.
+- If actionType is generate_strategy, output these headings in order: Recommended Course of Action, Risks, Alternatives, Immediate Next Moves.
 - If drafting a review or analysis, include issues, legal significance, risks, and recommended next actions.
 - Keep the output concrete, legally accurate, and tailored to the supplied facts.
 - Do not give generic educational commentary.`;
