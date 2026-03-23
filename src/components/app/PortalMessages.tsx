@@ -7,9 +7,10 @@ import { toast } from "sonner";
 
 interface PortalMessagesProps {
   clientId: string;
+  caseId?: string;
 }
 
-export const PortalMessages = ({ clientId }: PortalMessagesProps) => {
+export const PortalMessages = ({ clientId, caseId }: PortalMessagesProps) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
@@ -18,24 +19,32 @@ export const PortalMessages = ({ clientId }: PortalMessagesProps) => {
   useEffect(() => {
     loadMessages();
     const channel = supabase
-      .channel(`lawyer-messages-${clientId}`)
+      .channel(`lawyer-messages-${clientId}-${caseId || "all"}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "portal_messages", filter: `client_id=eq.${clientId}` }, (payload) => {
+        if (caseId && payload.new.case_id !== caseId) return;
         setMessages((prev) => [...prev, payload.new]);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [clientId]);
+  }, [clientId, caseId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const loadMessages = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from("portal_messages")
       .select("*")
       .eq("client_id", clientId)
       .order("created_at", { ascending: true });
+
+    if (caseId) {
+      query = query.eq("case_id", caseId);
+    }
+
+    const { data } = await query;
+
     setMessages(data || []);
   };
 
@@ -44,7 +53,9 @@ export const PortalMessages = ({ clientId }: PortalMessagesProps) => {
     setSending(true);
     const { error } = await supabase.from("portal_messages").insert({
       client_id: clientId,
+      case_id: caseId || null,
       sender_type: "lawyer",
+      sender_name: "Legal team",
       message: msgText.trim(),
     });
     if (error) { toast.error("Failed to send"); setSending(false); return; }

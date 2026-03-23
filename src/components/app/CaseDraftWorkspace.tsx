@@ -1,4 +1,4 @@
-import { Copy, FileText, X } from "lucide-react";
+import { CheckCircle2, Copy, Download, FileText, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -6,12 +6,29 @@ interface CaseDraftWorkspaceProps {
   open: boolean;
   title: string;
   content: string;
+  isSaving?: boolean;
   onChange: (value: string) => void;
   onCopy: () => void;
+  onSaveDraft?: () => void;
+  onApprove?: () => void;
+  onExportWord?: () => void;
+  onExportPdf?: () => void;
   onClose: () => void;
 }
 
-export const CaseDraftWorkspace = ({ open, title, content, onChange, onCopy, onClose }: CaseDraftWorkspaceProps) => {
+export const CaseDraftWorkspace = ({
+  open,
+  title,
+  content,
+  isSaving,
+  onChange,
+  onCopy,
+  onSaveDraft,
+  onApprove,
+  onExportWord,
+  onExportPdf,
+  onClose,
+}: CaseDraftWorkspaceProps) => {
   if (!open) return null;
 
   return (
@@ -25,6 +42,26 @@ export const CaseDraftWorkspace = ({ open, title, content, onChange, onCopy, onC
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {onSaveDraft ? (
+            <Button size="sm" variant="outline" onClick={onSaveDraft} disabled={isSaving}>
+              <Save className="mr-2 h-4 w-4" /> Save Draft
+            </Button>
+          ) : null}
+          {onExportWord ? (
+            <Button size="sm" variant="outline" onClick={onExportWord}>
+              <Download className="mr-2 h-4 w-4" /> Word
+            </Button>
+          ) : null}
+          {onExportPdf ? (
+            <Button size="sm" variant="outline" onClick={onExportPdf}>
+              <Download className="mr-2 h-4 w-4" /> PDF
+            </Button>
+          ) : null}
+          {onApprove ? (
+            <Button size="sm" onClick={onApprove} disabled={isSaving}>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
+            </Button>
+          ) : null}
           <Button size="sm" variant="outline" onClick={onCopy}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
