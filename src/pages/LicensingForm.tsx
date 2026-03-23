@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -55,8 +55,11 @@ const SECTION_ICONS: Record<Section, React.ElementType> = {
 
 const LicensingForm = () => {
   const { clientId, licenseType } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const db = supabase as any;
   const meta = LICENSE_META[licenseType || ""] || LICENSE_META["uk-pi"];
+  const caseId = searchParams.get("caseId");
 
   const [activeSection, setActiveSection] = useState<Section>("firm");
   const [client, setClient] = useState<any>(null);
@@ -150,9 +153,10 @@ const LicensingForm = () => {
       // Upload to storage
       const filePath = `${user.id}/${clientId}/license-${licenseType}-${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
-      await supabase.from("documents").insert({
+      await db.from("documents").insert({
         client_id: clientId,
         user_id: user.id,
+        case_id: caseId || null,
         name: `${meta.name}: ${file.name}`,
         file_type: file.type,
         storage_path: filePath,
@@ -443,6 +447,11 @@ const LicensingForm = () => {
           <p className="mt-1 text-sm text-muted-foreground font-mono">
             {meta.authority} · {meta.currency}
           </p>
+          {caseId && (
+            <Link to={`/cases/${caseId}`} className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              Open linked case <ChevronRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
 
         {/* Missing items alert */}

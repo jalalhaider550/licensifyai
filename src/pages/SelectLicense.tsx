@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,11 +57,13 @@ const US_LICENSES = [
 const SelectLicense = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(null);
 
   const handleContinue = () => {
     if (!selected) return;
-    navigate(`/licensing-project/${clientId}/${selected}`);
+    const caseId = searchParams.get("caseId");
+    navigate(`/licensing-project/${clientId}/${selected}${caseId ? `?caseId=${caseId}` : ""}`);
   };
 
   return (

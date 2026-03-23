@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Shield,
   LayoutDashboard,
+  BriefcaseBusiness,
   Users,
   FileText,
   PackageCheck,
@@ -21,6 +22,7 @@ import {
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/cases", icon: BriefcaseBusiness, label: "Cases" },
   { to: "/clients", icon: Users, label: "Clients" },
   { to: "/licenses", icon: PackageCheck, label: "Licensing Projects" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
