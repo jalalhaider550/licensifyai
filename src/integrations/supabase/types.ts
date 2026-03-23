@@ -256,6 +256,144 @@ export type Database = {
           },
         ]
       }
+      case_info_request_items: {
+        Row: {
+          case_id: string
+          created_at: string
+          description: string | null
+          document_category: string | null
+          id: string
+          label: string
+          metadata: Json
+          request_id: string
+          request_type: string
+          response_text: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          description?: string | null
+          document_category?: string | null
+          id?: string
+          label: string
+          metadata?: Json
+          request_id: string
+          request_type?: string
+          response_text?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          description?: string | null
+          document_category?: string | null
+          id?: string
+          label?: string
+          metadata?: Json
+          request_id?: string
+          request_type?: string
+          response_text?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_info_request_items_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_info_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "case_info_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_info_requests: {
+        Row: {
+          case_id: string
+          client_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          instructions: string
+          last_reminded_at: string | null
+          request_message: string
+          status: string
+          submission_notes: string | null
+          submitted_at: string | null
+          submitted_data: Json
+          title: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          client_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          instructions?: string
+          last_reminded_at?: string | null
+          request_message?: string
+          status?: string
+          submission_notes?: string | null
+          submitted_at?: string | null
+          submitted_data?: Json
+          title: string
+          token?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          client_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          instructions?: string
+          last_reminded_at?: string | null
+          request_message?: string
+          status?: string
+          submission_notes?: string | null
+          submitted_at?: string | null
+          submitted_data?: Json
+          title?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_info_requests_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_info_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cases: {
         Row: {
           ai_context: Json
@@ -671,6 +809,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_case_info_request: {
+        Args: { _token: string }
+        Returns: {
+          case_id: string
+          case_title: string
+          client_id: string
+          client_name: string
+          expires_at: string
+          id: string
+          instructions: string
+          items: Json
+          request_message: string
+          status: string
+          submitted_at: string
+          title: string
+        }[]
+      }
       get_client_portal_cases: {
         Args: { _token: string }
         Returns: {
