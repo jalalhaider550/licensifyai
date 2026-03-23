@@ -127,7 +127,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       setIsComplete(Boolean(parsed.isComplete));
 
       if (parsed.nextQuestion) {
-        setMessages([...conversation, { role: "assistant", content: parsed.nextQuestion }]);
+        setMessages([...conversation, { role: "assistant" as const, content: parsed.nextQuestion }]);
       } else {
         setMessages(conversation);
       }
@@ -153,7 +153,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
     const value = draftAnswer.trim();
     if (!value || loadingPrompt) return;
 
-    const nextConversation = [...messages, { role: "user", content: value }];
+    const nextConversation: ChatMessage[] = [...messages, { role: "user", content: value }];
     setMessages(nextConversation);
     setDraftAnswer("");
     await runIntake(nextConversation, intakeData);
@@ -164,7 +164,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
     setCreating(true);
 
     try {
-      const summaryPayload = {
+      const summaryPayload: Record<string, any> = {
         ...intakeData,
         client_name: intakeData.client_name || linkedClient?.company_name || "New client",
       };
