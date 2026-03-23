@@ -50,6 +50,7 @@ const Cases = () => {
   const filteredCases = useMemo(
     () =>
       cases.filter((item) => {
+        if (item.case_type === "licensing") return false;
         const value = `${item.title} ${item.client_name} ${item.case_type}`.toLowerCase();
         return value.includes(search.toLowerCase());
       }),
@@ -61,9 +62,9 @@ const Cases = () => {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Cases</h1>
+              <h1 className="font-display text-2xl font-bold text-foreground">Legal Cases</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Run all legal work inside cases while keeping licensing workflows intact.
+                Run contract, dispute, drafting, and legal document work here while keeping licensing separate.
             </p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>
@@ -80,21 +81,21 @@ const Cases = () => {
               </p>
             </div>
             <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              Existing licensing features remain unchanged.
+              Licensing stays in its own workspace.
             </div>
           </div>
         </div>
 
         <div className="relative mb-5 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search cases…" className="pl-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search legal cases…" className="pl-9" />
         </div>
 
         {filteredCases.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-8 text-center">
             <BriefcaseBusiness className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-            <h3 className="font-display text-lg font-semibold text-foreground">No cases yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Create your first case to start the AI intake and decision workflow.</p>
+            <h3 className="font-display text-lg font-semibold text-foreground">No legal cases yet</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Create your first non-licensing case to start the legal workflow.</p>
             <Button className="mt-4" onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Create Case
             </Button>

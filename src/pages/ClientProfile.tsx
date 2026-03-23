@@ -443,6 +443,11 @@ const ClientProfile = () => {
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
+                  <Link to="/cases">
+                    <Briefcase className="mr-1 h-4 w-4" /> Open Legal Cases
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
                   <Link to="/compliance">
                     <FileText className="mr-1 h-4 w-4" /> Compliance Docs
                   </Link>
