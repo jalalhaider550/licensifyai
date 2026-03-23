@@ -671,7 +671,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_client_portal_cases: {
+        Args: { _token: string }
+        Returns: {
+          case_type: Database["public"]["Enums"]["case_type"]
+          client_name: string
+          client_summary: string
+          created_at: string
+          id: string
+          progress_percentage: number
+          status: string
+          title: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       case_type:
