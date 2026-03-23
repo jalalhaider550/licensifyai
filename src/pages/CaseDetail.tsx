@@ -3,11 +3,15 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  BellRing,
   Brain,
   BriefcaseBusiness,
   CheckCircle2,
+  Copy,
   Download,
+  ExternalLink,
   Loader2,
+  Mail,
   MessageSquare,
   RefreshCcw,
   Save,
@@ -50,6 +54,8 @@ import { toast } from "sonner";
 import { CaseRecommendationPanel } from "@/components/app/CaseRecommendationPanel";
 import { CaseDraftWorkspace } from "@/components/app/CaseDraftWorkspace";
 import { PortalMessages } from "@/components/app/PortalMessages";
+import { ClientInfoRequestDialog } from "@/components/app/ClientInfoRequestDialog";
+import { CaseInfoRequestsPanel } from "@/components/app/CaseInfoRequestsPanel";
 import {
   createLegalDocxBlob,
   createLegalPdfBlob,
@@ -63,6 +69,11 @@ import {
   revokeBrowserDownload,
   triggerBrowserDownload,
 } from "@/lib/fileDownloads";
+import {
+  buildCaseInfoRequestLink,
+  buildCaseInfoRequestMessage,
+  getCaseInfoRequestStatusLabel,
+} from "@/lib/caseInfoRequests";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -87,6 +98,7 @@ const CaseDetail = () => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [linkedClient, setLinkedClient] = useState<any>(null);
   const [drafts, setDrafts] = useState<any[]>([]);
+  const [infoRequests, setInfoRequests] = useState<any[]>([]);
 
   const [title, setTitle] = useState("");
   const [clientName, setClientName] = useState("");
@@ -110,15 +122,23 @@ const CaseDetail = () => {
   const [persistingDraft, setPersistingDraft] = useState(false);
   const [exportLoadingFormat, setExportLoadingFormat] = useState<"pdf" | "docx" | null>(null);
   const [downloadFallback, setDownloadFallback] = useState<{ url: string; fileName: string; label: string } | null>(null);
+  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [selectedMissingItem, setSelectedMissingItem] = useState<MissingInfoAction | null>(null);
+  const [requestForm, setRequestForm] = useState({ title: "", requestMessage: "", instructions: "" });
+  const [requestBusyKey, setRequestBusyKey] = useState<string | null>(null);
+  const [requestSaving, setRequestSaving] = useState(false);
+  const [reminderBusyId, setReminderBusyId] = useState<string | null>(null);
 
   const loadCase = async () => {
     if (!id) return;
 
-    const [{ data: caseData, error: caseError }, { data: activityData }, { data: documentData }, { data: draftData }] = await Promise.all([
+    const [{ data: caseData, error: caseError }, { data: activityData }, { data: documentData }, { data: draftData }, { data: requestData }, { data: requestItemData }] = await Promise.all([
       db.from("cases").select("*").eq("id", id).single(),
       db.from("case_activities").select("*").eq("case_id", id).order("created_at", { ascending: false }),
       db.from("case_documents").select("*").eq("case_id", id).order("created_at", { ascending: false }),
       db.from("case_drafts").select("*").eq("case_id", id).order("version_number", { ascending: false }),
+      db.from("case_info_requests").select("*").eq("case_id", id).order("created_at", { ascending: false }),
+      db.from("case_info_request_items").select("*").eq("case_id", id).order("sort_order", { ascending: true }),
     ]);
 
     if (caseError || !caseData) {
@@ -131,6 +151,12 @@ const CaseDetail = () => {
     setActivities(activityData || []);
     setDocuments(documentData || []);
     setDrafts(draftData || []);
+    setInfoRequests(
+      (requestData || []).map((request: any) => ({
+        ...request,
+        items: (requestItemData || []).filter((item: any) => item.request_id === request.id),
+      })),
+    );
     setTitle(caseData.title || "");
     setClientName(caseData.client_name || "");
     setOpponent(caseData.opponent || "");
@@ -200,6 +226,40 @@ const CaseDetail = () => {
 
   const recommendations = parseCaseRecommendations(caseItem?.last_recommendations) as CaseRecommendation[];
   const missingItems = parseMissingInfoActions(caseItem?.ai_context?.missingItems) as MissingInfoAction[];
+  const requestStatusByLabel = useMemo(() => {
+    const next: Record<string, string> = {};
+    infoRequests.forEach((request) => {
+      (request.items || []).forEach((item: any) => {
+        if (!next[item.label]) {
+          next[item.label] = getCaseInfoRequestStatusLabel(item.status || request.status);
+        }
+      });
+    });
+    return next;
+  }, [infoRequests]);
+
+  const getRequestMessage = (request: any) =>
+    buildCaseInfoRequestMessage({
+      link: buildCaseInfoRequestLink(request.token),
+      requestTitle: request.title,
+      companyName: linkedClient?.company_name || clientName,
+    });
+
+  const openRequestPage = (request: any) => {
+    window.open(buildCaseInfoRequestLink(request.token), "_blank", "noopener,noreferrer");
+  };
+
+  const copyRequestLink = async (request: any) => {
+    await navigator.clipboard.writeText(buildCaseInfoRequestLink(request.token));
+    toast.success("Client request link copied");
+  };
+
+  const sendRequestEmail = (request: any) => {
+    const email = linkedClient?.contact_email || "";
+    const subject = encodeURIComponent(request.title);
+    const body = encodeURIComponent(getRequestMessage(request));
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
 
   const getComputedStatus = (
     nextSummary = summary,
@@ -331,6 +391,128 @@ const CaseDetail = () => {
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to add note");
+    }
+  };
+
+  const handleOpenRequestDialog = (item: MissingInfoAction, actionKey: string) => {
+    setSelectedMissingItem(item);
+    setRequestBusyKey(actionKey);
+    setRequestForm({
+      title: item.label,
+      requestMessage: "Please provide the requested documents using the link below.",
+      instructions:
+        item.why ||
+        "Upload the requested documents or enter the missing information in the form, then add any helpful notes before submitting.",
+    });
+    setRequestModalOpen(true);
+    setTimeout(() => setRequestBusyKey(null), 0);
+  };
+
+  const handleCreateClientRequest = async () => {
+    if (!caseItem || !user || !selectedMissingItem || !caseItem.client_id) return;
+    setRequestSaving(true);
+
+    try {
+      const { data: createdRequest, error: requestError } = await db
+        .from("case_info_requests")
+        .insert({
+          case_id: caseItem.id,
+          client_id: caseItem.client_id,
+          user_id: user.id,
+          title: requestForm.title.trim(),
+          request_message: requestForm.requestMessage.trim(),
+          instructions: requestForm.instructions.trim(),
+          status: "requested",
+        })
+        .select("*")
+        .single();
+
+      if (requestError) throw requestError;
+
+      const requestType = selectedMissingItem.actionType === "upload_document" ? "document" : "text";
+      const { error: itemError } = await db.from("case_info_request_items").insert({
+        request_id: createdRequest.id,
+        case_id: caseItem.id,
+        user_id: user.id,
+        label: selectedMissingItem.label,
+        description: selectedMissingItem.why || null,
+        request_type: requestType,
+        document_category: selectedMissingItem.documentCategory || null,
+        status: "requested",
+        metadata: {
+          action_type: selectedMissingItem.actionType,
+          priority: selectedMissingItem.priority,
+        },
+      });
+
+      if (itemError) throw itemError;
+
+      await Promise.all([
+        db.from("case_actions").insert({
+          case_id: caseItem.id,
+          user_id: user.id,
+          title: selectedMissingItem.label,
+          action_type: "upload_document",
+          priority: selectedMissingItem.priority || "medium",
+          status: "pending",
+          is_client_action: true,
+          description: requestForm.instructions.trim(),
+          document_category: selectedMissingItem.documentCategory || null,
+          reasoning: selectedMissingItem.why || null,
+          metadata: {
+            source: "case-info-request",
+            request_id: createdRequest.id,
+          },
+          result_content: "",
+        }),
+        db.from("case_activities").insert({
+          case_id: caseItem.id,
+          user_id: user.id,
+          activity_type: "client_request",
+          title: `Requested client information: ${selectedMissingItem.label}`,
+          content: requestForm.requestMessage.trim(),
+          metadata: { request_id: createdRequest.id },
+        }),
+      ]);
+
+      setRequestModalOpen(false);
+      setSelectedMissingItem(null);
+      await loadCase();
+      await copyRequestLink(createdRequest);
+      toast.success("Secure client request created");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to create client request");
+    } finally {
+      setRequestSaving(false);
+    }
+  };
+
+  const handleSendReminder = async (request: any) => {
+    if (!caseItem || !user) return;
+    setReminderBusyId(request.id);
+
+    try {
+      await Promise.all([
+        db.from("case_info_requests").update({ last_reminded_at: new Date().toISOString() }).eq("id", request.id),
+        db.from("case_activities").insert({
+          case_id: caseItem.id,
+          user_id: user.id,
+          activity_type: "client_request_reminder",
+          title: `Reminder sent for ${request.title}`,
+          content: "A reminder was sent for the outstanding client information request.",
+          metadata: { request_id: request.id },
+        }),
+      ]);
+
+      await navigator.clipboard.writeText(getRequestMessage(request));
+      toast.success("Reminder message copied");
+      await loadCase();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to send reminder");
+    } finally {
+      setReminderBusyId(null);
     }
   };
 
@@ -805,8 +987,20 @@ const CaseDetail = () => {
                   missingItems={missingItems}
                   showWhy={showWhy}
                   busyKey={actionBusyKey}
+                  requestBusyKey={requestBusyKey}
+                  requestStatusByLabel={requestStatusByLabel}
                   onShowWhyChange={setShowWhy}
                   onAction={handleCaseAction}
+                  onRequestFromClient={handleOpenRequestDialog}
+                />
+
+                <CaseInfoRequestsPanel
+                  requests={infoRequests}
+                  reminderBusyId={reminderBusyId}
+                  onCopyLink={copyRequestLink}
+                  onSendEmail={sendRequestEmail}
+                  onSendReminder={handleSendReminder}
+                  onOpenRequest={openRequestPage}
                 />
 
                 <CaseDraftWorkspace
@@ -983,6 +1177,19 @@ const CaseDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ClientInfoRequestDialog
+        open={requestModalOpen}
+        saving={requestSaving}
+        itemLabel={selectedMissingItem?.label}
+        values={requestForm}
+        onOpenChange={(open) => {
+          setRequestModalOpen(open);
+          if (!open) setSelectedMissingItem(null);
+        }}
+        onValueChange={(field, value) => setRequestForm((current) => ({ ...current, [field]: value }))}
+        onSubmit={handleCreateClientRequest}
+      />
     </AppShell>
   );
 };

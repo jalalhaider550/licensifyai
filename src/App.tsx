@@ -26,6 +26,7 @@ import ActivityFeed from "./pages/ActivityFeed";
 import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import ClientPortal from "./pages/ClientPortal";
+import ClientInfoRequest from "./pages/ClientInfoRequest";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/help" element={<Help />} />
             <Route path="/portal" element={<ClientPortal />} />
+            <Route path="/client-request" element={<ClientInfoRequest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -8,8 +8,11 @@ interface CaseRecommendationPanelProps {
   missingItems: MissingInfoAction[];
   showWhy: boolean;
   busyKey: string | null;
+  requestBusyKey?: string | null;
+  requestStatusByLabel?: Record<string, string>;
   onShowWhyChange: (value: boolean) => void;
   onAction: (item: CaseRecommendation | MissingInfoAction, key: string) => void;
+  onRequestFromClient?: (item: MissingInfoAction, key: string) => void;
 }
 
 const priorityStyles = {
@@ -23,8 +26,11 @@ export const CaseRecommendationPanel = ({
   missingItems,
   showWhy,
   busyKey,
+  requestBusyKey,
+  requestStatusByLabel,
   onShowWhyChange,
   onAction,
+  onRequestFromClient,
 }: CaseRecommendationPanelProps) => {
   return (
     <div className="space-y-4">
@@ -105,18 +111,35 @@ export const CaseRecommendationPanel = ({
                         <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${priorityStyles[priority]}`}>
                           {priority}
                         </span>
+                        {requestStatusByLabel?.[item.label] ? (
+                          <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                            {requestStatusByLabel[item.label]}
+                          </span>
+                        ) : null}
                       </div>
                       {showWhy && item.why ? <p className="mt-1 text-xs text-muted-foreground">{item.why}</p> : null}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onAction(item, actionKey)}
-                      disabled={busyKey === actionKey}
-                    >
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      {busyKey === actionKey ? "Opening…" : item.actionLabel || "Resolve"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAction(item, actionKey)}
+                        disabled={busyKey === actionKey}
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {busyKey === actionKey ? "Opening…" : item.actionLabel || "Resolve"}
+                      </Button>
+                      {onRequestFromClient ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onRequestFromClient(item, `${actionKey}-request`)}
+                          disabled={requestBusyKey === `${actionKey}-request`}
+                        >
+                          {requestBusyKey === `${actionKey}-request` ? "Preparing…" : "Request from Client"}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               );
