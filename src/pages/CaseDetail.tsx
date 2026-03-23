@@ -128,6 +128,7 @@ const CaseDetail = () => {
   const [requestBusyKey, setRequestBusyKey] = useState<string | null>(null);
   const [requestSaving, setRequestSaving] = useState(false);
   const [reminderBusyId, setReminderBusyId] = useState<string | null>(null);
+  const [latestRequestLink, setLatestRequestLink] = useState<{ title: string; url: string } | null>(null);
 
   const loadCase = async () => {
     if (!id) return;
@@ -250,8 +251,18 @@ const CaseDetail = () => {
   };
 
   const copyRequestLink = async (request: any) => {
-    await navigator.clipboard.writeText(buildCaseInfoRequestLink(request.token));
-    toast.success("Client request link copied");
+    const link = buildCaseInfoRequestLink(request.token);
+
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Client request link copied");
+      return true;
+    } catch (error) {
+      console.error(error);
+      setLatestRequestLink({ title: request.title, url: link });
+      toast.info("Copy was blocked, but the client link is shown below.");
+      return false;
+    }
   };
 
   const sendRequestEmail = (request: any) => {
@@ -506,10 +517,14 @@ const CaseDetail = () => {
         }),
       ]);
 
+      setLatestRequestLink({
+        title: createdRequest.title,
+        url: buildCaseInfoRequestLink(createdRequest.token),
+      });
       setRequestModalOpen(false);
       setSelectedMissingItems([]);
       await loadCase();
-      await copyRequestLink(createdRequest);
+      void copyRequestLink(createdRequest);
       toast.success("Secure client request created");
     } catch (err: any) {
       console.error(err);
@@ -1034,6 +1049,32 @@ const CaseDetail = () => {
                   onSendReminder={handleSendReminder}
                   onOpenRequest={openRequestPage}
                 />
+
+                {latestRequestLink ? (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">Client link ready</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Share this secure form with the client for {latestRequestLink.title.toLowerCase()}.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyRequestLink({ title: latestRequestLink.title, token: latestRequestLink.url.split("token=")[1] || "" })}
+                        >
+                          <Copy className="mr-2 h-4 w-4" /> Copy link
+                        </Button>
+                        <Button size="sm" onClick={() => window.open(latestRequestLink.url, "_blank", "noopener,noreferrer")}>
+                          <ExternalLink className="mr-2 h-4 w-4" /> Open form
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground break-all">
+                      {latestRequestLink.url}
+                    </div>
+                  </div>
+                ) : null}
 
                 <CaseDraftWorkspace
                   open={actionWorkspaceOpen}
