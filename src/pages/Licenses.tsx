@@ -16,9 +16,9 @@ const Licenses = () => {
       <div className="p-6 lg:p-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Licenses</h1>
+            <h1 className="font-display text-2xl font-bold text-foreground">Licensing</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Fintech license types and active applications.
+              Permit, compliance, and licensing workspaces.
             </p>
           </div>
         </div>

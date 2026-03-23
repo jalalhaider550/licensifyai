@@ -22,9 +22,9 @@ import {
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/cases", icon: BriefcaseBusiness, label: "Cases" },
+  { to: "/cases", icon: BriefcaseBusiness, label: "Legal Cases" },
   { to: "/clients", icon: Users, label: "Clients" },
-  { to: "/licenses", icon: PackageCheck, label: "Licensing Projects" },
+  { to: "/licenses", icon: PackageCheck, label: "Licensing" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },

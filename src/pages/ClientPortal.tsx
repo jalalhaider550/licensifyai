@@ -1,18 +1,16 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Shield, Building2, Users, Upload, FileText, MessageSquare,
-  Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Paperclip
+  Shield,
+  BriefcaseBusiness,
+  Building2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
+import { ClientLicensingWorkspace } from "@/components/app/ClientLicensingWorkspace";
+import { ClientLegalCaseWorkspace } from "@/components/app/ClientLegalCaseWorkspace";
 
 interface PortalData {
   client: any;
@@ -28,11 +26,14 @@ interface PortalData {
 const ClientPortal = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [valid, setValid] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
   const [data, setData] = useState<PortalData>({ client: null, cases: [], caseActions: [], caseDocuments: [], directors: [], shareholders: [], documents: [], messages: [] });
   const [selectedCaseId, setSelectedCaseId] = useState("");
+  const [selectedWorkspace, setSelectedWorkspace] = useState<"licensing" | "legal">("licensing");
   const [activeTab, setActiveTab] = useState("company");
 
   // Form states
@@ -43,7 +44,6 @@ const ClientPortal = () => {
   const [sendingAttachment, setSendingAttachment] = useState(false);
   const [newDirector, setNewDirector] = useState({ full_name: "", role: "Director" });
   const [newShareholder, setNewShareholder] = useState({ name: "", percentage: 0 });
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Editable client fields
@@ -96,8 +96,9 @@ const ClientPortal = () => {
       supabase.from("case_documents").select("*").order("created_at", { ascending: false }),
     ]);
 
-    setData({ client: c, cases: cases || [], caseActions: caseActions || [], caseDocuments: caseDocs || [], directors: d || [], shareholders: s || [], documents: docs || [], messages: msgs || [] });
-    setSelectedCaseId((current) => current || cases?.[0]?.id || "");
+    const nextCases = cases || [];
+    setData({ client: c, cases: nextCases, caseActions: caseActions || [], caseDocuments: caseDocs || [], directors: d || [], shareholders: s || [], documents: docs || [], messages: msgs || [] });
+    setSelectedCaseId((current) => current || nextCases[0]?.id || "");
     if (c) {
       setForm({
         company_name: c.company_name || "",
@@ -221,7 +222,7 @@ const ClientPortal = () => {
       toast.error("Upload failed");
     }
     setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (documentInputRef.current) documentInputRef.current.value = "";
   };
 
   const sendMessage = async () => {
@@ -283,7 +284,7 @@ const ClientPortal = () => {
       toast.error(err.message || "Failed to send attachment");
     } finally {
       setSendingAttachment(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
     }
   };
 
@@ -326,10 +327,53 @@ const ClientPortal = () => {
 
   const progress = getProgress();
   const missingItems = getMissingItems();
-  const selectedCase = data.cases.find((item) => item.id === selectedCaseId) || data.cases[0] || null;
+  const licensingCases = useMemo(() => data.cases.filter((item) => item.case_type === "licensing"), [data.cases]);
+  const legalCases = useMemo(() => data.cases.filter((item) => item.case_type !== "licensing"), [data.cases]);
+  const selectedCase = data.cases.find((item) => item.id === selectedCaseId) || null;
+  const workspaceCases = selectedWorkspace === "licensing" ? licensingCases : legalCases;
   const visibleMessages = selectedCaseId ? data.messages.filter((msg) => msg.case_id === selectedCaseId) : data.messages;
   const visibleCaseDocuments = selectedCaseId ? data.caseDocuments.filter((doc) => doc.case_id === selectedCaseId) : [];
   const visibleCaseActions = selectedCaseId ? data.caseActions.filter((item) => item.case_id === selectedCaseId && item.is_client_action) : [];
+
+  useEffect(() => {
+    if (!data.cases.length) {
+      setSelectedWorkspace("licensing");
+      setActiveTab("company");
+      return;
+    }
+
+    const currentCase = data.cases.find((item) => item.id === selectedCaseId);
+    if (currentCase) {
+      const nextWorkspace = currentCase.case_type === "licensing" ? "licensing" : "legal";
+      setSelectedWorkspace(nextWorkspace);
+      setActiveTab((prev) => (nextWorkspace === "licensing" ? (prev === "summary" || prev === "next-steps" || prev === "actions" ? "company" : prev) : (prev === "company" || prev === "people" ? "summary" : prev)));
+      return;
+    }
+
+    const fallbackCase = legalCases[0] || licensingCases[0] || data.cases[0];
+    if (fallbackCase) {
+      setSelectedCaseId(fallbackCase.id);
+      setSelectedWorkspace(fallbackCase.case_type === "licensing" ? "licensing" : "legal");
+      setActiveTab(fallbackCase.case_type === "licensing" ? "company" : "summary");
+    }
+  }, [data.cases, legalCases, licensingCases, selectedCaseId]);
+
+  const handleWorkspaceChange = (workspace: "licensing" | "legal") => {
+    setSelectedWorkspace(workspace);
+    const nextCase = (workspace === "licensing" ? licensingCases : legalCases)[0] || null;
+    setSelectedCaseId(nextCase?.id || "");
+    setActiveTab(workspace === "licensing" ? "company" : "summary");
+  };
+
+  const handleCaseChange = (caseId: string) => {
+    const nextCase = data.cases.find((item) => item.id === caseId);
+    setSelectedCaseId(caseId);
+    if (nextCase) {
+      const nextWorkspace = nextCase.case_type === "licensing" ? "licensing" : "legal";
+      setSelectedWorkspace(nextWorkspace);
+      setActiveTab(nextWorkspace === "licensing" ? "company" : "summary");
+    }
+  };
 
   if (loading) {
     return (
@@ -371,272 +415,103 @@ const ClientPortal = () => {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-foreground">Data Collection Progress</h2>
-            <span className="text-sm font-bold text-primary">{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2 mb-4" />
-          {missingItems.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">What's still needed:</p>
-              {missingItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-amber-600">
-                  <AlertCircle className="h-3 w-3 shrink-0" />
-                  {item}
-                </div>
-              ))}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => handleWorkspaceChange("licensing")}
+            className={`rounded-xl border p-4 text-left transition-colors ${selectedWorkspace === "licensing" ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <Building2 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Licensing</p>
+                <p className="text-xs text-muted-foreground">Permits, compliance, and licensing submissions.</p>
+              </div>
             </div>
-          )}
-          {missingItems.length === 0 && (
-            <div className="flex items-center gap-2 text-xs text-green-600">
-              <CheckCircle2 className="h-4 w-4" />
-              All required information has been provided!
+            <p className="mt-3 text-xs text-muted-foreground">{licensingCases.length} case{licensingCases.length === 1 ? "" : "s"}</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleWorkspaceChange("legal")}
+            disabled={!legalCases.length}
+            className={`rounded-xl border p-4 text-left transition-colors ${selectedWorkspace === "legal" ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"} ${!legalCases.length ? "opacity-60" : ""}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <BriefcaseBusiness className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Legal Cases</p>
+                <p className="text-xs text-muted-foreground">Drafting, disputes, legal documents, and case actions.</p>
+              </div>
             </div>
-          )}
+            <p className="mt-3 text-xs text-muted-foreground">{legalCases.length} case{legalCases.length === 1 ? "" : "s"}</p>
+          </button>
         </div>
 
-        {selectedCase && (
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Case Dashboard</h2>
-                <p className="text-xs text-muted-foreground">Status, updates, and document requests for your case.</p>
-              </div>
-              {data.cases.length > 1 && (
-                <select value={selectedCaseId} onChange={(e) => setSelectedCaseId(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
-                  {data.cases.map((caseItem) => (
-                    <option key={caseItem.id} value={caseItem.id}>{caseItem.title}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg bg-muted/50 p-4">
-                <p className="text-xs text-muted-foreground">Current status</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{selectedCase.status}</p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-4 md:col-span-2">
-                <p className="text-xs text-muted-foreground">Case summary</p>
-                <p className="mt-1 text-sm text-foreground">{selectedCase.client_summary}</p>
-              </div>
-            </div>
-            {visibleCaseActions.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Required actions</p>
-                {visibleCaseActions.map((action) => (
-                  <button key={action.id} onClick={() => setActiveTab("documents")} className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
-                    <span>{action.title}</span>
-                    <span className="text-xs text-muted-foreground">{action.priority}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {selectedWorkspace === "legal" ? (
+          <ClientLegalCaseWorkspace
+            activeTab={activeTab}
+            selectedCase={selectedCase}
+            selectedCaseId={selectedCaseId}
+            caseOptions={workspaceCases}
+            caseActions={visibleCaseActions}
+            caseDocuments={visibleCaseDocuments}
+            messages={visibleMessages}
+            messageText={msgText}
+            uploading={uploading}
+            sendingAttachment={sendingAttachment}
+            sendingMessage={sendingMsg}
+            messagesEndRef={messagesEndRef}
+            onCaseChange={handleCaseChange}
+            onOpenAttachment={openAttachment}
+            onRequestAttachmentUpload={() => attachmentInputRef.current?.click()}
+            onRequestDocumentUpload={() => documentInputRef.current?.click()}
+            onSendMessage={sendMessage}
+            onTabChange={setActiveTab}
+            onMessageTextChange={setMsgText}
+          />
+        ) : (
+          <ClientLicensingWorkspace
+            activeTab={activeTab}
+            caseOptions={workspaceCases}
+            clientDocuments={data.documents}
+            companyForm={form}
+            messages={visibleMessages}
+            missingItems={missingItems}
+            newDirector={newDirector}
+            newShareholder={newShareholder}
+            progress={progress}
+            saving={saving}
+            selectedCaseId={selectedCaseId}
+            sendingAttachment={sendingAttachment}
+            sendingMessage={sendingMsg}
+            uploading={uploading}
+            visibleCaseDocuments={visibleCaseDocuments}
+            messagesEndRef={messagesEndRef}
+            messageText={msgText}
+            people={{ directors: data.directors, shareholders: data.shareholders }}
+            onAddDirector={addDirector}
+            onAddShareholder={addShareholder}
+            onCaseChange={handleCaseChange}
+            onCompanyFormChange={setForm}
+            onMessageTextChange={setMsgText}
+            onNewDirectorChange={setNewDirector}
+            onNewShareholderChange={setNewShareholder}
+            onOpenAttachment={openAttachment}
+            onRequestAttachmentUpload={() => attachmentInputRef.current?.click()}
+            onRequestDocumentUpload={() => documentInputRef.current?.click()}
+            onSaveCompanyInfo={saveCompanyInfo}
+            onSendMessage={sendMessage}
+            onTabChange={setActiveTab}
+          />
         )}
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="company" className="text-xs"><Building2 className="h-3 w-3 mr-1" /> Company</TabsTrigger>
-            <TabsTrigger value="people" className="text-xs"><Users className="h-3 w-3 mr-1" /> People</TabsTrigger>
-            <TabsTrigger value="documents" className="text-xs"><FileText className="h-3 w-3 mr-1" /> Documents</TabsTrigger>
-            <TabsTrigger value="messages" className="text-xs"><MessageSquare className="h-3 w-3 mr-1" /> Messages</TabsTrigger>
-          </TabsList>
-
-          {/* Company Info Tab */}
-          <TabsContent value="company" className="space-y-4 mt-4">
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Company Information</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Company Name</Label>
-                  <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Registration Number</Label>
-                  <Input value={form.registration_number} onChange={(e) => setForm({ ...form, registration_number: e.target.value })} placeholder="e.g. 12345678" />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs">Registered Address</Label>
-                  <Input value={form.registered_address} onChange={(e) => setForm({ ...form, registered_address: e.target.value })} placeholder="Full registered address" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Contact Email</Label>
-                  <Input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Contact Phone</Label>
-                  <Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs">Services / Business Description</Label>
-                  <Textarea
-                    value={form.business_description}
-                    onChange={(e) => setForm({ ...form, business_description: e.target.value })}
-                    placeholder="Describe your fintech services, business model, and target market..."
-                    rows={4}
-                  />
-                </div>
-              </div>
-              <Button onClick={saveCompanyInfo} disabled={saving} className="w-full sm:w-auto">
-                {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
-                Save Company Information
-              </Button>
-            </div>
-          </TabsContent>
-
-          {/* People Tab */}
-          <TabsContent value="people" className="space-y-4 mt-4">
-            {/* Directors */}
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Directors</h3>
-              {data.directors.length > 0 && (
-                <div className="space-y-2">
-                  {data.directors.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm">
-                      <div>
-                        <span className="font-medium text-foreground">{d.full_name}</span>
-                        <span className="ml-2 text-muted-foreground">({d.role})</span>
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Input placeholder="Director name" value={newDirector.full_name} onChange={(e) => setNewDirector({ ...newDirector, full_name: e.target.value })} className="flex-1" />
-                <Input placeholder="Role" value={newDirector.role} onChange={(e) => setNewDirector({ ...newDirector, role: e.target.value })} className="w-32" />
-                <Button size="sm" onClick={addDirector} disabled={!newDirector.full_name.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Shareholders */}
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Shareholders</h3>
-              {data.shareholders.length > 0 && (
-                <div className="space-y-2">
-                  {data.shareholders.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm">
-                      <div>
-                        <span className="font-medium text-foreground">{s.name}</span>
-                        <span className="ml-2 text-muted-foreground">({s.percentage}%)</span>
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Input placeholder="Shareholder name" value={newShareholder.name} onChange={(e) => setNewShareholder({ ...newShareholder, name: e.target.value })} className="flex-1" />
-                <Input type="number" placeholder="%" value={newShareholder.percentage || ""} onChange={(e) => setNewShareholder({ ...newShareholder, percentage: Number(e.target.value) })} className="w-20" />
-                <Button size="sm" onClick={addShareholder} disabled={!newShareholder.name.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Documents Tab */}
-          <TabsContent value="documents" className="space-y-4 mt-4">
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">Upload Documents</h3>
-              <p className="text-xs text-muted-foreground">
-                Upload passports, company documents, and business plans. Accepted formats: PDF, Word.
-              </p>
-              <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${uploading ? "opacity-50 pointer-events-none" : "hover:border-primary/50 hover:bg-primary/5"}`}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                ) : (
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                )}
-                <p className="text-sm font-medium text-foreground">{uploading ? "Uploading..." : "Click to upload or drag & drop"}</p>
-                <p className="text-xs text-muted-foreground mt-1">PDF or Word documents</p>
-              </div>
-              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
-
-              {(visibleCaseDocuments.length > 0 || data.documents.length > 0) && (
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-xs font-medium text-muted-foreground">Uploaded Documents</h4>
-                  {[...visibleCaseDocuments, ...(selectedCaseId ? [] : data.documents)].map((doc) => (
-                    <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 text-sm">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="flex-1 truncate text-foreground">{doc.name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${doc.ai_status === "processed" ? "bg-accent/10 text-accent-foreground" : "bg-warning/10 text-warning-foreground"}`}>
-                        {doc.ai_status === "processed" ? "Processed" : "Pending"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Messages Tab */}
-          <TabsContent value="messages" className="space-y-4 mt-4">
-            <div className="rounded-xl border border-border bg-card flex flex-col" style={{ height: "400px" }}>
-              <div className="p-4 border-b border-border">
-                <h3 className="text-sm font-semibold text-foreground">Messages</h3>
-                <p className="text-xs text-muted-foreground">Communicate with your legal team</p>
-              </div>
-              <div className="flex-1 overflow-auto p-4 space-y-3">
-                {visibleMessages.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-8">No messages yet. Send a message to your legal team.</p>
-                )}
-                {visibleMessages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.sender_type === "client" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                      msg.sender_type === "client"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}>
-                      <p>{msg.message}</p>
-                      {Array.isArray(msg.attachments) && msg.attachments.length > 0 ? (
-                        <div className="mt-2 space-y-1">
-                          {msg.attachments.map((attachment: any, index: number) => (
-                            <button
-                              key={`${msg.id}-${index}`}
-                              type="button"
-                              onClick={() => openAttachment(attachment.storage_path)}
-                              className="block text-left text-xs underline underline-offset-2"
-                            >
-                              {attachment.name}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                      <p className={`text-[10px] mt-1 ${msg.sender_type === "client" ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                        {new Date(msg.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="p-3 border-t border-border flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={sendingAttachment}>
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Input
-                  placeholder="Type a message..."
-                  value={msgText}
-                  onChange={(e) => setMsgText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                />
-                <Button size="sm" onClick={sendMessage} disabled={sendingMsg || !msgText.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={(e) => { const f = e.target.files?.[0]; if (f) sendAttachment(f); }} />
-            </div>
-          </TabsContent>
-        </Tabs>
+        <input ref={documentInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadFile(file); }} />
+        <input ref={attachmentInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={(event) => { const file = event.target.files?.[0]; if (file) sendAttachment(file); }} />
       </div>
     </div>
   );
