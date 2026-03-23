@@ -9,9 +9,32 @@ export const CASE_TYPES = [
 
 export type CaseTypeValue = (typeof CASE_TYPES)[number]["value"];
 
+export type CasePriority = "high" | "medium" | "low";
+export type CaseActionType =
+  | "draft_document"
+  | "review_matter"
+  | "upload_document"
+  | "open_licensing"
+  | "open_client"
+  | "refresh_case";
+
 export interface CaseRecommendation {
   title: string;
   why?: string;
+  priority?: CasePriority;
+  actionLabel?: string;
+  actionType?: CaseActionType;
+  draftType?: string;
+  documentCategory?: string;
+}
+
+export interface MissingInfoAction {
+  label: string;
+  why?: string;
+  priority?: CasePriority;
+  actionLabel?: string;
+  actionType?: CaseActionType;
+  documentCategory?: string;
 }
 
 export const CASE_TYPE_LABELS: Record<CaseTypeValue, string> = CASE_TYPES.reduce((acc, type) => {
@@ -45,6 +68,104 @@ export const normalizeFacts = (value: string | string[] | undefined | null) => {
     .split(/\n|•|\-/)
     .map((item) => item.trim())
     .filter(Boolean);
+};
+
+export const normalizeCasePriority = (value?: string | null): CasePriority => {
+  if (value === "high" || value === "medium" || value === "low") return value;
+  return "medium";
+};
+
+export const parseCaseRecommendations = (value: unknown): CaseRecommendation[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return {
+          title: item,
+          actionLabel: "Open action",
+          actionType: "refresh_case" as const,
+          priority: "medium" as const,
+        };
+      }
+
+      if (!item || typeof item !== "object") return null;
+
+      const record = item as Record<string, unknown>;
+      const title = typeof record.title === "string" ? record.title : "Open legal action";
+
+      return {
+        title,
+        why: typeof record.why === "string" ? record.why : undefined,
+        priority: normalizeCasePriority(typeof record.priority === "string" ? record.priority : null),
+        actionLabel: typeof record.actionLabel === "string" ? record.actionLabel : "Open action",
+        actionType: typeof record.actionType === "string" ? (record.actionType as CaseActionType) : "refresh_case",
+        draftType: typeof record.draftType === "string" ? record.draftType : title,
+        documentCategory: typeof record.documentCategory === "string" ? record.documentCategory : undefined,
+      };
+    })
+    .filter(Boolean) as CaseRecommendation[];
+};
+
+export const parseMissingInfoActions = (value: unknown): MissingInfoAction[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return {
+          label: item,
+          actionLabel: item.toLowerCase().includes("upload") ? "Upload now" : "Review",
+          actionType: item.toLowerCase().includes("upload") ? ("upload_document" as const) : ("refresh_case" as const),
+          priority: "medium" as const,
+        };
+      }
+
+      if (!item || typeof item !== "object") return null;
+
+      const record = item as Record<string, unknown>;
+      const label = typeof record.label === "string" ? record.label : "Resolve missing information";
+
+      return {
+        label,
+        why: typeof record.why === "string" ? record.why : undefined,
+        priority: normalizeCasePriority(typeof record.priority === "string" ? record.priority : null),
+        actionLabel: typeof record.actionLabel === "string" ? record.actionLabel : "Resolve",
+        actionType: typeof record.actionType === "string" ? (record.actionType as CaseActionType) : "refresh_case",
+        documentCategory: typeof record.documentCategory === "string" ? record.documentCategory : undefined,
+      };
+    })
+    .filter(Boolean) as MissingInfoAction[];
+};
+
+export const deriveCaseStatus = ({
+  summary,
+  keyFacts,
+  recommendationCount,
+  documentCount,
+}: {
+  summary?: string | null;
+  keyFacts?: string | string[] | null;
+  recommendationCount?: number;
+  documentCount?: number;
+}) => {
+  const hasSummary = Boolean(summary?.trim());
+  const factCount = normalizeFacts(keyFacts).length;
+  const hasRecommendations = (recommendationCount || 0) > 0;
+  const hasDocuments = (documentCount || 0) > 0;
+
+  if (hasSummary && factCount > 0 && hasRecommendations) return "Ready for Action";
+  if (hasSummary || factCount > 0 || hasDocuments) return "In Progress";
+  return "Draft";
+};
+
+export const normalizeCaseStatus = (value?: string | null) => {
+  if (!value) return "Draft";
+  const normalized = value.toLowerCase();
+  if (normalized === "ready for action") return "Ready for Action";
+  if (normalized === "in progress") return "In Progress";
+  if (normalized === "draft") return "Draft";
+  return value;
 };
 
 export const formatRelativeDate = (value?: string) => {

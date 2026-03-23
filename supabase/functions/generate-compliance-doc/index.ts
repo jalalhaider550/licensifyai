@@ -84,7 +84,7 @@ Extracted Business Model Data:
 ${extractedData ? JSON.stringify(extractedData, null, 2) : "No extracted data available"}
 `.trim();
 
-      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed business plans suitable for regulatory licensing applications (UK FCA and US FinCEN/state regulators). Your documents should be comprehensive, well-structured, and include specific references to the company's data. Use ${currency || "GBP"} for all financial figures.`;
+      systemPrompt = `You are a senior regulatory lawyer and compliance document specialist for fintech companies. You generate professional, submission-ready business plans suitable for regulatory licensing applications (UK FCA and US FinCEN/state regulators). Your writing must be formal, precise, legally structured, and commercially credible. Use clear headings, defined parties where relevant, disciplined clause-style sections, and ${currency || "GBP"} for all financial figures.`;
 
       userPrompt = `Generate a comprehensive, detailed fintech business plan for regulatory submission using the following company data:
 
@@ -105,7 +105,7 @@ The business plan MUST include ALL of the following sections with detailed conte
 11. Growth Strategy
 12. Financial Overview
 
-Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs. Use ${currency || "GBP"} for all financial references.`;
+Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs. Use ${currency || "GBP"} for all financial references. The final output must read like a polished professional document, not a rough draft.`;
 
     } else if (action === "generate-license-template") {
       const { client, directors, shareholders, extractedData, licenseType, currency } = body;
@@ -238,6 +238,31 @@ Return a JSON object with this exact structure. Populate every field from the co
 
 Include ALL directors and shareholders as separate fields (Director 1, Director 2, etc.). Add additional fields within sections where the company data warrants it. Return ONLY the JSON.`;
 
+    } else if (action === "generate-legal-draft") {
+      const { actionType, draftType, caseType, caseSummary, keyFacts, parties, jurisdiction, documents, previousActions } = body;
+
+      systemPrompt = `You are a senior lawyer drafting professional legal work product. Generate polished, legally structured content that is ready for review and practical use with minimal edits. Use a formal tone, precise terminology, proper headings, defined parties where possible, and bracketed placeholders only when critical facts are missing.`;
+
+      userPrompt = `Prepare a ${actionType === "review_matter" ? "legal review memorandum" : "formal legal draft"} for the following matter.
+
+Draft type: ${draftType || "legal action draft"}
+Case type: ${caseType || "general_legal"}
+Jurisdiction: ${jurisdiction || "UK"}
+Parties: ${JSON.stringify(parties || [], null, 2)}
+Case summary: ${caseSummary || ""}
+Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
+Documents: ${JSON.stringify(documents || [], null, 2)}
+Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+
+Requirements:
+- Use markdown.
+- Begin with a clear title.
+- Include a concise background/factual matrix.
+- If drafting a notice, include subject line, parties, legal basis, demanded action, deadline placeholder if unknown, reservation of rights, and signature block.
+- If drafting a review or analysis, include issues, legal significance, risks, and recommended next actions.
+- Keep the output concrete, legally accurate, and tailored to the supplied facts.
+- Do not give generic educational commentary.`;
+
     } else {
       const { documentType, documentName, client, directors, shareholders } = body;
 
@@ -258,7 +283,7 @@ Shareholders:
 ${shareholders.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%)`).join("\n") : "No shareholders recorded"}
 `.trim();
 
-      systemPrompt = `You are a regulatory compliance document specialist for fintech companies. You generate professional, detailed compliance documents for fintech license applications. Your documents should be structured with clear headings, sections, and subsections. Use formal legal language appropriate for regulatory submissions.`;
+      systemPrompt = `You are a senior regulatory lawyer and compliance document specialist for fintech companies. You generate professional, detailed compliance documents for fintech license applications. Your documents must be formally written, legally structured, and suitable for direct review by counsel. Use clear headings, sections, subsections, and precise regulatory language.`;
 
       userPrompt = `Generate a comprehensive "${documentName}" document for the following company. Use all the company data provided to make the document specific and relevant.
 
@@ -272,7 +297,7 @@ The document should be well-structured with:
 5. References to relevant regulations
 6. Practical implementation details
 
-Please write the full document in markdown format.`;
+Please write the full document in markdown format. The draft must feel submission-ready and professionally structured.`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   Brain,
   BriefcaseBusiness,
-  FileText,
   Loader2,
   MessageSquare,
   RefreshCcw,
@@ -32,14 +31,21 @@ import { Separator } from "@/components/ui/separator";
 import { extractTextFromFile } from "@/lib/documentParser";
 import {
   CASE_DOCUMENT_CATEGORIES,
-  type CaseRecommendation,
+  deriveCaseStatus,
   formatRelativeDate,
   getCaseTypeLabel,
   normalizeFacts,
+  normalizeCaseStatus,
+  parseCaseRecommendations,
+  parseMissingInfoActions,
+  type CaseRecommendation,
+  type MissingInfoAction,
 } from "@/lib/cases";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { CaseRecommendationPanel } from "@/components/app/CaseRecommendationPanel";
+import { CaseDraftWorkspace } from "@/components/app/CaseDraftWorkspace";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -53,6 +59,8 @@ const parseContentJson = (payload: any) => {
 
 const CaseDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const db = supabase as any;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +82,12 @@ const CaseDetail = () => {
   const [uploading, setUploading] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
+  const [actionWorkspaceTitle, setActionWorkspaceTitle] = useState("");
+  const [actionWorkspaceContent, setActionWorkspaceContent] = useState("");
+  const [actionWorkspaceOpen, setActionWorkspaceOpen] = useState(false);
+  const [pendingUploadPrompt, setPendingUploadPrompt] = useState(false);
 
   const loadCase = async () => {
     if (!id) return;
@@ -100,7 +114,7 @@ const CaseDetail = () => {
     setFactsText((caseData.key_facts || []).join("\n"));
 
     if (caseData.client_id) {
-      const { data: clientData } = await db.from("clients").select("id, company_name").eq("id", caseData.client_id).single();
+      const { data: clientData } = await db.from("clients").select("id, company_name, jurisdiction").eq("id", caseData.client_id).single();
       setLinkedClient(clientData || null);
     } else {
       setLinkedClient(null);
@@ -112,6 +126,20 @@ const CaseDetail = () => {
   useEffect(() => {
     if (user && id) loadCase();
   }, [id, user]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "documents" || tab === "timeline" || tab === "overview") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (activeTab === "documents" && pendingUploadPrompt) {
+      setPendingUploadPrompt(false);
+      requestAnimationFrame(() => fileInputRef.current?.click());
+    }
+  }, [activeTab, pendingUploadPrompt]);
 
   const previousActions = useMemo(
     () =>
@@ -135,8 +163,26 @@ const CaseDetail = () => {
     [documents],
   );
 
-  const recommendations = (caseItem?.last_recommendations || []) as CaseRecommendation[];
-  const missingItems = caseItem?.ai_context?.missingItems || [];
+  const jurisdiction = useMemo(
+    () => linkedClient?.jurisdiction || caseItem?.intake_data?.jurisdiction || "UK",
+    [caseItem, linkedClient],
+  );
+
+  const recommendations = parseCaseRecommendations(caseItem?.last_recommendations) as CaseRecommendation[];
+  const missingItems = parseMissingInfoActions(caseItem?.ai_context?.missingItems) as MissingInfoAction[];
+
+  const getComputedStatus = (
+    nextSummary = summary,
+    nextFacts: string | string[] = factsText,
+    recommendationCount = recommendations.length,
+    documentCount = documents.length,
+  ) =>
+    deriveCaseStatus({
+      summary: nextSummary,
+      keyFacts: nextFacts,
+      recommendationCount,
+      documentCount,
+    });
 
   const refreshCaseUnderstanding = async (payloadOverrides?: Record<string, any>, silent = false) => {
     if (!caseItem) return null;
@@ -147,6 +193,7 @@ const CaseDetail = () => {
         title,
         client_name: clientName,
         opponent,
+        jurisdiction,
         case_summary: summary,
         key_facts: normalizeFacts(factsText),
         ...(caseItem.intake_data || {}),
@@ -154,6 +201,8 @@ const CaseDetail = () => {
       },
       documents: documentContext,
       previousActions,
+      parties: [clientName, opponent].filter(Boolean),
+      jurisdiction,
     };
 
     const { data, error } = await supabase.functions.invoke("case-ai", {
@@ -166,21 +215,25 @@ const CaseDetail = () => {
     if (error) throw error;
 
     const parsed = parseContentJson(data);
+    const nextSummary = parsed.summary || summary;
+    const nextFacts = normalizeFacts(parsed.keyFacts || factsText);
+    const nextMissingItems = parsed.missingItems || [];
+    const nextStatus = parsed.status || getComputedStatus(nextSummary, nextFacts, recommendations.length, documents.length);
 
     const updatePayload = {
       title: title || parsed.title || caseItem.title,
       client_name: clientName,
       opponent: opponent || null,
-      case_summary: parsed.summary || summary,
-      key_facts: normalizeFacts(parsed.keyFacts || factsText),
+      case_summary: nextSummary,
+      key_facts: nextFacts,
       intake_data: payload.caseData,
       ai_context: {
         ...(caseItem.ai_context || {}),
-        missingItems: parsed.missingItems || [],
+        missingItems: nextMissingItems,
         lastSummaryAt: new Date().toISOString(),
       },
       progress_percentage: parsed.progressPercentage ?? caseItem.progress_percentage ?? 0,
-      status: "active",
+      status: nextStatus,
     };
 
     const { data: updatedCase, error: updateError } = await db
@@ -264,22 +317,28 @@ const CaseDetail = () => {
           keyFacts: normalizeFacts(factsText),
           documents: documentContext,
           previousActions,
+          parties: [clientName, opponent].filter(Boolean),
+          jurisdiction,
         },
       });
 
       if (error) throw error;
 
       const parsed = parseContentJson(data);
+      const parsedSteps = parseCaseRecommendations(parsed.steps || []);
+      const parsedMissingItems = parseMissingInfoActions(parsed.missingItems || missingItems);
+      const nextStatus = parsed.status || getComputedStatus(summary, factsText, parsedSteps.length, documents.length);
 
       const { data: updatedCase, error: updateError } = await db
         .from("cases")
         .update({
-          last_recommendations: parsed.steps || [],
+          last_recommendations: parsedSteps,
           ai_context: {
             ...(caseItem.ai_context || {}),
-            missingItems: parsed.missingItems || missingItems,
+            missingItems: parsedMissingItems,
             lastDecisionAt: new Date().toISOString(),
           },
+          status: nextStatus,
         })
         .eq("id", caseItem.id)
         .select("*")
@@ -292,8 +351,8 @@ const CaseDetail = () => {
         user_id: user.id,
         activity_type: "decision",
         title: "Generated next steps",
-        content: "AI generated a practical next-step list for this case.",
-        metadata: { steps: parsed.steps || [] },
+        content: "AI generated legally actionable next steps for this case.",
+        metadata: { steps: parsedSteps },
       });
 
       setCaseItem(updatedCase);
@@ -374,6 +433,7 @@ const CaseDetail = () => {
         {
           extracted_document_summary: extracted.summary,
           extracted_document_facts: extracted.keyFacts,
+          jurisdiction: extracted.jurisdiction || jurisdiction,
         },
         true,
       );
@@ -385,6 +445,93 @@ const CaseDetail = () => {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleCaseAction = async (item: CaseRecommendation | MissingInfoAction, actionKey: string) => {
+    if (!caseItem || !user) return;
+
+    setActionBusyKey(actionKey);
+
+    try {
+      switch (item.actionType) {
+        case "upload_document": {
+          setDocCategory(item.documentCategory || "supporting");
+          setActiveTab("documents");
+          setPendingUploadPrompt(true);
+          toast.info("Choose the relevant file to improve the case record.");
+          break;
+        }
+        case "open_licensing": {
+          if (!linkedClient) throw new Error("Link a client to start licensing from this case.");
+          navigate(`/select-license/${linkedClient.id}?caseId=${caseItem.id}`);
+          break;
+        }
+        case "open_client": {
+          if (!linkedClient) throw new Error("No linked client is available for this case.");
+          navigate(`/clients/${linkedClient.id}`);
+          break;
+        }
+        case "refresh_case": {
+          await refreshCaseUnderstanding(undefined);
+          break;
+        }
+        case "draft_document":
+        case "review_matter":
+        default: {
+          const title = "title" in item ? item.title : item.label;
+          const { data, error } = await supabase.functions.invoke("generate-compliance-doc", {
+            body: {
+              action: "generate-legal-draft",
+              actionType: item.actionType || "draft_document",
+              draftType: "draftType" in item ? item.draftType || title : title,
+              caseType: caseItem.case_type,
+              caseSummary: summary,
+              keyFacts: normalizeFacts(factsText),
+              parties: [clientName, opponent].filter(Boolean),
+              jurisdiction,
+              documents: documentContext,
+              previousActions,
+            },
+          });
+
+          if (error) throw error;
+
+          const generatedContent = data.content || "";
+          setActionWorkspaceTitle(title);
+          setActionWorkspaceContent(generatedContent);
+          setActionWorkspaceOpen(true);
+
+          await db.from("case_activities").insert({
+            case_id: caseItem.id,
+            user_id: user.id,
+            activity_type: "action",
+            title,
+            content: `Opened legal action workspace for ${title}.`,
+            metadata: { action_type: item.actionType || "draft_document" },
+          });
+
+          const nextStatus = getComputedStatus(summary, factsText, recommendations.length, documents.length);
+          await db.from("cases").update({ status: nextStatus }).eq("id", caseItem.id);
+          await loadCase();
+          toast.success("Legal action ready");
+          break;
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to open legal action");
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  const handleCopyWorkspace = async () => {
+    try {
+      await navigator.clipboard.writeText(actionWorkspaceContent);
+      toast.success("Draft copied");
+    } catch {
+      toast.error("Failed to copy draft");
     }
   };
 
@@ -419,10 +566,10 @@ const CaseDetail = () => {
               <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
                 {getCaseTypeLabel(caseItem.case_type)}
               </span>
-              <span className="text-xs text-muted-foreground">{caseItem.status}</span>
+              <span className="text-xs text-muted-foreground">{normalizeCaseStatus(caseItem.status)}</span>
             </div>
             <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Client: {clientName}{opponent ? ` · Opponent: ${opponent}` : ""}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Client: {clientName}{opponent ? ` · Opponent: ${opponent}` : ""}{jurisdiction ? ` · Jurisdiction: ${jurisdiction}` : ""}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -471,7 +618,7 @@ const CaseDetail = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="h-auto flex-wrap gap-1 p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -515,61 +662,23 @@ const CaseDetail = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-primary" />
-                    <h3 className="font-display text-base font-semibold text-foreground">AI next steps</h3>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Why this?</p>
-                      <p className="text-xs text-muted-foreground">Show brief reasoning for each recommended step.</p>
-                    </div>
-                    <Switch checked={showWhy} onCheckedChange={setShowWhy} />
-                  </div>
+                <CaseRecommendationPanel
+                  recommendations={recommendations}
+                  missingItems={missingItems}
+                  showWhy={showWhy}
+                  busyKey={actionBusyKey}
+                  onShowWhyChange={setShowWhy}
+                  onAction={handleCaseAction}
+                />
 
-                  <div className="mt-4 space-y-3">
-                    {recommendations.length > 0 ? (
-                      recommendations.map((step, index) => (
-                        <div key={`${step.title}-${index}`} className="rounded-lg border border-border bg-background p-3">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                              {index + 1}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{step.title}</p>
-                              {showWhy && step.why && <p className="mt-1 text-xs text-muted-foreground">{step.why}</p>}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                        Generate next steps to get 3–5 practical actions for this case.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-center gap-2">
-                    <BriefcaseBusiness className="h-4 w-4 text-primary" />
-                    <h3 className="font-display text-base font-semibold text-foreground">Missing info guidance</h3>
-                  </div>
-                  <ul className="mt-4 space-y-2">
-                    {missingItems.length > 0 ? (
-                      missingItems.map((item: string) => (
-                        <li key={item} className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-                          {item}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-                        No major gaps detected right now.
-                      </li>
-                    )}
-                  </ul>
-                </div>
+                <CaseDraftWorkspace
+                  open={actionWorkspaceOpen}
+                  title={actionWorkspaceTitle}
+                  content={actionWorkspaceContent}
+                  onChange={setActionWorkspaceContent}
+                  onCopy={handleCopyWorkspace}
+                  onClose={() => setActionWorkspaceOpen(false)}
+                />
               </div>
             </div>
           </TabsContent>

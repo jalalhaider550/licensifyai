@@ -202,7 +202,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
             lastSummaryAt: new Date().toISOString(),
             source: "chat_intake",
           },
-          status: "active",
+          status: "Draft",
           progress_percentage: summaryParsed.progressPercentage || 20,
         })
         .select("id")
