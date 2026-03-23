@@ -12,9 +12,13 @@ import {
   Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/documentParser";
 
 interface PortalData {
   client: any;
+  cases: any[];
+  caseActions: any[];
+  caseDocuments: any[];
   directors: any[];
   shareholders: any[];
   documents: any[];
@@ -27,7 +31,8 @@ const ClientPortal = () => {
   const [loading, setLoading] = useState(true);
   const [valid, setValid] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [data, setData] = useState<PortalData>({ client: null, directors: [], shareholders: [], documents: [], messages: [] });
+  const [data, setData] = useState<PortalData>({ client: null, cases: [], caseActions: [], caseDocuments: [], directors: [], shareholders: [], documents: [], messages: [] });
+  const [selectedCaseId, setSelectedCaseId] = useState("");
   const [activeTab, setActiveTab] = useState("company");
 
   // Form states
@@ -79,15 +84,19 @@ const ClientPortal = () => {
   };
 
   const loadData = async (cid: string) => {
-    const [{ data: c }, { data: d }, { data: s }, { data: docs }, { data: msgs }] = await Promise.all([
+    const [{ data: c }, { data: d }, { data: s }, { data: docs }, { data: msgs }, { data: cases }, { data: caseActions }, { data: caseDocs }] = await Promise.all([
       supabase.from("clients").select("*").eq("id", cid).single(),
       supabase.from("directors").select("*").eq("client_id", cid),
       supabase.from("shareholders").select("*").eq("client_id", cid),
       supabase.from("documents").select("*").eq("client_id", cid).order("created_at", { ascending: false }),
       supabase.from("portal_messages").select("*").eq("client_id", cid).order("created_at", { ascending: true }),
+      (supabase as any).rpc("get_client_portal_cases", { _token: token }),
+      supabase.from("case_actions").select("*").order("created_at", { ascending: false }),
+      supabase.from("case_documents").select("*").order("created_at", { ascending: false }),
     ]);
 
-    setData({ client: c, directors: d || [], shareholders: s || [], documents: docs || [], messages: msgs || [] });
+    setData({ client: c, cases: cases || [], caseActions: caseActions || [], caseDocuments: caseDocs || [], directors: d || [], shareholders: s || [], documents: docs || [], messages: msgs || [] });
+    setSelectedCaseId((current) => current || cases?.[0]?.id || "");
     if (c) {
       setForm({
         company_name: c.company_name || "",
@@ -105,13 +114,14 @@ const ClientPortal = () => {
   useEffect(() => {
     if (!clientId) return;
     const channel = supabase
-      .channel(`portal-messages-${clientId}`)
+      .channel(`portal-messages-${clientId}-${selectedCaseId || "all"}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "portal_messages", filter: `client_id=eq.${clientId}` }, (payload) => {
+        if (selectedCaseId && payload.new.case_id !== selectedCaseId) return;
         setData((prev) => ({ ...prev, messages: [...prev.messages, payload.new] }));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [clientId]);
+  }, [clientId, selectedCaseId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -169,6 +179,7 @@ const ClientPortal = () => {
 
     setUploading(true);
     try {
+      const extractedText = await extractTextFromFile(file);
       const filePath = `portal/${clientId}/${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
 
@@ -179,14 +190,29 @@ const ClientPortal = () => {
         .eq("token", token!)
         .single();
 
-      await supabase.from("documents").insert({
-        client_id: clientId,
-        user_id: tokenData?.user_id || clientId,
-        name: file.name,
-        file_type: file.type,
-        storage_path: filePath,
-        ai_status: "pending",
-      });
+      if (selectedCaseId) {
+        await supabase.from("case_documents").insert({
+          case_id: selectedCaseId,
+          user_id: tokenData?.user_id,
+          name: file.name,
+          document_category: "supporting",
+          file_type: file.type,
+          storage_path: filePath,
+          raw_text: extractedText.slice(0, 20000),
+          ai_status: "processed",
+          uploaded_by: "client",
+          client_visible: true,
+        });
+      } else {
+        await supabase.from("documents").insert({
+          client_id: clientId,
+          user_id: tokenData?.user_id || clientId,
+          name: file.name,
+          file_type: file.type,
+          storage_path: filePath,
+          ai_status: "pending",
+        });
+      }
 
       await loadData(clientId);
       toast.success("Document uploaded successfully!");
@@ -202,7 +228,9 @@ const ClientPortal = () => {
     setSendingMsg(true);
     const { error } = await supabase.from("portal_messages").insert({
       client_id: clientId,
+      case_id: selectedCaseId || null,
       sender_type: "client",
+      sender_name: data.client?.company_name || "Client",
       message: msgText.trim(),
     });
     if (error) { toast.error("Failed to send message"); setSendingMsg(false); return; }
@@ -236,6 +264,10 @@ const ClientPortal = () => {
 
   const progress = getProgress();
   const missingItems = getMissingItems();
+  const selectedCase = data.cases.find((item) => item.id === selectedCaseId) || data.cases[0] || null;
+  const visibleMessages = selectedCaseId ? data.messages.filter((msg) => msg.case_id === selectedCaseId) : data.messages;
+  const visibleCaseDocuments = selectedCaseId ? data.caseDocuments.filter((doc) => doc.case_id === selectedCaseId) : [];
+  const visibleCaseActions = selectedCaseId ? data.caseActions.filter((item) => item.case_id === selectedCaseId && item.is_client_action) : [];
 
   if (loading) {
     return (
@@ -302,6 +334,45 @@ const ClientPortal = () => {
             </div>
           )}
         </div>
+
+        {selectedCase && (
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Case Dashboard</h2>
+                <p className="text-xs text-muted-foreground">Status, updates, and document requests for your case.</p>
+              </div>
+              {data.cases.length > 1 && (
+                <select value={selectedCaseId} onChange={(e) => setSelectedCaseId(e.target.value)} className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground">
+                  {data.cases.map((caseItem) => (
+                    <option key={caseItem.id} value={caseItem.id}>{caseItem.title}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-xs text-muted-foreground">Current status</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{selectedCase.status}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4 md:col-span-2">
+                <p className="text-xs text-muted-foreground">Case summary</p>
+                <p className="mt-1 text-sm text-foreground">{selectedCase.client_summary}</p>
+              </div>
+            </div>
+            {visibleCaseActions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Required actions</p>
+                {visibleCaseActions.map((action) => (
+                  <button key={action.id} onClick={() => setActiveTab("documents")} className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
+                    <span>{action.title}</span>
+                    <span className="text-xs text-muted-foreground">{action.priority}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -428,14 +499,14 @@ const ClientPortal = () => {
               </div>
               <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(f); }} />
 
-              {data.documents.length > 0 && (
+              {(visibleCaseDocuments.length > 0 || data.documents.length > 0) && (
                 <div className="space-y-2 pt-2">
                   <h4 className="text-xs font-medium text-muted-foreground">Uploaded Documents</h4>
-                  {data.documents.map((doc) => (
+                  {[...visibleCaseDocuments, ...(selectedCaseId ? [] : data.documents)].map((doc) => (
                     <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 text-sm">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
                       <span className="flex-1 truncate text-foreground">{doc.name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${doc.ai_status === "processed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${doc.ai_status === "processed" ? "bg-accent/10 text-accent-foreground" : "bg-warning/10 text-warning-foreground"}`}>
                         {doc.ai_status === "processed" ? "Processed" : "Pending"}
                       </span>
                     </div>
@@ -453,10 +524,10 @@ const ClientPortal = () => {
                 <p className="text-xs text-muted-foreground">Communicate with your legal team</p>
               </div>
               <div className="flex-1 overflow-auto p-4 space-y-3">
-                {data.messages.length === 0 && (
+                {visibleMessages.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-8">No messages yet. Send a message to your legal team.</p>
                 )}
-                {data.messages.map((msg) => (
+                {visibleMessages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.sender_type === "client" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                       msg.sender_type === "client"

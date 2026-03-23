@@ -241,11 +241,12 @@ Include ALL directors and shareholders as separate fields (Director 1, Director 
     } else if (action === "generate-legal-draft") {
       const { actionType, draftType, caseType, caseSummary, keyFacts, parties, jurisdiction, documents, previousActions } = body;
 
-      systemPrompt = `You are a senior lawyer drafting professional legal work product. Generate polished, legally structured content that is ready for review and practical use with minimal edits. Use a formal tone, precise terminology, proper headings, defined parties where possible, and bracketed placeholders only when critical facts are missing.`;
+      systemPrompt = `You are a senior lawyer drafting professional legal work product. Return ONLY valid JSON. Do not use markdown, code fences, or hash-prefixed headings. Use formal legal language, jurisdiction-consistent terminology, and publication-ready structure.`;
 
-      userPrompt = `Prepare a ${actionType === "review_matter" ? "legal review memorandum" : actionType === "generate_strategy" ? "legal strategy memorandum" : "formal legal draft"} for the following matter.
+      if (actionType === "review_matter") {
+        userPrompt = `Prepare a legal review memorandum.
 
-Draft type: ${draftType || "legal action draft"}
+Draft type: ${draftType || "legal review memorandum"}
 Case type: ${caseType || "general_legal"}
 Jurisdiction: ${jurisdiction || "UK"}
 Parties: ${JSON.stringify(parties || [], null, 2)}
@@ -254,16 +255,67 @@ Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
 Documents: ${JSON.stringify(documents || [], null, 2)}
 Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
 
-Requirements:
-- Use markdown.
-- Begin with a clear title.
-- Include a concise background/factual matrix.
-- If drafting a notice, include subject line, parties, legal basis, demanded action, deadline placeholder if unknown, reservation of rights, and signature block.
-- If actionType is review_matter, output these headings in order: Overview, Key Issues, Legal Risks, Recommendations.
-- If actionType is generate_strategy, output these headings in order: Recommended Course of Action, Risks, Alternatives, Immediate Next Moves.
-- If drafting a review or analysis, include issues, legal significance, risks, and recommended next actions.
-- Keep the output concrete, legally accurate, and tailored to the supplied facts.
-- Do not give generic educational commentary.`;
+Return JSON in exactly this shape:
+{
+  "kind": "review",
+  "title": "...",
+  "overview": "...",
+  "keyIssues": ["..."],
+  "legalRisks": ["..."],
+  "recommendations": ["..."]
+}`;
+      } else if (actionType === "generate_strategy") {
+        userPrompt = `Prepare a legal strategy memorandum.
+
+Draft type: ${draftType || "legal strategy memorandum"}
+Case type: ${caseType || "general_legal"}
+Jurisdiction: ${jurisdiction || "UK"}
+Parties: ${JSON.stringify(parties || [], null, 2)}
+Case summary: ${caseSummary || ""}
+Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
+Documents: ${JSON.stringify(documents || [], null, 2)}
+Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+
+Return JSON in exactly this shape:
+{
+  "kind": "strategy",
+  "title": "...",
+  "bestCourse": ["..."],
+  "risks": ["..."],
+  "alternatives": ["..."],
+  "immediateNextMoves": ["..."]
+}`;
+      } else {
+        userPrompt = `Prepare a formal legal document ready for lawyer review.
+
+Draft type: ${draftType || "formal legal notice"}
+Case type: ${caseType || "general_legal"}
+Jurisdiction: ${jurisdiction || "UK"}
+Parties: ${JSON.stringify(parties || [], null, 2)}
+Case summary: ${caseSummary || ""}
+Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
+Documents: ${JSON.stringify(documents || [], null, 2)}
+Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+
+Return JSON in exactly this shape:
+{
+  "kind": "document",
+  "title": "...",
+  "date": "${new Date().toLocaleDateString("en-GB")}",
+  "recipientName": "...",
+  "recipientDetails": ["..."],
+  "subject": "...",
+  "introduction": "...",
+  "sections": [
+    { "heading": "Introduction", "body": ["..."] },
+    { "heading": "Background", "body": ["..."] },
+    { "heading": "Legal Basis", "body": ["..."] },
+    { "heading": "Demand", "body": ["..."] }
+  ],
+  "closing": "...",
+  "signature": "Yours faithfully,\n[Law Firm Name]"
+}`;
+      }
 
     } else {
       const { documentType, documentName, client, directors, shareholders } = body;

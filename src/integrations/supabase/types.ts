@@ -14,10 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_actions: {
+        Row: {
+          action_type: string
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          document_category: string | null
+          id: string
+          is_client_action: boolean
+          metadata: Json
+          priority: string
+          reasoning: string | null
+          result_content: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          document_category?: string | null
+          id?: string
+          is_client_action?: boolean
+          metadata?: Json
+          priority?: string
+          reasoning?: string | null
+          result_content?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          document_category?: string | null
+          id?: string
+          is_client_action?: boolean
+          metadata?: Json
+          priority?: string
+          reasoning?: string | null
+          result_content?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_actions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_activities: {
         Row: {
           activity_type: string
           case_id: string
+          client_visible: boolean
           content: string | null
           created_at: string
           id: string
@@ -28,6 +94,7 @@ export type Database = {
         Insert: {
           activity_type: string
           case_id: string
+          client_visible?: boolean
           content?: string | null
           created_at?: string
           id?: string
@@ -38,6 +105,7 @@ export type Database = {
         Update: {
           activity_type?: string
           case_id?: string
+          client_visible?: boolean
           content?: string | null
           created_at?: string
           id?: string
@@ -59,48 +127,128 @@ export type Database = {
         Row: {
           ai_status: string
           case_id: string
+          client_visible: boolean
           created_at: string
           document_category: string
           extracted_data: Json
           file_type: string | null
           id: string
+          metadata: Json
           name: string
           raw_text: string
           storage_path: string | null
           updated_at: string
+          uploaded_by: string
           user_id: string
         }
         Insert: {
           ai_status?: string
           case_id: string
+          client_visible?: boolean
           created_at?: string
           document_category?: string
           extracted_data?: Json
           file_type?: string | null
           id?: string
+          metadata?: Json
           name: string
           raw_text?: string
           storage_path?: string | null
           updated_at?: string
+          uploaded_by?: string
           user_id: string
         }
         Update: {
           ai_status?: string
           case_id?: string
+          client_visible?: boolean
           created_at?: string
           document_category?: string
           extracted_data?: Json
           file_type?: string | null
           id?: string
+          metadata?: Json
           name?: string
           raw_text?: string
           storage_path?: string | null
           updated_at?: string
+          uploaded_by?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "case_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_drafts: {
+        Row: {
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          case_id: string
+          client_visible: boolean
+          content: string
+          created_at: string
+          document_type: string
+          docx_storage_path: string | null
+          id: string
+          jurisdiction: string
+          metadata: Json
+          pdf_storage_path: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id: string
+          client_visible?: boolean
+          content?: string
+          created_at?: string
+          document_type?: string
+          docx_storage_path?: string | null
+          id?: string
+          jurisdiction?: string
+          metadata?: Json
+          pdf_storage_path?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          version_number?: number
+        }
+        Update: {
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id?: string
+          client_visible?: boolean
+          content?: string
+          created_at?: string
+          document_type?: string
+          docx_storage_path?: string | null
+          id?: string
+          jurisdiction?: string
+          metadata?: Json
+          pdf_storage_path?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_drafts_case_id_fkey"
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
@@ -115,6 +263,7 @@ export type Database = {
           case_type: Database["public"]["Enums"]["case_type"]
           client_id: string | null
           client_name: string
+          client_summary: string
           created_at: string
           id: string
           intake_data: Json
@@ -133,6 +282,7 @@ export type Database = {
           case_type?: Database["public"]["Enums"]["case_type"]
           client_id?: string | null
           client_name: string
+          client_summary?: string
           created_at?: string
           id?: string
           intake_data?: Json
@@ -151,6 +301,7 @@ export type Database = {
           case_type?: Database["public"]["Enums"]["case_type"]
           client_id?: string | null
           client_name?: string
+          client_summary?: string
           created_at?: string
           id?: string
           intake_data?: Json
@@ -407,27 +558,46 @@ export type Database = {
       }
       portal_messages: {
         Row: {
+          attachments: Json
+          case_id: string | null
           client_id: string
           created_at: string
           id: string
           message: string
+          metadata: Json
+          sender_name: string | null
           sender_type: string
         }
         Insert: {
+          attachments?: Json
+          case_id?: string | null
           client_id: string
           created_at?: string
           id?: string
           message: string
+          metadata?: Json
+          sender_name?: string | null
           sender_type: string
         }
         Update: {
+          attachments?: Json
+          case_id?: string | null
           client_id?: string
           created_at?: string
           id?: string
           message?: string
+          metadata?: Json
+          sender_name?: string | null
           sender_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "portal_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "portal_messages_client_id_fkey"
             columns: ["client_id"]
@@ -501,7 +671,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_client_portal_cases: {
+        Args: { _token: string }
+        Returns: {
+          case_type: Database["public"]["Enums"]["case_type"]
+          client_name: string
+          client_summary: string
+          created_at: string
+          id: string
+          progress_percentage: number
+          status: string
+          title: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       case_type:

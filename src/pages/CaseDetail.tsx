@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Brain,
   BriefcaseBusiness,
+  CheckCircle2,
+  Download,
   Loader2,
   MessageSquare,
   RefreshCcw,
@@ -47,6 +49,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { CaseRecommendationPanel } from "@/components/app/CaseRecommendationPanel";
 import { CaseDraftWorkspace } from "@/components/app/CaseDraftWorkspace";
+import { PortalMessages } from "@/components/app/PortalMessages";
+import { saveAs } from "file-saver";
+import {
+  createLegalDocxBlob,
+  createLegalPdfBlob,
+  parseLegalWorkProduct,
+  renderLegalWorkProductText,
+  slugifyFileName,
+  type LegalWorkProduct,
+} from "@/lib/legalDocuments";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -70,6 +82,7 @@ const CaseDetail = () => {
   const [activities, setActivities] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [linkedClient, setLinkedClient] = useState<any>(null);
+  const [drafts, setDrafts] = useState<any[]>([]);
 
   const [title, setTitle] = useState("");
   const [clientName, setClientName] = useState("");
@@ -88,14 +101,18 @@ const CaseDetail = () => {
   const [actionWorkspaceContent, setActionWorkspaceContent] = useState("");
   const [actionWorkspaceOpen, setActionWorkspaceOpen] = useState(false);
   const [pendingUploadPrompt, setPendingUploadPrompt] = useState(false);
+  const [workspaceProduct, setWorkspaceProduct] = useState<LegalWorkProduct | null>(null);
+  const [workspaceActionType, setWorkspaceActionType] = useState("draft_document");
+  const [persistingDraft, setPersistingDraft] = useState(false);
 
   const loadCase = async () => {
     if (!id) return;
 
-    const [{ data: caseData, error: caseError }, { data: activityData }, { data: documentData }] = await Promise.all([
+    const [{ data: caseData, error: caseError }, { data: activityData }, { data: documentData }, { data: draftData }] = await Promise.all([
       db.from("cases").select("*").eq("id", id).single(),
       db.from("case_activities").select("*").eq("case_id", id).order("created_at", { ascending: false }),
       db.from("case_documents").select("*").eq("case_id", id).order("created_at", { ascending: false }),
+      db.from("case_drafts").select("*").eq("case_id", id).order("version_number", { ascending: false }),
     ]);
 
     if (caseError || !caseData) {
@@ -107,6 +124,7 @@ const CaseDetail = () => {
     setCaseItem(caseData);
     setActivities(activityData || []);
     setDocuments(documentData || []);
+    setDrafts(draftData || []);
     setTitle(caseData.title || "");
     setClientName(caseData.client_name || "");
     setOpponent(caseData.opponent || "");
@@ -485,19 +503,38 @@ const CaseDetail = () => {
 
           if (error) throw error;
 
-          const generatedContent = data.content || "";
+          const product = parseLegalWorkProduct(data.content || "");
+          const generatedContent = renderLegalWorkProductText(product);
           setActionWorkspaceTitle(title);
           setActionWorkspaceContent(generatedContent);
           setActionWorkspaceOpen(true);
+          setWorkspaceProduct(product);
+          setWorkspaceActionType(normalizedActionType);
 
-          await db.from("case_activities").insert({
-            case_id: caseItem.id,
-            user_id: user.id,
-            activity_type: "action",
-            title,
-            content: `Opened legal action workspace for ${title}.`,
-            metadata: { action_type: normalizedActionType },
-          });
+          await Promise.all([
+            db.from("case_actions").insert({
+              case_id: caseItem.id,
+              user_id: user.id,
+              title,
+              action_type: normalizedActionType,
+              priority: "priority" in item ? item.priority || "medium" : "medium",
+              status: "completed",
+              description: `Executed ${normalizedActionType} action.`,
+              reasoning: item.why || null,
+              result_content: generatedContent,
+              document_category: item.documentCategory || null,
+              metadata: { structured: product },
+              completed_at: new Date().toISOString(),
+            }),
+            db.from("case_activities").insert({
+              case_id: caseItem.id,
+              user_id: user.id,
+              activity_type: "action",
+              title,
+              content: `Opened legal action workspace for ${title}.`,
+              metadata: { action_type: normalizedActionType },
+            }),
+          ]);
 
           const nextStatus = getComputedStatus(summary, factsText, recommendations.length, documents.length);
           await db.from("cases").update({ status: nextStatus }).eq("id", caseItem.id);
@@ -520,6 +557,91 @@ const CaseDetail = () => {
       toast.success("Draft copied");
     } catch {
       toast.error("Failed to copy draft");
+    }
+  };
+
+  const currentWorkspaceProduct = () => {
+    if (workspaceProduct) return { ...workspaceProduct, title: actionWorkspaceTitle } as LegalWorkProduct;
+    return parseLegalWorkProduct(actionWorkspaceContent);
+  };
+
+  const exportWorkspace = async (format: "pdf" | "docx") => {
+    const product = currentWorkspaceProduct();
+    const fileBase = slugifyFileName(actionWorkspaceTitle || product.title || "legal-draft");
+
+    if (format === "docx") {
+      const blob = await createLegalDocxBlob(product);
+      saveAs(blob, `${fileBase}.docx`);
+      toast.success("Word exported");
+      return;
+    }
+
+    const blob = await createLegalPdfBlob(product);
+    saveAs(blob, `${fileBase}.pdf`);
+    toast.success("PDF exported");
+  };
+
+  const persistWorkspaceDraft = async (status: "draft" | "approved") => {
+    if (!caseItem || !user || !actionWorkspaceContent.trim()) return;
+    setPersistingDraft(true);
+
+    try {
+      const product = currentWorkspaceProduct();
+      const version = (drafts[0]?.version_number || 0) + 1;
+      const storageBase = `${user.id}/case-drafts/${caseItem.id}/${Date.now()}-${slugifyFileName(actionWorkspaceTitle || product.title || "legal-draft")}`;
+      let pdfStoragePath: string | null = null;
+      let docxStoragePath: string | null = null;
+
+      if (status === "approved") {
+        const [pdfBlob, docxBlob] = await Promise.all([createLegalPdfBlob(product), createLegalDocxBlob(product)]);
+        pdfStoragePath = `${storageBase}.pdf`;
+        docxStoragePath = `${storageBase}.docx`;
+
+        const [{ error: pdfError }, { error: docxError }] = await Promise.all([
+          supabase.storage.from("documents").upload(pdfStoragePath, pdfBlob, { contentType: "application/pdf", upsert: true }),
+          supabase.storage.from("documents").upload(docxStoragePath, docxBlob, {
+            contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            upsert: true,
+          }),
+        ]);
+
+        if (pdfError) throw pdfError;
+        if (docxError) throw docxError;
+      }
+
+      await db.from("case_drafts").insert({
+        case_id: caseItem.id,
+        user_id: user.id,
+        title: actionWorkspaceTitle || product.title,
+        document_type: workspaceActionType,
+        jurisdiction,
+        version_number: version,
+        status,
+        content: actionWorkspaceContent,
+        metadata: { structured: product },
+        approved_at: status === "approved" ? new Date().toISOString() : null,
+        approved_by: status === "approved" ? user.id : null,
+        client_visible: status === "approved",
+        pdf_storage_path: pdfStoragePath,
+        docx_storage_path: docxStoragePath,
+      });
+
+      await db.from("case_activities").insert({
+        case_id: caseItem.id,
+        user_id: user.id,
+        activity_type: status === "approved" ? "approval" : "draft",
+        title: status === "approved" ? "Approved legal draft" : "Saved legal draft",
+        content: `${actionWorkspaceTitle} was ${status === "approved" ? "approved" : "saved"}.`,
+        metadata: { status, action_type: workspaceActionType },
+      });
+
+      await loadCase();
+      toast.success(status === "approved" ? "Draft approved and saved" : "Draft saved");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to persist draft");
+    } finally {
+      setPersistingDraft(false);
     }
   };
 
@@ -663,10 +785,47 @@ const CaseDetail = () => {
                   open={actionWorkspaceOpen}
                   title={actionWorkspaceTitle}
                   content={actionWorkspaceContent}
+                  isSaving={persistingDraft}
                   onChange={setActionWorkspaceContent}
                   onCopy={handleCopyWorkspace}
+                  onSaveDraft={() => persistWorkspaceDraft("draft")}
+                  onApprove={() => persistWorkspaceDraft("approved")}
+                  onExportWord={() => exportWorkspace("docx")}
+                  onExportPdf={() => exportWorkspace("pdf")}
                   onClose={() => setActionWorkspaceOpen(false)}
                 />
+
+                {drafts.length > 0 && (
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <h3 className="font-display text-base font-semibold text-foreground">Saved versions</h3>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {drafts.slice(0, 5).map((draft) => (
+                        <div key={draft.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{draft.title}</p>
+                            <p className="text-xs text-muted-foreground">Version {draft.version_number} · {draft.status} · {formatRelativeDate(draft.created_at)}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setActionWorkspaceTitle(draft.title);
+                              setActionWorkspaceContent(draft.content);
+                              setWorkspaceActionType(draft.document_type || "draft_document");
+                              setWorkspaceProduct(draft.metadata?.structured || null);
+                              setActionWorkspaceOpen(true);
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" /> Open
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -784,6 +943,8 @@ const CaseDetail = () => {
                   )}
                 </div>
               </div>
+
+              {linkedClient ? <PortalMessages clientId={linkedClient.id} caseId={caseItem.id} /> : null}
             </div>
           </TabsContent>
         </Tabs>
