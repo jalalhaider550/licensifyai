@@ -14,9 +14,7 @@ export type CaseActionType =
   | "draft_document"
   | "review_matter"
   | "upload_document"
-  | "open_licensing"
-  | "open_client"
-  | "refresh_case";
+  | "generate_strategy";
 
 export interface CaseRecommendation {
   title: string;
@@ -75,16 +73,37 @@ export const normalizeCasePriority = (value?: string | null): CasePriority => {
   return "medium";
 };
 
+export const normalizeCaseActionType = (value?: string | null, label?: string | null): CaseActionType => {
+  const normalized = (value || "").toLowerCase();
+  const text = `${normalized} ${(label || "").toLowerCase()}`;
+
+  if (normalized === "draft_document") return "draft_document";
+  if (normalized === "review_matter") return "review_matter";
+  if (normalized === "upload_document") return "upload_document";
+  if (normalized === "generate_strategy") return "generate_strategy";
+
+  if (text.includes("upload") || text.includes("evidence") || text.includes("proof")) return "upload_document";
+  if (text.includes("strategy") || text.includes("negotiation") || text.includes("settlement")) return "generate_strategy";
+  if (text.includes("review") || text.includes("analy") || text.includes("clause")) return "review_matter";
+  return "draft_document";
+};
+
 export const parseCaseRecommendations = (value: unknown): CaseRecommendation[] => {
   if (!Array.isArray(value)) return [];
 
   return value
     .map((item) => {
       if (typeof item === "string") {
+        const actionType = normalizeCaseActionType(undefined, item);
         return {
           title: item,
-          actionLabel: "Open action",
-          actionType: "refresh_case" as const,
+          actionLabel:
+            actionType === "review_matter"
+              ? "Open review"
+              : actionType === "generate_strategy"
+                ? "Generate strategy"
+                : "Generate draft",
+          actionType,
           priority: "medium" as const,
         };
       }
@@ -93,13 +112,21 @@ export const parseCaseRecommendations = (value: unknown): CaseRecommendation[] =
 
       const record = item as Record<string, unknown>;
       const title = typeof record.title === "string" ? record.title : "Open legal action";
+      const actionType = normalizeCaseActionType(typeof record.actionType === "string" ? record.actionType : null, title);
 
       return {
         title,
         why: typeof record.why === "string" ? record.why : undefined,
         priority: normalizeCasePriority(typeof record.priority === "string" ? record.priority : null),
-        actionLabel: typeof record.actionLabel === "string" ? record.actionLabel : "Open action",
-        actionType: typeof record.actionType === "string" ? (record.actionType as CaseActionType) : "refresh_case",
+        actionLabel:
+          typeof record.actionLabel === "string"
+            ? record.actionLabel
+            : actionType === "review_matter"
+              ? "Open review"
+              : actionType === "generate_strategy"
+                ? "Generate strategy"
+                : "Generate draft",
+        actionType,
         draftType: typeof record.draftType === "string" ? record.draftType : title,
         documentCategory: typeof record.documentCategory === "string" ? record.documentCategory : undefined,
       };
@@ -116,7 +143,7 @@ export const parseMissingInfoActions = (value: unknown): MissingInfoAction[] => 
         return {
           label: item,
           actionLabel: item.toLowerCase().includes("upload") ? "Upload now" : "Review",
-          actionType: item.toLowerCase().includes("upload") ? ("upload_document" as const) : ("refresh_case" as const),
+          actionType: item.toLowerCase().includes("upload") ? ("upload_document" as const) : normalizeCaseActionType(undefined, item),
           priority: "medium" as const,
         };
       }
@@ -125,13 +152,23 @@ export const parseMissingInfoActions = (value: unknown): MissingInfoAction[] => 
 
       const record = item as Record<string, unknown>;
       const label = typeof record.label === "string" ? record.label : "Resolve missing information";
+      const actionType = normalizeCaseActionType(typeof record.actionType === "string" ? record.actionType : null, label);
 
       return {
         label,
         why: typeof record.why === "string" ? record.why : undefined,
         priority: normalizeCasePriority(typeof record.priority === "string" ? record.priority : null),
-        actionLabel: typeof record.actionLabel === "string" ? record.actionLabel : "Resolve",
-        actionType: typeof record.actionType === "string" ? (record.actionType as CaseActionType) : "refresh_case",
+        actionLabel:
+          typeof record.actionLabel === "string"
+            ? record.actionLabel
+            : actionType === "upload_document"
+              ? "Upload now"
+              : actionType === "review_matter"
+                ? "Open review"
+                : actionType === "generate_strategy"
+                  ? "Generate strategy"
+                  : "Generate draft",
+        actionType,
         documentCategory: typeof record.documentCategory === "string" ? record.documentCategory : undefined,
       };
     })
