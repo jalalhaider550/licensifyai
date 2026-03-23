@@ -14,6 +14,165 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_activities: {
+        Row: {
+          activity_type: string
+          case_id: string
+          content: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          title: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          case_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          title: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          case_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_activities_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_documents: {
+        Row: {
+          ai_status: string
+          case_id: string
+          created_at: string
+          document_category: string
+          extracted_data: Json
+          file_type: string | null
+          id: string
+          name: string
+          raw_text: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_status?: string
+          case_id: string
+          created_at?: string
+          document_category?: string
+          extracted_data?: Json
+          file_type?: string | null
+          id?: string
+          name: string
+          raw_text?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_status?: string
+          case_id?: string
+          created_at?: string
+          document_category?: string
+          extracted_data?: Json
+          file_type?: string | null
+          id?: string
+          name?: string
+          raw_text?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          ai_context: Json
+          case_summary: string
+          case_type: Database["public"]["Enums"]["case_type"]
+          client_id: string | null
+          client_name: string
+          created_at: string
+          id: string
+          intake_data: Json
+          key_facts: string[]
+          last_recommendations: Json
+          opponent: string | null
+          progress_percentage: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_context?: Json
+          case_summary?: string
+          case_type?: Database["public"]["Enums"]["case_type"]
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          id?: string
+          intake_data?: Json
+          key_facts?: string[]
+          last_recommendations?: Json
+          opponent?: string | null
+          progress_percentage?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_context?: Json
+          case_summary?: string
+          case_type?: Database["public"]["Enums"]["case_type"]
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          id?: string
+          intake_data?: Json
+          key_facts?: string[]
+          last_recommendations?: Json
+          opponent?: string | null
+          progress_percentage?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_client_fk"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_access_tokens: {
         Row: {
           client_id: string
@@ -135,6 +294,7 @@ export type Database = {
       documents: {
         Row: {
           ai_status: string | null
+          case_id: string | null
           client_id: string
           created_at: string
           extracted_data: Json | null
@@ -147,6 +307,7 @@ export type Database = {
         }
         Insert: {
           ai_status?: string | null
+          case_id?: string | null
           client_id: string
           created_at?: string
           extracted_data?: Json | null
@@ -159,6 +320,7 @@ export type Database = {
         }
         Update: {
           ai_status?: string | null
+          case_id?: string | null
           client_id?: string
           created_at?: string
           extracted_data?: Json | null
@@ -171,6 +333,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documents_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -181,6 +350,7 @@ export type Database = {
       }
       license_applications: {
         Row: {
+          case_id: string | null
           client_id: string
           created_at: string
           id: string
@@ -193,6 +363,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          case_id?: string | null
           client_id: string
           created_at?: string
           id?: string
@@ -205,6 +376,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          case_id?: string | null
           client_id?: string
           created_at?: string
           id?: string
@@ -217,6 +389,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "license_applications_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "license_applications_client_id_fkey"
             columns: ["client_id"]
@@ -325,7 +504,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      case_type:
+        | "licensing"
+        | "contract_dispute"
+        | "corporate"
+        | "employment"
+        | "intellectual_property"
+        | "general_legal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +637,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      case_type: [
+        "licensing",
+        "contract_dispute",
+        "corporate",
+        "employment",
+        "intellectual_property",
+        "general_legal",
+      ],
+    },
   },
 } as const
