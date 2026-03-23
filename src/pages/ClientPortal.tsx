@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, Building2, Users, Upload, FileText, MessageSquare,
-  Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2
+  Send, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Paperclip
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
@@ -40,6 +40,7 @@ const ClientPortal = () => {
   const [uploading, setUploading] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [sendingAttachment, setSendingAttachment] = useState(false);
   const [newDirector, setNewDirector] = useState({ full_name: "", role: "Director" });
   const [newShareholder, setNewShareholder] = useState({ name: "", percentage: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -232,10 +233,71 @@ const ClientPortal = () => {
       sender_type: "client",
       sender_name: data.client?.company_name || "Client",
       message: msgText.trim(),
+      attachments: [],
     });
     if (error) { toast.error("Failed to send message"); setSendingMsg(false); return; }
     setMsgText("");
     setSendingMsg(false);
+  };
+
+  const sendAttachment = async (file: File) => {
+    if (!clientId || !token) return;
+    setSendingAttachment(true);
+
+    try {
+      const extractedText = await extractTextFromFile(file).catch(() => "");
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
+
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("case-collaboration", {
+        body: {
+          action: "upload-file",
+          target: "message_attachment",
+          portalToken: token,
+          caseId: selectedCaseId || null,
+          fileName: file.name,
+          contentType: file.type,
+          fileData: base64,
+          extractedText,
+        },
+      });
+
+      if (uploadError) throw uploadError;
+
+      const { error } = await supabase.from("portal_messages").insert({
+        client_id: clientId,
+        case_id: selectedCaseId || null,
+        sender_type: "client",
+        sender_name: data.client?.company_name || "Client",
+        message: `Attached ${file.name}`,
+        attachments: [uploadData.attachment],
+      });
+
+      if (error) throw error;
+      toast.success("Attachment sent");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send attachment");
+    } finally {
+      setSendingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const openAttachment = async (storagePath: string) => {
+    const { data: downloadData, error } = await supabase.functions.invoke("case-collaboration", {
+      body: { action: "get-download-url", portalToken: token, caseId: selectedCaseId || null, storagePath },
+    });
+
+    if (error) {
+      toast.error("Failed to open attachment");
+      return;
+    }
+
+    window.open(downloadData.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   // Calculate progress
@@ -535,6 +597,20 @@ const ClientPortal = () => {
                         : "bg-muted text-foreground"
                     }`}>
                       <p>{msg.message}</p>
+                      {Array.isArray(msg.attachments) && msg.attachments.length > 0 ? (
+                        <div className="mt-2 space-y-1">
+                          {msg.attachments.map((attachment: any, index: number) => (
+                            <button
+                              key={`${msg.id}-${index}`}
+                              type="button"
+                              onClick={() => openAttachment(attachment.storage_path)}
+                              className="block text-left text-xs underline underline-offset-2"
+                            >
+                              {attachment.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                       <p className={`text-[10px] mt-1 ${msg.sender_type === "client" ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         {new Date(msg.created_at).toLocaleString()}
                       </p>
@@ -544,6 +620,9 @@ const ClientPortal = () => {
                 <div ref={messagesEndRef} />
               </div>
               <div className="p-3 border-t border-border flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={sendingAttachment}>
+                  <Paperclip className="h-4 w-4" />
+                </Button>
                 <Input
                   placeholder="Type a message..."
                   value={msgText}
@@ -554,6 +633,7 @@ const ClientPortal = () => {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+              <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={(e) => { const f = e.target.files?.[0]; if (f) sendAttachment(f); }} />
             </div>
           </TabsContent>
         </Tabs>
