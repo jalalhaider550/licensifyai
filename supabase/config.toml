@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.regulatory-analysis]
 verify_jwt = false
+
+[functions.case-collaboration]
+verify_jwt = false
