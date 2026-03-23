@@ -9,7 +9,7 @@ import { Plus, Search, BriefcaseBusiness, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { formatRelativeDate, getCaseTypeLabel } from "@/lib/cases";
+import { formatRelativeDate, getCaseTypeLabel, normalizeCaseStatus } from "@/lib/cases";
 
 interface CaseRow {
   id: string;
@@ -113,7 +113,7 @@ const Cases = () => {
                       <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
                         {getCaseTypeLabel(item.case_type)}
                       </span>
-                      <span className="text-xs text-muted-foreground">{item.status}</span>
+                       <span className="text-xs text-muted-foreground">{normalizeCaseStatus(item.status)}</span>
                     </div>
                     <h3 className="font-display text-lg font-semibold text-foreground">{item.title}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">Client: {item.client_name}</p>
