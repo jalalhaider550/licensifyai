@@ -13,6 +13,7 @@ interface CaseRecommendationPanelProps {
   onShowWhyChange: (value: boolean) => void;
   onAction: (item: CaseRecommendation | MissingInfoAction, key: string) => void;
   onRequestFromClient?: (item: MissingInfoAction, key: string) => void;
+  onRequestAllFromClient?: (items: MissingInfoAction[], key: string) => void;
 }
 
 const priorityStyles = {
@@ -31,6 +32,7 @@ export const CaseRecommendationPanel = ({
   onShowWhyChange,
   onAction,
   onRequestFromClient,
+  onRequestAllFromClient,
 }: CaseRecommendationPanelProps) => {
   return (
     <div className="space-y-4">
@@ -92,9 +94,21 @@ export const CaseRecommendationPanel = ({
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-semibold text-foreground">Missing information actions</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-primary" />
+            <h3 className="font-display text-base font-semibold text-foreground">Missing information actions</h3>
+          </div>
+          {onRequestAllFromClient && missingItems.length > 1 ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onRequestAllFromClient(missingItems, "missing-all-request")}
+              disabled={requestBusyKey === "missing-all-request"}
+            >
+              {requestBusyKey === "missing-all-request" ? "Preparing…" : "Request all from Client"}
+            </Button>
+          ) : null}
         </div>
         <div className="mt-4 space-y-3">
           {missingItems.length > 0 ? (

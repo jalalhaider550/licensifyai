@@ -123,7 +123,7 @@ const CaseDetail = () => {
   const [exportLoadingFormat, setExportLoadingFormat] = useState<"pdf" | "docx" | null>(null);
   const [downloadFallback, setDownloadFallback] = useState<{ url: string; fileName: string; label: string } | null>(null);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
-  const [selectedMissingItem, setSelectedMissingItem] = useState<MissingInfoAction | null>(null);
+  const [selectedMissingItems, setSelectedMissingItems] = useState<MissingInfoAction[]>([]);
   const [requestForm, setRequestForm] = useState({ title: "", requestMessage: "", instructions: "" });
   const [requestBusyKey, setRequestBusyKey] = useState<string | null>(null);
   const [requestSaving, setRequestSaving] = useState(false);
@@ -394,22 +394,43 @@ const CaseDetail = () => {
     }
   };
 
-  const handleOpenRequestDialog = (item: MissingInfoAction, actionKey: string) => {
-    setSelectedMissingItem(item);
+  const buildRequestInstructions = (items: MissingInfoAction[]) => {
+    if (items.length === 1) {
+      return (
+        items[0].why ||
+        "Upload the requested documents or enter the missing information in the form, then add any helpful notes before submitting."
+      );
+    }
+
+    return [
+      "Please provide all of the following items in one submission:",
+      ...items.map((item, index) => `${index + 1}. ${item.label}${item.why ? ` — ${item.why}` : ""}`),
+      "You can upload documents, add details for each item, and include extra notes before submitting.",
+    ].join("\n");
+  };
+
+  const handleOpenRequestDialog = (items: MissingInfoAction[], actionKey: string) => {
+    setSelectedMissingItems(items);
     setRequestBusyKey(actionKey);
     setRequestForm({
-      title: item.label,
+      title: items.length === 1 ? items[0].label : "Request outstanding case information",
       requestMessage: "Please provide the requested documents using the link below.",
-      instructions:
-        item.why ||
-        "Upload the requested documents or enter the missing information in the form, then add any helpful notes before submitting.",
+      instructions: buildRequestInstructions(items),
     });
     setRequestModalOpen(true);
     setTimeout(() => setRequestBusyKey(null), 0);
   };
 
+  const handleOpenSingleRequestDialog = (item: MissingInfoAction, actionKey: string) => {
+    handleOpenRequestDialog([item], actionKey);
+  };
+
+  const handleOpenBulkRequestDialog = (items: MissingInfoAction[], actionKey: string) => {
+    handleOpenRequestDialog(items, actionKey);
+  };
+
   const handleCreateClientRequest = async () => {
-    if (!caseItem || !user || !selectedMissingItem || !caseItem.client_id) return;
+    if (!caseItem || !user || selectedMissingItems.length === 0 || !caseItem.client_id) return;
     setRequestSaving(true);
 
     try {
@@ -429,54 +450,64 @@ const CaseDetail = () => {
 
       if (requestError) throw requestError;
 
-      const requestType = selectedMissingItem.actionType === "upload_document" ? "document" : "text";
-      const { error: itemError } = await db.from("case_info_request_items").insert({
-        request_id: createdRequest.id,
-        case_id: caseItem.id,
-        user_id: user.id,
-        label: selectedMissingItem.label,
-        description: selectedMissingItem.why || null,
-        request_type: requestType,
-        document_category: selectedMissingItem.documentCategory || null,
-        status: "requested",
-        metadata: {
-          action_type: selectedMissingItem.actionType,
-          priority: selectedMissingItem.priority,
-        },
-      });
+      const { error: itemError } = await db.from("case_info_request_items").insert(
+        selectedMissingItems.map((item) => ({
+          request_id: createdRequest.id,
+          case_id: caseItem.id,
+          user_id: user.id,
+          label: item.label,
+          description: item.why || null,
+          request_type: item.actionType === "upload_document" ? "document" : "text",
+          document_category: item.documentCategory || null,
+          status: "requested",
+          metadata: {
+            action_type: item.actionType,
+            priority: item.priority,
+          },
+        })),
+      );
 
       if (itemError) throw itemError;
 
       await Promise.all([
-        db.from("case_actions").insert({
-          case_id: caseItem.id,
-          user_id: user.id,
-          title: selectedMissingItem.label,
-          action_type: "upload_document",
-          priority: selectedMissingItem.priority || "medium",
-          status: "pending",
-          is_client_action: true,
-          description: requestForm.instructions.trim(),
-          document_category: selectedMissingItem.documentCategory || null,
-          reasoning: selectedMissingItem.why || null,
-          metadata: {
-            source: "case-info-request",
-            request_id: createdRequest.id,
-          },
-          result_content: "",
-        }),
+        db.from("case_actions").insert(
+          selectedMissingItems.map((item) => ({
+            case_id: caseItem.id,
+            user_id: user.id,
+            title: item.label,
+            action_type: item.actionType === "upload_document" ? "upload_document" : "provide_information",
+            priority: item.priority || "medium",
+            status: "pending",
+            is_client_action: true,
+            description: requestForm.instructions.trim(),
+            document_category: item.documentCategory || null,
+            reasoning: item.why || null,
+            metadata: {
+              source: "case-info-request",
+              request_id: createdRequest.id,
+              request_scope: selectedMissingItems.length > 1 ? "bulk" : "single",
+            },
+            result_content: "",
+          })),
+        ),
         db.from("case_activities").insert({
           case_id: caseItem.id,
           user_id: user.id,
           activity_type: "client_request",
-          title: `Requested client information: ${selectedMissingItem.label}`,
+          title:
+            selectedMissingItems.length === 1
+              ? `Requested client information: ${selectedMissingItems[0].label}`
+              : `Requested client information: ${selectedMissingItems.length} items`,
           content: requestForm.requestMessage.trim(),
-          metadata: { request_id: createdRequest.id },
+          metadata: {
+            request_id: createdRequest.id,
+            requested_labels: selectedMissingItems.map((item) => item.label),
+          },
         }),
       ]);
 
       setRequestModalOpen(false);
-      setSelectedMissingItem(null);
+      setSelectedMissingItems([]);
       await loadCase();
       await copyRequestLink(createdRequest);
       toast.success("Secure client request created");
@@ -991,7 +1022,8 @@ const CaseDetail = () => {
                   requestStatusByLabel={requestStatusByLabel}
                   onShowWhyChange={setShowWhy}
                   onAction={handleCaseAction}
-                  onRequestFromClient={handleOpenRequestDialog}
+                  onRequestFromClient={handleOpenSingleRequestDialog}
+                  onRequestAllFromClient={handleOpenBulkRequestDialog}
                 />
 
                 <CaseInfoRequestsPanel
@@ -1181,11 +1213,12 @@ const CaseDetail = () => {
       <ClientInfoRequestDialog
         open={requestModalOpen}
         saving={requestSaving}
-        itemLabel={selectedMissingItem?.label}
+        itemLabel={selectedMissingItems.length === 1 ? selectedMissingItems[0]?.label : undefined}
+        itemCount={selectedMissingItems.length}
         values={requestForm}
         onOpenChange={(open) => {
           setRequestModalOpen(open);
-          if (!open) setSelectedMissingItem(null);
+          if (!open) setSelectedMissingItems([]);
         }}
         onValueChange={(field, value) => setRequestForm((current) => ({ ...current, [field]: value }))}
         onSubmit={handleCreateClientRequest}
