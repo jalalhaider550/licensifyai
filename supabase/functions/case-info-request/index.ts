@@ -33,7 +33,17 @@ const refreshCaseContext = async ({
   submissionNotes: string;
   submittedItems: Record<string, any>[];
 }) => {
-  const systemPrompt = `You are a senior legal associate updating a case after a client has responded to a missing-information request. Return ONLY valid JSON. Update the case summary, client-facing summary, material facts, status, progress, and remaining missing information using precise legal terminology.`;
+  const systemPrompt = `You are a senior commercial solicitor (England & Wales qualified, 15+ years PQE) updating a matter file after receiving a client's response to an information request. 
+
+MANDATORY RULES:
+1. Use precise legal terminology throughout. Material facts should be legally significant facts that affect liability, quantum, or strategy.
+2. The updated case summary must reflect the new information's impact on the legal position — not just acknowledge receipt.
+3. The client summary must be in plain English suitable for a non-lawyer client.
+4. Remaining missing items must include specific legal reasoning for why each is still needed.
+5. Progress percentage must realistically reflect matter readiness — receiving documents alone does not complete a matter.
+6. If the submitted information reveals new legal issues or changes the case strategy, flag this in the key facts.
+7. Do not hallucinate. If the submitted information is unclear or incomplete, note this.
+8. Return ONLY valid JSON.`;
   const userPrompt = `Case type: ${caseRow.case_type || "general_legal"}\nCase title: ${caseRow.title || ""}\nCurrent case summary: ${caseRow.case_summary || ""}\nCurrent client summary: ${caseRow.client_summary || ""}\nCurrent key facts: ${JSON.stringify(caseRow.key_facts || [], null, 2)}\nCurrent missing items: ${JSON.stringify(caseRow.ai_context?.missingItems || [], null, 2)}\nRequest title: ${requestRow.title || ""}\nRequest instructions: ${requestRow.instructions || ""}\nRequested items: ${JSON.stringify(requestItems, null, 2)}\nClient submission notes: ${submissionNotes || ""}\nSubmitted items: ${JSON.stringify(submittedItems, null, 2)}\n\nReturn JSON exactly like:\n{\n  "summary": "updated professional summary",\n  "clientSummary": "short plain-English update for the client",\n  "keyFacts": ["fact 1", "fact 2"],\n  "missingItems": [\n    {\n      "label": "Upload signed agreement",\n      "actionLabel": "Upload now",\n      "actionType": "upload_document",\n      "priority": "high",\n      "documentCategory": "agreement",\n      "why": "Explain why the item is still required."\n    }\n  ],\n  "progressPercentage": 75,\n  "status": "In Progress"\n}`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -5,6 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const LEGAL_PERSONA = `You are a senior regulatory solicitor (England & Wales qualified, 15+ years PQE) specialising in fintech licensing, financial services regulation, and compliance documentation. You also hold working knowledge of US federal and state financial regulatory frameworks (FinCEN, state MTL regimes). Your documents are used in actual regulatory submissions and must be of publishable quality.`;
+
+const GUARDRAILS = `
+MANDATORY RULES — FOLLOW WITHOUT EXCEPTION:
+1. ACCURACY: Every regulatory reference must be correct. Cite specific FCA Handbook provisions (e.g., SYSC 6.1.1R, SUP 10A), relevant statutes (e.g., FSMA 2000, MLR 2017), or US equivalents where applicable.
+2. NO HALLUCINATION: Do not invent regulatory requirements. If a requirement is uncertain or jurisdiction-dependent, state this clearly.
+3. JURISDICTION: Always specify which jurisdiction's regulatory framework you are applying. Do not conflate UK and US requirements.
+4. PROFESSIONAL STANDARD: Documents must be suitable for direct submission to regulators or review by senior counsel. Use formal legal drafting conventions.
+5. COMPLETENESS: Every section must contain substantive content — not placeholders. Where company data is missing, note "[TO BE COMPLETED — specific information needed]" with an explanation.
+6. CONSISTENCY: Maintain consistent terminology, defined terms, and cross-references throughout.
+7. STRUCTURED OUTPUT: Follow the exact output format specified.`;
+
+const buildClientSummary = (client: any, directors: any[], shareholders: any[]) => `
+Company: ${client.company_name}
+Jurisdiction: ${client.jurisdiction}
+Registration Number: ${client.registration_number || "[Not provided]"}
+Registered Address: ${client.registered_address || "[Not provided]"}
+Services: ${client.services?.join(", ") || "[Not specified]"}
+Contact Email: ${client.contact_email || "[Not provided]"}
+Contact Phone: ${client.contact_phone || "[Not provided]"}
+Incorporation Date: ${client.incorporation_date || "[Not provided]"}
+
+Directors:
+${directors.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"})`).join("\n") : "[No directors recorded — this is a critical gap for regulatory submissions]"}
+
+Shareholders:
+${shareholders.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%)`).join("\n") : "[No shareholders recorded — ownership structure must be disclosed]"}
+`.trim();
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -21,123 +50,133 @@ serve(async (req) => {
     if (action === "extract-form-fields") {
       const { documentText, clientName, licenseType } = body;
 
-      systemPrompt = `You are a regulatory compliance analyst specialising in fintech licensing. Read the business document and extract ALL relevant information to populate a licensing application form. Return a JSON object with these fields (use null if not found):
+      systemPrompt = `${LEGAL_PERSONA}
+
+You are extracting structured data from a business document to populate a regulatory licensing application form. Your extraction must be thorough and legally precise.
+
+${GUARDRAILS}
+
+Return ONLY valid JSON with the specified fields. Use null for fields not found in the document.`;
+
+      userPrompt = `Extract ALL relevant information from this document for a ${licenseType || "fintech license"} application for ${clientName || "the company"}.
+
+Document text:
+${documentText}
+
+Return a JSON object with these fields (use null if not found, never invent data):
 - company_name: string
 - registration_number: string
 - address: string
 - website: string
 - contact_email: string
-- services: array of strings
+- services: array of strings (be specific about regulated activities)
 - target_customers: string
 - markets: string
 - revenue_model: string
-- capital_amount: string
+- capital_amount: string (specify currency)
 - source_of_funds: string
-- expected_volume: string
+- expected_volume: string (specify currency and period)
 - compliance_officer: string
-- aml_program: string
+- aml_program: string (summarise key AML/CFT measures identified)
 - risk_management: string
 - directors: array of {name, nationality, role}
 - shareholders: array of {name, percentage, country}
+- extraction_confidence: "HIGH/MEDIUM/LOW"
+- missing_critical_fields: ["list of fields not found that are mandatory for regulatory submission"]
 
-Return ONLY valid JSON. No markdown.`;
-
-      userPrompt = `Extract form fields for a ${licenseType || "fintech license"} application from this document for ${clientName || "the company"}:\n\n${documentText}`;
+Return ONLY valid JSON.`;
 
     } else if (action === "extract-business-model") {
       const { documentText, clientName } = body;
-      
-      systemPrompt = `You are a regulatory compliance analyst specializing in fintech licensing. Your task is to read business model documents and extract structured information. Return a JSON object with the following fields:
-- services_offered: array of strings
-- revenue_model: string
-- target_customers: string
-- technology_platform: string
-- operational_structure: string
-- compliance_considerations: string
-- company_overview: string
 
-Be thorough and extract as much relevant detail as possible. Return ONLY valid JSON, no markdown.`;
+      systemPrompt = `${LEGAL_PERSONA}
 
-      userPrompt = `Extract structured business information from the following document for ${clientName || "the company"}:\n\n${documentText}`;
+You are analysing a business model document to extract structured information relevant to regulatory licensing applications.
+
+${GUARDRAILS}`;
+
+      userPrompt = `Extract structured business model information from this document for ${clientName || "the company"}.
+
+Document text:
+${documentText}
+
+Return JSON:
+{
+  "services_offered": ["specific regulated and unregulated activities"],
+  "revenue_model": "detailed description",
+  "target_customers": "customer segments with regulatory implications",
+  "technology_platform": "technical infrastructure description",
+  "operational_structure": "staffing, outsourcing, governance",
+  "compliance_considerations": "identified regulatory touchpoints and requirements",
+  "company_overview": "professional summary suitable for regulatory submission",
+  "regulatory_activities": ["specific activities requiring authorisation"],
+  "risk_factors": ["identified risks from a regulatory perspective"],
+  "extraction_confidence": "HIGH/MEDIUM/LOW",
+  "gaps_identified": ["information gaps that would need to be addressed for licensing"]
+}`;
 
     } else if (action === "generate-business-plan") {
       const { client, directors, shareholders, extractedData, licenseType, currency } = body;
+      const clientSummary = buildClientSummary(client, directors || [], shareholders || []);
 
-      const clientSummary = `
-Company: ${client.company_name}
-Jurisdiction: ${client.jurisdiction}
-Registration Number: ${client.registration_number || "Not provided"}
-Registered Address: ${client.registered_address || "Not provided"}
-Services: ${client.services?.join(", ") || "Not specified"}
-Contact Email: ${client.contact_email || "Not provided"}
-Incorporation Date: ${client.incorporation_date || "Not provided"}
-License Type: ${licenseType || "Not specified"}
-Currency: ${currency || "GBP"}
+      systemPrompt = `${LEGAL_PERSONA}
 
-Directors:
-${directors?.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"})`).join("\n") : "No directors recorded"}
+You are drafting a regulatory business plan for submission to ${client.jurisdiction === "US" ? "FinCEN and/or relevant state regulators" : "the Financial Conduct Authority (FCA)"}. This document must meet the standards expected in actual regulatory applications. It must be comprehensive, commercially credible, and demonstrate the applicant's fitness and propriety.
 
-Shareholders:
-${shareholders?.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%)`).join("\n") : "No shareholders recorded"}
+${GUARDRAILS}
 
-Extracted Business Model Data:
-${extractedData ? JSON.stringify(extractedData, null, 2) : "No extracted data available"}
-`.trim();
+BUSINESS PLAN RULES:
+- Reference specific regulatory requirements (e.g., FCA Threshold Conditions under Schedule 6 FSMA 2000, FCA's approach to authorisation).
+- Include realistic financial projections using ${currency || "GBP"}.
+- AML/CFT sections must reference the Money Laundering, Terrorist Financing and Transfer of Funds (Information on the Payer) Regulations 2017 (MLR 2017) for UK, or BSA/AML requirements for US.
+- Governance sections must demonstrate adequate arrangements under SYSC (Senior Management Arrangements, Systems and Controls).
+- Where data is insufficient, clearly mark with "[TO BE COMPLETED — description of what is needed]".`;
 
-      systemPrompt = `You are a senior regulatory lawyer and compliance document specialist for fintech companies. You generate professional, submission-ready business plans suitable for regulatory licensing applications (UK FCA and US FinCEN/state regulators). Your writing must be formal, precise, legally structured, and commercially credible. Use clear headings, defined parties where relevant, disciplined clause-style sections, and ${currency || "GBP"} for all financial figures.`;
-
-      userPrompt = `Generate a comprehensive, detailed fintech business plan for regulatory submission using the following company data:
+      userPrompt = `Generate a comprehensive regulatory business plan for submission using the following company data:
 
 ${clientSummary}
 
-The business plan MUST include ALL of the following sections with detailed content:
+Extracted Business Model Data:
+${extractedData ? JSON.stringify(extractedData, null, 2) : "[No extracted data — document will require significant input from the applicant]"}
 
-1. Executive Summary
-2. Company Overview
-3. Products and Services
-4. Business Model
-5. Market Opportunity
-6. Technology Infrastructure
-7. Compliance and Regulatory Strategy
-8. AML and Financial Crime Controls
-9. Operational Structure
-10. Risk Management Framework
-11. Growth Strategy
-12. Financial Overview
+License Type: ${licenseType || "[Not specified]"}
+Currency: ${currency || "GBP"}
 
-Write the full document in markdown format. Make it detailed and suitable for regulatory submissions. Each section should be at least 2-3 paragraphs. Use ${currency || "GBP"} for all financial references. The final output must read like a polished professional document, not a rough draft.`;
+The business plan MUST include ALL sections with SUBSTANTIVE content (not placeholders):
+
+1. Executive Summary — concise overview of the business, regulatory permissions sought, and key differentiators
+2. Company Overview — legal structure, incorporation details, corporate history
+3. Products and Services — detailed description of each service, specifying which are regulated activities
+4. Business Model — revenue streams, pricing, unit economics, scalability
+5. Market Opportunity — target market analysis, competitive landscape, addressable market
+6. Technology Infrastructure — platform architecture, security measures, data protection (GDPR compliance)
+7. Compliance and Regulatory Strategy — specific FCA/regulatory requirements addressed, Threshold Conditions analysis
+8. AML and Financial Crime Controls — KYC/CDD procedures, transaction monitoring, SAR reporting, staff training (reference MLR 2017)
+9. Operational Structure — governance framework, key personnel, outsourcing arrangements, SYSC compliance
+10. Risk Management Framework — risk appetite statement, key risk categories, mitigation strategies, three lines of defence
+11. Growth Strategy — phased expansion plan, regulatory implications of growth
+12. Financial Projections — 3-year projections in ${currency || "GBP"}, capital adequacy, prudential requirements
+
+Each section should be 3-5 substantive paragraphs. Write in markdown format. The document must read as a polished, submission-ready regulatory document.`;
 
     } else if (action === "generate-license-template") {
       const { client, directors, shareholders, extractedData, licenseType, currency } = body;
+      const clientSummary = buildClientSummary(client, directors || [], shareholders || []);
 
-      const clientSummary = `
-Company: ${client.company_name}
-Jurisdiction: ${client.jurisdiction}
-Registration Number: ${client.registration_number || "Not provided"}
-Registered Address: ${client.registered_address || "Not provided"}
-Website: ${client.website || "Not provided"}
-Services: ${client.services?.join(", ") || "Not specified"}
-Contact Email: ${client.contact_email || "Not provided"}
-License Type: ${licenseType || "Not specified"}
-Currency: ${currency || "GBP"}
+      systemPrompt = `${LEGAL_PERSONA}
 
-Directors:
-${directors?.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"}, ${d.nationality || "Nationality not provided"})`).join("\n") : "No directors recorded"}
+You generate structured license application preparation templates as JSON. Every field must be populated from available data or marked "[TO BE PROVIDED]" with a note explaining what is needed. Use ${currency || "GBP"} for all financial figures.
 
-Shareholders:
-${shareholders?.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%, ${s.country || "Country not provided"})`).join("\n") : "No shareholders recorded"}
+${GUARDRAILS}`;
 
-Additional Data:
-${extractedData ? JSON.stringify(extractedData, null, 2) : "No additional data"}
-`.trim();
-
-      systemPrompt = `You are a regulatory compliance document specialist for fintech licensing. You generate structured license application data as JSON. Use ${currency || "GBP"} for all financial figures. Be thorough and specific. Return ONLY valid JSON, no markdown, no code fences.`;
-
-      userPrompt = `Generate a comprehensive license application preparation template for a ${licenseType || "fintech license"} using the following company data:
+      userPrompt = `Generate a comprehensive license application preparation template for a ${licenseType || "fintech license"} using this data:
 
 ${clientSummary}
 
-Return a JSON object with this exact structure. Populate every field from the company data above. Where data is missing, use "[TO BE PROVIDED]" as the value.
+Additional Data:
+${extractedData ? JSON.stringify(extractedData, null, 2) : "[No additional data]"}
+
+Return a JSON object with sections and fields as previously specified. Include ALL directors and shareholders as separate fields. Populate every field from available data. Where data is missing, use "[TO BE PROVIDED — explanation of what is needed and why]". Return ONLY JSON.
 
 {
   "sections": [
@@ -157,6 +196,7 @@ Return a JSON object with this exact structure. Populate every field from the co
     {
       "title": "Business Activities",
       "fields": [
+        { "label": "Regulated Activities", "value": "..." },
         { "label": "Services Offered", "value": "..." },
         { "label": "Target Customers", "value": "..." },
         { "label": "Markets Served", "value": "..." },
@@ -165,19 +205,11 @@ Return a JSON object with this exact structure. Populate every field from the co
     },
     {
       "title": "Directors and Management",
-      "fields": [
-        { "label": "Director 1 — Name", "value": "..." },
-        { "label": "Director 1 — Nationality", "value": "..." },
-        { "label": "Director 1 — Role", "value": "..." }
-      ]
+      "fields": []
     },
     {
       "title": "Shareholders and Ownership Structure",
-      "fields": [
-        { "label": "Shareholder 1 — Name", "value": "..." },
-        { "label": "Shareholder 1 — Ownership %", "value": "..." },
-        { "label": "Shareholder 1 — Country", "value": "..." }
-      ]
+      "fields": []
     },
     {
       "title": "Financial Information",
@@ -191,9 +223,9 @@ Return a JSON object with this exact structure. Populate every field from the co
     {
       "title": "Compliance and AML Program",
       "fields": [
-        { "label": "Compliance Officer / MLRO", "value": "..." },
-        { "label": "KYC / CDD Procedures", "value": "..." },
-        { "label": "Transaction Monitoring", "value": "..." },
+        { "label": "Nominated MLRO", "value": "..." },
+        { "label": "KYC/CDD Procedures (reference MLR 2017)", "value": "..." },
+        { "label": "Transaction Monitoring System", "value": "..." },
         { "label": "SAR Reporting Process", "value": "..." },
         { "label": "Staff Training Program", "value": "..." }
       ]
@@ -212,7 +244,7 @@ Return a JSON object with this exact structure. Populate every field from the co
       "fields": [
         { "label": "Core Technology Platform", "value": "..." },
         { "label": "Data Security Measures", "value": "..." },
-        { "label": "Data Protection / GDPR Compliance", "value": "..." },
+        { "label": "GDPR Compliance Measures", "value": "..." },
         { "label": "Business Continuity Plan", "value": "..." }
       ]
     },
@@ -233,125 +265,151 @@ Return a JSON object with this exact structure. Populate every field from the co
         { "label": "Internal Controls", "value": "..." }
       ]
     }
-  ]
-}
-
-Include ALL directors and shareholders as separate fields (Director 1, Director 2, etc.). Add additional fields within sections where the company data warrants it. Return ONLY the JSON.`;
+  ],
+  "completeness_assessment": {
+    "score": "0-100",
+    "critical_gaps": ["list of fields that MUST be completed before submission"],
+    "confidence": "HIGH/MEDIUM/LOW"
+  }
+}`;
 
     } else if (action === "generate-legal-draft") {
       const { actionType, draftType, caseType, caseSummary, keyFacts, parties, jurisdiction, documents, previousActions } = body;
 
-      systemPrompt = `You are a senior lawyer drafting professional legal work product. Return ONLY valid JSON. Do not use markdown, code fences, or hash-prefixed headings. Use formal legal language, jurisdiction-consistent terminology, and publication-ready structure.`;
+      const contextBlock = `
+Draft type: ${draftType || "formal legal document"}
+Case type: ${caseType || "general_legal"}
+Jurisdiction: ${jurisdiction || "England & Wales"}
+Parties: ${JSON.stringify(parties || [], null, 2)}
+Case summary: ${caseSummary || "[No summary available]"}
+Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
+Documents on file: ${JSON.stringify(documents || [], null, 2)}
+Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+`.trim();
+
+      systemPrompt = `${LEGAL_PERSONA}
+
+You are drafting professional legal work product for a qualified solicitor's review. The output must be of a standard suitable for dispatch to clients or opposing parties after review. Use formal legal drafting conventions appropriate to ${jurisdiction || "England & Wales"}.
+
+${GUARDRAILS}
+
+DRAFTING RULES:
+- Use defined terms consistently (capitalised, introduced on first use).
+- For UK correspondence: use "Dear Sirs" / "Yours faithfully" conventions where appropriate.
+- Reference specific legal provisions where applicable.
+- Structure documents with clear numbered paragraphs.
+- Include a professional sign-off block.`;
 
       if (actionType === "review_matter") {
-        userPrompt = `Prepare a legal review memorandum.
+        userPrompt = `Prepare a legal review memorandum for senior partner review.
 
-Draft type: ${draftType || "legal review memorandum"}
-Case type: ${caseType || "general_legal"}
-Jurisdiction: ${jurisdiction || "UK"}
-Parties: ${JSON.stringify(parties || [], null, 2)}
-Case summary: ${caseSummary || ""}
-Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
-Documents: ${JSON.stringify(documents || [], null, 2)}
-Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+${contextBlock}
 
-Return JSON in exactly this shape:
+Structure the memorandum using IRAC methodology. Return JSON:
 {
   "kind": "review",
-  "title": "...",
-  "overview": "...",
-  "keyIssues": ["..."],
-  "legalRisks": ["..."],
-  "recommendations": ["..."]
+  "title": "professional memorandum title",
+  "overview": "executive summary (2-3 sentences)",
+  "keyIssues": [
+    {
+      "issue": "identified legal issue",
+      "rule": "applicable law/statute/principle",
+      "analysis": "application of law to facts",
+      "conclusion": "preliminary conclusion with confidence level"
+    }
+  ],
+  "legalRisks": [
+    { "risk": "description", "likelihood": "HIGH/MEDIUM/LOW", "impact": "description", "mitigation": "recommended action" }
+  ],
+  "recommendations": ["specific, actionable recommendation"],
+  "confidence": "HIGH/MEDIUM/LOW",
+  "caveats": ["limitation of this analysis"],
+  "furtherInvestigation": ["what additional work is needed"]
 }`;
       } else if (actionType === "generate_strategy") {
-        userPrompt = `Prepare a legal strategy memorandum.
+        userPrompt = `Prepare a litigation/matter strategy memorandum.
 
-Draft type: ${draftType || "legal strategy memorandum"}
-Case type: ${caseType || "general_legal"}
-Jurisdiction: ${jurisdiction || "UK"}
-Parties: ${JSON.stringify(parties || [], null, 2)}
-Case summary: ${caseSummary || ""}
-Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
-Documents: ${JSON.stringify(documents || [], null, 2)}
-Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+${contextBlock}
 
-Return JSON in exactly this shape:
+Return JSON:
 {
   "kind": "strategy",
-  "title": "...",
-  "bestCourse": ["..."],
-  "risks": ["..."],
-  "alternatives": ["..."],
-  "immediateNextMoves": ["..."]
+  "title": "strategy memorandum title",
+  "strategicObjective": "overarching goal",
+  "bestCourse": [
+    { "step": "recommended action", "reasoning": "legal basis and tactical rationale", "timeline": "when to execute" }
+  ],
+  "risks": [
+    { "risk": "description", "likelihood": "HIGH/MEDIUM/LOW", "mitigation": "how to manage" }
+  ],
+  "alternatives": [
+    { "option": "alternative approach", "pros": ["advantage"], "cons": ["disadvantage"] }
+  ],
+  "immediateNextMoves": ["prioritised action items for this week"],
+  "costEstimate": "indicative cost range if estimable, or 'Cannot estimate without further information'",
+  "confidence": "HIGH/MEDIUM/LOW",
+  "caveats": ["limitation"]
 }`;
       } else {
-        userPrompt = `Prepare a formal legal document ready for lawyer review.
+        userPrompt = `Prepare a formal legal document ready for solicitor review and dispatch.
 
-Draft type: ${draftType || "formal legal notice"}
-Case type: ${caseType || "general_legal"}
-Jurisdiction: ${jurisdiction || "UK"}
-Parties: ${JSON.stringify(parties || [], null, 2)}
-Case summary: ${caseSummary || ""}
-Key facts: ${JSON.stringify(keyFacts || [], null, 2)}
-Documents: ${JSON.stringify(documents || [], null, 2)}
-Previous actions: ${JSON.stringify(previousActions || [], null, 2)}
+${contextBlock}
 
-Return JSON in exactly this shape:
+Return JSON:
 {
   "kind": "document",
-  "title": "...",
+  "title": "document title",
   "date": "${new Date().toLocaleDateString("en-GB")}",
-  "recipientName": "...",
-  "recipientDetails": ["..."],
-  "subject": "...",
-  "introduction": "...",
+  "recipientName": "recipient's legal name",
+  "recipientDetails": ["address line 1", "address line 2"],
+  "ourReference": "suggested reference",
+  "subject": "RE: formal subject line",
+  "introduction": "opening paragraph establishing the legal context",
   "sections": [
-    { "heading": "Introduction", "body": ["..."] },
-    { "heading": "Background", "body": ["..."] },
-    { "heading": "Legal Basis", "body": ["..."] },
-    { "heading": "Demand", "body": ["..."] }
+    { "heading": "Background", "body": ["numbered paragraphs with facts"] },
+    { "heading": "Legal Position", "body": ["numbered paragraphs citing applicable law"] },
+    { "heading": "Demand / Request", "body": ["specific demands with deadlines"] }
   ],
-  "closing": "...",
-  "signature": "Yours faithfully,\n[Law Firm Name]"
+  "closing": "formal closing paragraph with consequences of non-compliance",
+  "signature": "Yours faithfully,\\n[Firm Name]\\n[Solicitor Name]\\n[SRA Number]",
+  "confidence": "HIGH/MEDIUM/LOW",
+  "caveats": ["This draft requires review by the supervising solicitor before dispatch"]
 }`;
       }
 
     } else {
+      // Default: compliance document generation
       const { documentType, documentName, client, directors, shareholders } = body;
+      const clientSummary = buildClientSummary(client, directors || [], shareholders || []);
 
-      const clientSummary = `
-Company: ${client.company_name}
-Jurisdiction: ${client.jurisdiction}
-Registration Number: ${client.registration_number || "Not provided"}
-Registered Address: ${client.registered_address || "Not provided"}
-Services: ${client.services?.join(", ") || "Not specified"}
-Contact Email: ${client.contact_email || "Not provided"}
-Contact Phone: ${client.contact_phone || "Not provided"}
-Incorporation Date: ${client.incorporation_date || "Not provided"}
+      systemPrompt = `${LEGAL_PERSONA}
 
-Directors:
-${directors.length > 0 ? directors.map((d: any) => `- ${d.full_name} (${d.role || "Director"})`).join("\n") : "No directors recorded"}
+You are drafting a "${documentName}" for a regulated fintech firm. This document must be of sufficient quality for direct submission to the ${client.jurisdiction === "US" ? "relevant US regulatory authority" : "Financial Conduct Authority (FCA)"} or review by external counsel.
 
-Shareholders:
-${shareholders.length > 0 ? shareholders.map((s: any) => `- ${s.name} (${s.percentage}%)`).join("\n") : "No shareholders recorded"}
-`.trim();
+${GUARDRAILS}
 
-      systemPrompt = `You are a senior regulatory lawyer and compliance document specialist for fintech companies. You generate professional, detailed compliance documents for fintech license applications. Your documents must be formally written, legally structured, and suitable for direct review by counsel. Use clear headings, sections, subsections, and precise regulatory language.`;
+COMPLIANCE DOCUMENT RULES:
+- Reference specific regulatory provisions (FCA Handbook, MLR 2017, FSMA 2000 for UK; BSA/AML, state MTL statutes for US).
+- Include practical implementation details — not just policy statements.
+- Address the company's specific services, structure, and risk profile.
+- Use formal document structure with numbered sections and cross-references.
+- Include review/approval procedures and version control provisions.`;
 
-      userPrompt = `Generate a comprehensive "${documentName}" document for the following company. Use all the company data provided to make the document specific and relevant.
+      userPrompt = `Generate a comprehensive "${documentName}" document for:
 
 ${clientSummary}
 
-The document should be well-structured with:
-1. Clear title and date
-2. Table of contents outline
-3. Detailed sections with subsections
-4. Specific references to the company's services and structure
-5. References to relevant regulations
-6. Practical implementation details
+Requirements:
+1. Professional title page with document metadata (version, date, author, approver)
+2. Table of contents
+3. Detailed sections with numbered subsections (each section 3-5 substantive paragraphs)
+4. Specific references to the company's services, structure, and jurisdiction
+5. References to applicable regulations with correct citation format
+6. Practical implementation details (procedures, timelines, responsible parties)
+7. Review and approval procedures
+8. Appendices outline (forms, checklists, templates to be attached)
 
-Please write the full document in markdown format. The draft must feel submission-ready and professionally structured.`;
+Write the full document in markdown format. It must read as a polished, submission-ready regulatory compliance document — not a template or draft outline.`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -361,11 +419,14 @@ Please write the full document in markdown format. The draft must feel submissio
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        reasoning: {
+          effort: "high",
+        },
       }),
     });
 
