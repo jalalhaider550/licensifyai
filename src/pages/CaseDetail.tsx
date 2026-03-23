@@ -50,7 +50,6 @@ import { toast } from "sonner";
 import { CaseRecommendationPanel } from "@/components/app/CaseRecommendationPanel";
 import { CaseDraftWorkspace } from "@/components/app/CaseDraftWorkspace";
 import { PortalMessages } from "@/components/app/PortalMessages";
-import { saveAs } from "file-saver";
 import {
   createLegalDocxBlob,
   createLegalPdfBlob,
@@ -59,6 +58,11 @@ import {
   slugifyFileName,
   type LegalWorkProduct,
 } from "@/lib/legalDocuments";
+import {
+  prepareBrowserDownload,
+  revokeBrowserDownload,
+  triggerBrowserDownload,
+} from "@/lib/fileDownloads";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -104,6 +108,8 @@ const CaseDetail = () => {
   const [workspaceProduct, setWorkspaceProduct] = useState<LegalWorkProduct | null>(null);
   const [workspaceActionType, setWorkspaceActionType] = useState("draft_document");
   const [persistingDraft, setPersistingDraft] = useState(false);
+  const [exportLoadingFormat, setExportLoadingFormat] = useState<"pdf" | "docx" | null>(null);
+  const [downloadFallback, setDownloadFallback] = useState<{ url: string; fileName: string; label: string } | null>(null);
 
   const loadCase = async () => {
     if (!id) return;
@@ -158,6 +164,12 @@ const CaseDetail = () => {
       requestAnimationFrame(() => fileInputRef.current?.click());
     }
   }, [activeTab, pendingUploadPrompt]);
+
+  useEffect(() => {
+    return () => {
+      revokeBrowserDownload(downloadFallback?.url);
+    };
+  }, [downloadFallback]);
 
   const previousActions = useMemo(
     () =>
@@ -566,19 +578,35 @@ const CaseDetail = () => {
   };
 
   const exportWorkspace = async (format: "pdf" | "docx") => {
-    const product = currentWorkspaceProduct();
-    const fileBase = slugifyFileName(actionWorkspaceTitle || product.title || "legal-draft");
+    setExportLoadingFormat(format);
 
-    if (format === "docx") {
-      const blob = await createLegalDocxBlob(product);
-      saveAs(blob, `${fileBase}.docx`);
-      toast.success("Word exported");
-      return;
+    try {
+      const product = currentWorkspaceProduct();
+      const fileBase = slugifyFileName(actionWorkspaceTitle || product.title || "legal-draft");
+      const fileName = `${fileBase}.${format}`;
+      const mimeType =
+        format === "docx"
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : "application/pdf";
+
+      const blob = format === "docx" ? await createLegalDocxBlob(product) : await createLegalPdfBlob(product);
+
+      revokeBrowserDownload(downloadFallback?.url);
+      const preparedDownload = prepareBrowserDownload(blob, fileName, mimeType);
+      setDownloadFallback({
+        url: preparedDownload.url,
+        fileName: preparedDownload.fileName,
+        label: "Click here to download",
+      });
+
+      triggerBrowserDownload(preparedDownload);
+      toast.success(format === "docx" ? "Word download started" : "PDF download started");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to generate document");
+    } finally {
+      setExportLoadingFormat(null);
     }
-
-    const blob = await createLegalPdfBlob(product);
-    saveAs(blob, `${fileBase}.pdf`);
-    toast.success("PDF exported");
   };
 
   const persistWorkspaceDraft = async (status: "draft" | "approved") => {
@@ -786,12 +814,18 @@ const CaseDetail = () => {
                   title={actionWorkspaceTitle}
                   content={actionWorkspaceContent}
                   isSaving={persistingDraft}
+                  exportLoadingFormat={exportLoadingFormat}
+                  downloadFallback={downloadFallback}
                   onChange={setActionWorkspaceContent}
                   onCopy={handleCopyWorkspace}
                   onSaveDraft={() => persistWorkspaceDraft("draft")}
                   onApprove={() => persistWorkspaceDraft("approved")}
                   onExportWord={() => exportWorkspace("docx")}
                   onExportPdf={() => exportWorkspace("pdf")}
+                  onDismissDownloadFallback={() => {
+                    revokeBrowserDownload(downloadFallback?.url);
+                    setDownloadFallback(null);
+                  }}
                   onClose={() => setActionWorkspaceOpen(false)}
                 />
 
