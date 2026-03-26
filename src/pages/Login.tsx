@@ -40,7 +40,7 @@ const Login = () => {
             Log in to your workspace
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your credentials to access your dashboard.
+            Access your licensing and case workflow dashboard.
           </p>
         </div>
 

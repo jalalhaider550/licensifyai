@@ -14,7 +14,7 @@ export const FooterSection = () => {
               </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              AI-powered fintech licensing automation for law firms and regulatory consultants.
+              AI-powered platform for licensing and case workflow automation across industries.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export const FooterSection = () => {
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="text-xs text-muted-foreground text-center">
-            © {new Date().getFullYear()} Licensify AI. All rights reserved. Regulatory automation for legal professionals.
+            © {new Date().getFullYear()} Licensify AI. All rights reserved. Licensing and case workflow automation for modern firms.
           </p>
         </div>
       </div>
