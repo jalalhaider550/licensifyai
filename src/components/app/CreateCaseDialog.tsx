@@ -371,7 +371,8 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </div>
         )}
 
-        <DialogFooter ref={footerRef}>
+        <div ref={footerRef}>
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -385,6 +386,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
             Create Case
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
