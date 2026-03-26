@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Plus, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,6 +62,8 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [creating, setCreating] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const createBtnRef = useRef<HTMLButtonElement>(null);
 
   const linkedClient = useMemo(
     () => clients.find((client) => client.id === linkedClientId),
@@ -124,7 +126,17 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       }
 
       setIntakeData(mergedIntake);
-      setIsComplete(Boolean(parsed.isComplete));
+      const complete = Boolean(parsed.isComplete);
+      setIsComplete(complete);
+
+      // Auto-scroll to footer when intake is complete
+      if (complete) {
+        setTimeout(() => {
+          footerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+          createBtnRef.current?.classList.add("animate-pulse");
+          setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
+        }, 150);
+      }
 
       if (parsed.nextQuestion) {
         setMessages([...conversation, { role: "assistant" as const, content: parsed.nextQuestion }]);
@@ -359,15 +371,22 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </div>
         )}
 
+        <div ref={footerRef}>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={createCase} disabled={!caseType || messages.length === 0 || loadingPrompt || creating || !isComplete}>
+          <Button
+            ref={createBtnRef}
+            onClick={createCase}
+            disabled={!caseType || messages.length === 0 || loadingPrompt || creating || !isComplete}
+            className={isComplete ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
+          >
             {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Create Case
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
