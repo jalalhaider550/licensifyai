@@ -138,8 +138,17 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       const complete = Boolean(parsed.isComplete);
       setIsComplete(complete);
 
-      // Auto-scroll to Create Case button when intake is complete
-      if (complete) {
+      // Calculate completeness percentage
+      const fields = ['client_name', 'opponent', 'case_summary', 'key_facts'];
+      const filled = fields.filter(f => {
+        if (f === 'key_facts') return normalizeFacts(mergedIntake.key_facts).length > 0;
+        return Boolean(mergedIntake[f]);
+      }).length;
+      const pct = Math.round((filled / fields.length) * 100);
+      setCompleteness(pct);
+
+      // Auto-scroll to Create Case button once we have minimum data
+      if (pct >= 50 || complete) {
         setTimeout(() => {
           const btn = document.getElementById("create-case-btn");
           if (btn) {
@@ -147,8 +156,10 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           } else {
             footerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           }
-          createBtnRef.current?.classList.add("animate-pulse");
-          setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
+          if (complete) {
+            createBtnRef.current?.classList.add("animate-pulse");
+            setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
+          }
         }, 200);
       }
 
