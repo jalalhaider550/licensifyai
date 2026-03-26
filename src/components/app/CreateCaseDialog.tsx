@@ -440,8 +440,8 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           <Button
             ref={createBtnRef}
             onClick={createCase}
-            disabled={!caseType || messages.length === 0 || loadingPrompt || creating || !isComplete}
-            className={isComplete ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
+            disabled={!canCreate}
+            className={canCreate ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
           >
             {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Create Case
