@@ -63,8 +63,15 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [creating, setCreating] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [completeness, setCompleteness] = useState(0);
   const footerRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Allow creation as soon as we have at least a client_name or case_summary from AI
+  const hasMinimumData = Boolean(
+    intakeData.client_name || intakeData.case_summary || normalizeFacts(intakeData.key_facts).length > 0
+  );
+  const canCreate = Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
 
   const linkedClient = useMemo(
     () => clients.find((client) => client.id === linkedClientId),
