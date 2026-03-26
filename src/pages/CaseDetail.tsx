@@ -577,6 +577,7 @@ const CaseDetail = () => {
           previousActions,
           parties: [clientName, opponent].filter(Boolean),
           jurisdiction,
+          existingMissingItems: missingItems,
         },
       });
 

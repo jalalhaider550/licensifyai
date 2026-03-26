@@ -29,6 +29,7 @@ const buildPrompt = (body: any) => {
   const jurisdiction = body.jurisdiction || body.caseData?.jurisdiction || "UK";
 
   // Build rich context block from all available data
+  const existingMissingItems = body.existingMissingItems || [];
   const contextBlock = [
     `Case type: ${caseType}`,
     `Jurisdiction: ${jurisdiction}`,
@@ -38,6 +39,7 @@ const buildPrompt = (body: any) => {
     body.keyFacts?.length ? `Key facts:\n${body.keyFacts.map((f: string, i: number) => `  ${i + 1}. ${f}`).join("\n")}` : null,
     body.documents?.length ? `Documents on file: ${JSON.stringify(body.documents)}` : null,
     body.previousActions?.length ? `Previous actions taken: ${JSON.stringify(body.previousActions)}` : null,
+    existingMissingItems.length ? `EXISTING MISSING INFORMATION (already identified — these gaps are CONFIRMED outstanding):\n${existingMissingItems.map((item: any, i: number) => `  ${i + 1}. ${item.label}${item.why ? ` — ${item.why}` : ''}`).join("\n")}` : null,
   ].filter(Boolean).join("\n");
 
   switch (body.action) {
@@ -207,7 +209,15 @@ NEXT STEPS RULES:
 - For UK matters: reference CPR, relevant Practice Directions, and Pre-Action Protocols where applicable.
 - For US matters: reference relevant federal/state procedural rules.
 - actionType must be one of: draft_document, review_matter, upload_document, generate_strategy, request_information.
-- status must be one of: Draft, In Progress, Ready for Action.`,
+- status must be one of: Draft, In Progress, Ready for Action.
+
+CRITICAL — MISSING INFORMATION CONSISTENCY:
+- If "EXISTING MISSING INFORMATION" is listed in the context, you MUST include ALL of those items in your "missingItems" array. Do NOT omit them. Do NOT say "no additional information required" when missing items exist.
+- You may ADD new missing items you discover, but you must NEVER remove or ignore existing ones.
+- In your "strategicOverview", if missing information exists, you MUST acknowledge it. For example: "The following actions can proceed in parallel, however [N] items of outstanding information should be collected to ensure a complete matter file."
+- For each recommended step, if it can proceed despite missing info, state in the "why" field: "This step can proceed, however the following information remains outstanding for completeness: [list relevant missing items]."
+- For steps that CANNOT proceed without specific missing info, state clearly: "This action requires the following information before it can be completed: [list items]."
+- NEVER produce a response that contradicts the known missing information state of the case.`,
 
         userPrompt: `${contextBlock}
 
