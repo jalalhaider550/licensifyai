@@ -1005,9 +1005,13 @@ const CaseDetail = () => {
             <Button variant="outline" onClick={() => refreshCaseUnderstanding(undefined)}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Refresh AI Context
             </Button>
-            <Button onClick={handleGenerateNextSteps} disabled={thinking}>
+            <Button
+              onClick={handleGenerateNextSteps}
+              disabled={thinking || (!summary?.trim() && normalizeFacts(factsText).length === 0 && documents.length === 0)}
+              title={!summary?.trim() && normalizeFacts(factsText).length === 0 && documents.length === 0 ? "Add case details or documents first" : ""}
+            >
               {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              What should I do next?
+              {thinking ? "Analysing…" : "What should I do next?"}
             </Button>
           </div>
         </div>
