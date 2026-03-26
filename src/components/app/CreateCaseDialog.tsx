@@ -394,16 +394,40 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
               </div>
             </div>
 
-            {isComplete && (
-              <Button
-                id="create-case-btn"
-                onClick={createCase}
-                disabled={!caseType || loadingPrompt || creating}
-                className="w-full ring-2 ring-primary ring-offset-2 transition-all"
-              >
-                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Create Case
-              </Button>
+            {hasMinimumData && (
+              <div className="space-y-3">
+                {/* Completeness indicator */}
+                <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="font-medium text-foreground">
+                      Case completeness: {completeness}%
+                    </span>
+                    {!isComplete && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <AlertCircle className="h-3 w-3" />
+                        You can complete details later
+                      </span>
+                    )}
+                  </div>
+                  <Progress value={completeness} className="h-2" />
+                </div>
+
+                {!isComplete && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Some information may be missing. You can create the case now and complete details later inside the workflow.
+                  </p>
+                )}
+
+                <Button
+                  id="create-case-btn"
+                  onClick={createCase}
+                  disabled={!canCreate}
+                  className="w-full ring-2 ring-primary ring-offset-2 transition-all"
+                >
+                  {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  Create Case {!isComplete && completeness < 100 ? "(Continue later)" : ""}
+                </Button>
+              </div>
             )}
           </div>
         )}
