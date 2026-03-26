@@ -590,6 +590,17 @@ const CaseDetail = () => {
 
   const handleGenerateNextSteps = async () => {
     if (!caseItem || !user) return;
+
+    // Validate minimum data before calling AI
+    const hasSummary = summary && summary.trim().length > 10;
+    const hasFacts = normalizeFacts(factsText).length > 0;
+    const hasDocs = documents.length > 0;
+
+    if (!hasSummary && !hasFacts && !hasDocs) {
+      toast.error("Please add a case summary, key facts, or upload documents before generating next steps.");
+      return;
+    }
+
     setThinking(true);
 
     try {
@@ -607,9 +618,22 @@ const CaseDetail = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const errorMessage = typeof error === "object" && error.message ? error.message : String(error);
+        throw new Error(errorMessage);
+      }
+
+      if (!data) {
+        throw new Error("No response received from AI service");
+      }
 
       const parsed = parseContentJson(data);
+
+      if (parsed.error) {
+        toast.warning(parsed.error);
+        return;
+      }
+
       const parsedSteps = parseCaseRecommendations(parsed.steps || []);
       const parsedMissingItems = parseMissingInfoActions(parsed.missingItems || missingItems);
       const nextStatus = parsed.status || getComputedStatus(summary, factsText, parsedSteps.length, documents.length);
@@ -642,10 +666,22 @@ const CaseDetail = () => {
 
       setCaseItem(updatedCase);
       await loadCase();
-      toast.success("Next steps updated");
+
+      if (data.fallback) {
+        toast.warning("AI was temporarily unavailable — showing basic recommendations. Click again to retry.");
+      } else {
+        toast.success("Next steps updated");
+      }
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to generate next steps");
+      console.error("handleGenerateNextSteps error:", err);
+      const message = err?.message || "Failed to generate next steps";
+      if (message.includes("Rate limit")) {
+        toast.error("Rate limit exceeded. Please wait a moment and try again.");
+      } else if (message.includes("usage limit") || message.includes("credits")) {
+        toast.error("AI usage limit reached. Please add credits to continue.");
+      } else {
+        toast.error(message);
+      }
     } finally {
       setThinking(false);
     }
