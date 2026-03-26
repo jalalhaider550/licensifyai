@@ -471,7 +471,6 @@ const CaseDetail = () => {
         setCaseItem({ ...caseItem, client_id: clientId });
       }
 
-    try {
       const { data: createdRequest, error: requestError } = await db
         .from("case_info_requests")
         .insert({
