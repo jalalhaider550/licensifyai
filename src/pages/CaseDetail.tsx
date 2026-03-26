@@ -1239,9 +1239,43 @@ const CaseDetail = () => {
                             {doc.document_category} · {doc.ai_status} · Uploaded {formatRelativeDate(doc.created_at)}
                           </p>
                         </div>
-                        <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                          {doc.file_type || "Unknown"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {doc.storage_path && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  const { data } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 3600);
+                                  if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                                  else toast.error("Failed to open document");
+                                }}
+                              >
+                                <ExternalLink className="mr-1 h-3 w-3" /> Open
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  const { data } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 3600, { download: true });
+                                  if (data?.signedUrl) {
+                                    const a = document.createElement("a");
+                                    a.href = data.signedUrl;
+                                    a.download = doc.name;
+                                    a.click();
+                                  } else {
+                                    toast.error("Failed to download document");
+                                  }
+                                }}
+                              >
+                                <Download className="mr-1 h-3 w-3" /> Download
+                              </Button>
+                            </>
+                          )}
+                          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                            {doc.file_type || "Unknown"}
+                          </span>
+                        </div>
                       </div>
                       {doc.extracted_data && Object.keys(doc.extracted_data).length > 0 && (
                         <>
