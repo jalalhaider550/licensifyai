@@ -42,7 +42,7 @@ const Signup = () => {
             Create your workspace
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start automating fintech license applications today.
+            Start automating licensing and case workflows today.
           </p>
         </div>
 

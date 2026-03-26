@@ -3,27 +3,27 @@ import { Clock, TrendingUp, Shield, Globe } from "lucide-react";
 const benefits = [
   {
     icon: Clock,
-    title: "Save 80%+ Time on Applications",
+    title: "Save 80%+ Time on Workflows",
     description:
-      "What used to take weeks of manual document drafting now takes hours. AI generates first drafts of all compliance documents automatically.",
+      "What used to take weeks of manual document drafting and case management now takes hours with AI-powered automation.",
   },
   {
     icon: TrendingUp,
     title: "Handle More Clients",
     description:
-      "With automated document generation and structured workflows, your team can manage multiple licensing projects simultaneously.",
+      "With automated document generation and structured workflows, your team can manage multiple projects simultaneously.",
   },
   {
     icon: Shield,
     title: "Reduce Compliance Risk",
     description:
-      "AI-generated documents follow current regulatory guidelines. Built-in reference guides ensure nothing is missed in applications.",
+      "AI-generated documents follow current regulatory guidelines. Built-in reference guides ensure nothing is missed.",
   },
   {
     icon: Globe,
-    title: "UK & US Licensing Support",
+    title: "Multi-Jurisdiction Support",
     description:
-      "Access regulatory requirements for FCA-regulated licenses in the UK and FinCEN/state-level registrations in the US — all in one platform.",
+      "Access regulatory requirements across jurisdictions — UK, US, and more — all managed in one unified platform.",
   },
 ];
 
@@ -34,10 +34,10 @@ export const BenefitsSection = () => {
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-primary">Why Licensify AI</span>
           <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-            Built for Law Firms & Regulatory Consultants
+            Built for Modern Firms & Professionals
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Reduce the time and effort required to prepare fintech licensing applications.
+            Reduce the time and effort required to manage licensing and case workflows.
           </p>
         </div>
 

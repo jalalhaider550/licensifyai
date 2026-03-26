@@ -7,7 +7,7 @@ const plans = [
     name: "Starter",
     price: "£499",
     period: "/month",
-    description: "For solo practitioners and small firms getting started.",
+    description: "For solo practitioners and small teams getting started.",
     features: [
       "Up to 5 active clients",
       "Document upload & AI extraction",
@@ -22,7 +22,7 @@ const plans = [
     name: "Professional",
     price: "£1,299",
     period: "/month",
-    description: "For growing practices handling multiple applications.",
+    description: "For growing teams handling multiple cases and applications.",
     features: [
       "Up to 25 active clients",
       "All compliance document types",
@@ -38,7 +38,7 @@ const plans = [
     name: "Enterprise",
     price: "Custom",
     period: "",
-    description: "For large firms and multi-jurisdiction operations.",
+    description: "For large organizations and multi-jurisdiction operations.",
     features: [
       "Unlimited clients",
       "Custom document templates",

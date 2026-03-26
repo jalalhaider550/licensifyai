@@ -4,45 +4,45 @@ import {
   FilePlus,
   PackageCheck,
   Users,
-  ShieldCheck,
+  Workflow,
 } from "lucide-react";
 
 const features = [
   {
     icon: Users,
-    title: "Client Management",
+    title: "Client Onboarding Automation",
     description:
-      "Create structured client profiles with company data, directors, shareholders, and ownership details in one workspace.",
-  },
-  {
-    icon: Upload,
-    title: "Document Upload",
-    description:
-      "Upload business plans, pitch decks, and corporate filings. Drag-and-drop with support for PDF, Word, and text files.",
-  },
-  {
-    icon: FileSearch,
-    title: "AI Data Extraction",
-    description:
-      "AI reads your uploaded documents and automatically extracts services, revenue models, target customers, and compliance details.",
+      "Streamline client intake with structured profiles, company data, directors, shareholders, and ownership details in one workspace.",
   },
   {
     icon: FilePlus,
-    title: "Document Generation",
+    title: "AI Document Generation",
     description:
-      "Generate AML policies, compliance manuals, risk frameworks, business plans, and governance documents powered by AI.",
+      "Generate contracts, reports, compliance documents, filings, and business plans powered by AI — ready for review and submission.",
+  },
+  {
+    icon: Workflow,
+    title: "Case Workflow Management",
+    description:
+      "Manage all case types — licensing, disputes, corporate, employment, IP — with AI-driven next steps and action tracking.",
   },
   {
     icon: PackageCheck,
-    title: "Licensing Workflow",
+    title: "Licensing Automation",
     description:
-      "Track application readiness, see missing documents, and assemble submission-ready packages for UK and US regulators.",
+      "Track application readiness, identify missing documents, and assemble submission-ready packages for regulators across jurisdictions.",
   },
   {
-    icon: ShieldCheck,
-    title: "Regulatory Reference",
+    icon: FileSearch,
+    title: "Client Data Extraction & Validation",
     description:
-      "Access UK FCA and US FinCEN licensing requirements, capital thresholds, and compliance obligations directly in the platform.",
+      "AI reads uploaded documents and automatically extracts key data — services, revenue models, compliance details — and validates completeness.",
+  },
+  {
+    icon: Upload,
+    title: "Document Upload & Processing",
+    description:
+      "Upload business plans, contracts, and filings. Drag-and-drop with support for PDF, Word, and text files with automatic parsing.",
   },
 ];
 
@@ -53,10 +53,10 @@ export const FeaturesSection = () => {
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-primary">Platform Capabilities</span>
           <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-            Everything You Need for Fintech Licensing
+            Everything You Need for Licensing & Case Workflows
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Purpose-built tools for law firms preparing regulatory applications.
+            Purpose-built tools for firms managing licensing applications and complex case workflows across industries.
           </p>
         </div>
 
