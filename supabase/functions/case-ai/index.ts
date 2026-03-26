@@ -29,6 +29,7 @@ const buildPrompt = (body: any) => {
   const jurisdiction = body.jurisdiction || body.caseData?.jurisdiction || "UK";
 
   // Build rich context block from all available data
+  const existingMissingItems = body.existingMissingItems || [];
   const contextBlock = [
     `Case type: ${caseType}`,
     `Jurisdiction: ${jurisdiction}`,
@@ -38,6 +39,7 @@ const buildPrompt = (body: any) => {
     body.keyFacts?.length ? `Key facts:\n${body.keyFacts.map((f: string, i: number) => `  ${i + 1}. ${f}`).join("\n")}` : null,
     body.documents?.length ? `Documents on file: ${JSON.stringify(body.documents)}` : null,
     body.previousActions?.length ? `Previous actions taken: ${JSON.stringify(body.previousActions)}` : null,
+    existingMissingItems.length ? `EXISTING MISSING INFORMATION (already identified — these gaps are CONFIRMED outstanding):\n${existingMissingItems.map((item: any, i: number) => `  ${i + 1}. ${item.label}${item.why ? ` — ${item.why}` : ''}`).join("\n")}` : null,
   ].filter(Boolean).join("\n");
 
   switch (body.action) {
