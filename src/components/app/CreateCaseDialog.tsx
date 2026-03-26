@@ -104,6 +104,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       setLoadingPrompt(false);
       setCreating(false);
       setIsComplete(false);
+      setCompleteness(0);
     }
   }, [open]);
 
