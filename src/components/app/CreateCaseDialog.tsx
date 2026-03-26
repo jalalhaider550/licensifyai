@@ -269,7 +269,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overscroll-behavior-contain">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
             <Plus className="h-4 w-4 text-primary" /> Create Case
@@ -334,7 +334,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="max-h-[320px] space-y-3 overflow-y-auto rounded-xl border border-border bg-background p-4">
+            <div className="max-h-[240px] space-y-3 overflow-y-auto rounded-xl border border-border bg-background p-4" style={{ overscrollBehavior: 'contain' }}>
               {messages.map((message, index) => (
                 <div
                   key={`${message.role}-${index}`}
@@ -432,21 +432,21 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </div>
         )}
 
-        <div ref={footerRef}>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            ref={createBtnRef}
-            onClick={createCase}
-            disabled={!canCreate}
-            className={canCreate ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
-          >
-            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Create Case
-          </Button>
-        </DialogFooter>
+        <div ref={footerRef} className="sticky bottom-0 bg-background pt-2 pb-1 border-t border-border -mx-6 px-6">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              ref={createBtnRef}
+              onClick={createCase}
+              disabled={!canCreate}
+              className={canCreate ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
+            >
+              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Create Case
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
