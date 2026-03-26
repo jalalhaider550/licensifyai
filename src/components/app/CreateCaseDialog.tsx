@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Plus, Sparkles, Loader2 } from "lucide-react";
+import { AlertCircle, MessageSquare, Plus, Sparkles, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
