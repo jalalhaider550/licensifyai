@@ -7,7 +7,6 @@ export const CTASection = () => {
     <section className="border-t border-border">
       <div className="container mx-auto px-6 py-20 md:py-28">
         <div className="mx-auto max-w-3xl rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-10 md:p-16 text-center relative overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none" />
 
@@ -18,10 +17,10 @@ export const CTASection = () => {
             </div>
 
             <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
-              Start Automating Licensing Applications Today
+              Start Automating Your Workflows Today
             </h2>
             <p className="mt-4 text-base text-primary-foreground/80 max-w-xl mx-auto">
-              Join law firms and regulatory consultants who are saving hundreds of hours on fintech license preparation.
+              Join firms saving hundreds of hours on licensing applications and case workflow management.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
