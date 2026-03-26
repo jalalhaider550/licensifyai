@@ -325,12 +325,29 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let body: any = {};
   try {
-    const body = await req.json();
+    body = await req.json();
+    console.log("INPUT:", JSON.stringify({ action: body?.action, caseType: body?.caseType, hasDocuments: !!body?.documents?.length, hasSummary: !!body?.caseSummary }));
 
     if (!body || !body.action) {
-      return new Response(JSON.stringify({ error: "Missing required 'action' parameter" }), {
+      return new Response(JSON.stringify({ success: false, error: "Missing required 'action' parameter" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate inputs — if case has no meaningful data, return safe fallback
+    const hasAnyData = body.caseSummary || body.keyFacts?.length || body.documents?.length || body.messages?.length || body.documentText;
+    if (!hasAnyData && body.action !== "chat-intake") {
+      console.log("case-ai: insufficient data, returning guidance response");
+      return new Response(JSON.stringify({
+        success: true,
+        content: JSON.stringify({
+          ...buildFallbackResponse(body.action),
+          strategicOverview: "Please upload documents or add case details first. The AI needs case information to provide meaningful analysis.",
+        }),
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -338,7 +355,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("case-ai: LOVABLE_API_KEY is not configured");
-      throw new Error("AI service is not configured. Please contact support.");
+      const fallback = buildFallbackResponse(body.action);
+      return new Response(JSON.stringify({ success: true, content: JSON.stringify(fallback), fallback: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let systemPrompt: string;
@@ -349,11 +369,15 @@ serve(async (req) => {
       userPrompt = prompts.userPrompt;
     } catch (promptError) {
       console.error("case-ai prompt build error:", promptError);
-      return new Response(JSON.stringify({ error: `Invalid action: ${body.action}` }), {
+      return new Response(JSON.stringify({ success: false, error: `Invalid action: ${body.action}` }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Add timeout to AI call (90 seconds)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
