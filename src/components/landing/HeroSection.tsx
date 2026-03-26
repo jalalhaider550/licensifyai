@@ -28,7 +28,7 @@ export const HeroSection = () => {
           </p>
 
           <p className="mt-3 text-sm text-muted-foreground/80 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-            Built for modern firms managing regulatory licensing and complex case workflows.
+            Designed for firms operating in the UK and US regulatory environments. Streamline compliance automation, licensing workflows, and case management software across industries.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
