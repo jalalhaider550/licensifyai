@@ -590,6 +590,17 @@ const CaseDetail = () => {
 
   const handleGenerateNextSteps = async () => {
     if (!caseItem || !user) return;
+
+    // Validate minimum data before calling AI
+    const hasSummary = summary && summary.trim().length > 10;
+    const hasFacts = normalizeFacts(factsText).length > 0;
+    const hasDocs = documents.length > 0;
+
+    if (!hasSummary && !hasFacts && !hasDocs) {
+      toast.error("Please add a case summary, key facts, or upload documents before generating next steps.");
+      return;
+    }
+
     setThinking(true);
 
     try {
@@ -607,9 +618,22 @@ const CaseDetail = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const errorMessage = typeof error === "object" && error.message ? error.message : String(error);
+        throw new Error(errorMessage);
+      }
+
+      if (!data) {
+        throw new Error("No response received from AI service");
+      }
 
       const parsed = parseContentJson(data);
+
+      if (parsed.error) {
+        toast.warning(parsed.error);
+        return;
+      }
+
       const parsedSteps = parseCaseRecommendations(parsed.steps || []);
       const parsedMissingItems = parseMissingInfoActions(parsed.missingItems || missingItems);
       const nextStatus = parsed.status || getComputedStatus(summary, factsText, parsedSteps.length, documents.length);
@@ -642,10 +666,22 @@ const CaseDetail = () => {
 
       setCaseItem(updatedCase);
       await loadCase();
-      toast.success("Next steps updated");
+
+      if (data.fallback) {
+        toast.warning("AI was temporarily unavailable — showing basic recommendations. Click again to retry.");
+      } else {
+        toast.success("Next steps updated");
+      }
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to generate next steps");
+      console.error("handleGenerateNextSteps error:", err);
+      const message = err?.message || "Failed to generate next steps";
+      if (message.includes("Rate limit")) {
+        toast.error("Rate limit exceeded. Please wait a moment and try again.");
+      } else if (message.includes("usage limit") || message.includes("credits")) {
+        toast.error("AI usage limit reached. Please add credits to continue.");
+      } else {
+        toast.error(message);
+      }
     } finally {
       setThinking(false);
     }
@@ -969,9 +1005,13 @@ const CaseDetail = () => {
             <Button variant="outline" onClick={() => refreshCaseUnderstanding(undefined)}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Refresh AI Context
             </Button>
-            <Button onClick={handleGenerateNextSteps} disabled={thinking}>
+            <Button
+              onClick={handleGenerateNextSteps}
+              disabled={thinking || (!summary?.trim() && normalizeFacts(factsText).length === 0 && documents.length === 0)}
+              title={!summary?.trim() && normalizeFacts(factsText).length === 0 && documents.length === 0 ? "Add case details or documents first" : ""}
+            >
               {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              What should I do next?
+              {thinking ? "Analysing…" : "What should I do next?"}
             </Button>
           </div>
         </div>
@@ -1203,9 +1243,43 @@ const CaseDetail = () => {
                             {doc.document_category} · {doc.ai_status} · Uploaded {formatRelativeDate(doc.created_at)}
                           </p>
                         </div>
-                        <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-                          {doc.file_type || "Unknown"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {doc.storage_path && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  const { data } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 3600);
+                                  if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                                  else toast.error("Failed to open document");
+                                }}
+                              >
+                                <ExternalLink className="mr-1 h-3 w-3" /> Open
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  const { data } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 3600, { download: true });
+                                  if (data?.signedUrl) {
+                                    const a = document.createElement("a");
+                                    a.href = data.signedUrl;
+                                    a.download = doc.name;
+                                    a.click();
+                                  } else {
+                                    toast.error("Failed to download document");
+                                  }
+                                }}
+                              >
+                                <Download className="mr-1 h-3 w-3" /> Download
+                              </Button>
+                            </>
+                          )}
+                          <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                            {doc.file_type || "Unknown"}
+                          </span>
+                        </div>
                       </div>
                       {doc.extracted_data && Object.keys(doc.extracted_data).length > 0 && (
                         <>

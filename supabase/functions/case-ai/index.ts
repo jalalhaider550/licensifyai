@@ -272,6 +272,54 @@ Return JSON exactly like:
   }
 };
 
+const buildFallbackResponse = (action: string) => {
+  switch (action) {
+    case "next-steps":
+      return {
+        steps: [
+          {
+            title: "Review and complete case information",
+            actionLabel: "Review now",
+            actionType: "review_matter",
+            priority: "high",
+            documentCategory: "supporting",
+            why: "Ensure all case details, parties, and key facts are accurately recorded before proceeding with substantive legal work.",
+            legalBasis: "Matter management best practice",
+            confidence: "HIGH",
+          },
+          {
+            title: "Upload relevant supporting documents",
+            actionLabel: "Upload now",
+            actionType: "upload_document",
+            priority: "high",
+            documentCategory: "supporting",
+            why: "Supporting documents are essential for accurate legal analysis and strategy development.",
+            legalBasis: "Evidential requirements",
+            confidence: "HIGH",
+          },
+        ],
+        missingItems: [],
+        status: "In Progress",
+        strategicOverview: "AI analysis was temporarily unavailable. The recommended next steps are based on standard legal workflow best practices. Please retry for a full AI-powered analysis.",
+        caveats: ["This is a fallback response — retry for full AI analysis"],
+        confidence: "LOW",
+      };
+    case "summarize-case":
+      return {
+        title: "Case Summary",
+        summary: "AI analysis is temporarily unavailable. Please retry to generate a full case summary.",
+        keyFacts: [],
+        missingItems: [],
+        progressPercentage: 0,
+        status: "In Progress",
+        confidence: "LOW",
+        caveats: ["Fallback response — retry for full analysis"],
+      };
+    default:
+      return { error: "AI analysis temporarily unavailable. Please retry." };
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -279,10 +327,33 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { systemPrompt, userPrompt } = buildPrompt(body);
+    if (!body || !body.action) {
+      return new Response(JSON.stringify({ error: "Missing required 'action' parameter" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("case-ai: LOVABLE_API_KEY is not configured");
+      throw new Error("AI service is not configured. Please contact support.");
+    }
+
+    let systemPrompt: string;
+    let userPrompt: string;
+    try {
+      const prompts = buildPrompt(body);
+      systemPrompt = prompts.systemPrompt;
+      userPrompt = prompts.userPrompt;
+    } catch (promptError) {
+      console.error("case-ai prompt build error:", promptError);
+      return new Response(JSON.stringify({ error: `Invalid action: ${body.action}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -303,6 +374,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      const text = await response.text();
+      console.error("case-ai gateway error:", response.status, text);
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
@@ -317,9 +391,12 @@ serve(async (req) => {
         });
       }
 
-      const text = await response.text();
-      console.error("case-ai gateway error:", response.status, text);
-      throw new Error("AI request failed");
+      // Return fallback response for non-retryable AI errors
+      console.error("case-ai: returning fallback response due to gateway error");
+      const fallback = buildFallbackResponse(body.action);
+      return new Response(JSON.stringify({ content: JSON.stringify(fallback) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
@@ -329,10 +406,20 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("case-ai error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("case-ai error:", error instanceof Error ? error.stack : error);
+
+    // Return fallback instead of crashing
+    try {
+      const body = await req.clone().json().catch(() => ({}));
+      const fallback = buildFallbackResponse((body as any)?.action || "next-steps");
+      return new Response(JSON.stringify({ content: JSON.stringify(fallback), fallback: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch {
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 });
