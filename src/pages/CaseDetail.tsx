@@ -475,7 +475,7 @@ const CaseDetail = () => {
         .from("case_info_requests")
         .insert({
           case_id: caseItem.id,
-          client_id: caseItem.client_id,
+          client_id: clientId,
           user_id: user.id,
           title: requestForm.title.trim(),
           request_message: requestForm.requestMessage.trim(),
