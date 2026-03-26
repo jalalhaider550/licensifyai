@@ -129,13 +129,18 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       const complete = Boolean(parsed.isComplete);
       setIsComplete(complete);
 
-      // Auto-scroll to footer when intake is complete
+      // Auto-scroll to Create Case button when intake is complete
       if (complete) {
         setTimeout(() => {
-          footerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+          const btn = document.getElementById("create-case-btn");
+          if (btn) {
+            btn.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else {
+            footerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
           createBtnRef.current?.classList.add("animate-pulse");
           setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
-        }, 150);
+        }, 200);
       }
 
       if (parsed.nextQuestion) {
@@ -368,6 +373,18 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
                 </div>
               </div>
             </div>
+
+            {isComplete && (
+              <Button
+                id="create-case-btn"
+                onClick={createCase}
+                disabled={!caseType || loadingPrompt || creating}
+                className="w-full ring-2 ring-primary ring-offset-2 transition-all"
+              >
+                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                Create Case
+              </Button>
+            )}
           </div>
         )}
 
