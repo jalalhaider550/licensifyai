@@ -441,8 +441,35 @@ const CaseDetail = () => {
   };
 
   const handleCreateClientRequest = async () => {
-    if (!caseItem || !user || selectedMissingItems.length === 0 || !caseItem.client_id) return;
+    if (!caseItem || !user || selectedMissingItems.length === 0) return;
     setRequestSaving(true);
+
+    try {
+      // Auto-create client if case has no linked client
+      let clientId = caseItem.client_id;
+      if (!clientId) {
+        const { data: newClient, error: clientError } = await db
+          .from("clients")
+          .insert({
+            user_id: user.id,
+            company_name: caseItem.client_name || "Client",
+            jurisdiction: "UK",
+          })
+          .select("id")
+          .single();
+
+        if (clientError || !newClient) {
+          toast.error("Failed to create client record");
+          setRequestSaving(false);
+          return;
+        }
+
+        clientId = newClient.id;
+
+        // Link the client to the case
+        await db.from("cases").update({ client_id: clientId }).eq("id", caseItem.id);
+        setCaseItem({ ...caseItem, client_id: clientId });
+      }
 
     try {
       const { data: createdRequest, error: requestError } = await db
