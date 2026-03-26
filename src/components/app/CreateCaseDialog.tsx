@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Plus, Sparkles, Loader2 } from "lucide-react";
+import { AlertCircle, MessageSquare, Plus, Sparkles, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -62,8 +63,15 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [creating, setCreating] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [completeness, setCompleteness] = useState(0);
   const footerRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Allow creation as soon as we have at least a client_name or case_summary from AI
+  const hasMinimumData = Boolean(
+    intakeData.client_name || intakeData.case_summary || normalizeFacts(intakeData.key_facts).length > 0
+  );
+  const canCreate = Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
 
   const linkedClient = useMemo(
     () => clients.find((client) => client.id === linkedClientId),
@@ -96,6 +104,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       setLoadingPrompt(false);
       setCreating(false);
       setIsComplete(false);
+      setCompleteness(0);
     }
   }, [open]);
 
@@ -129,8 +138,17 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       const complete = Boolean(parsed.isComplete);
       setIsComplete(complete);
 
-      // Auto-scroll to Create Case button when intake is complete
-      if (complete) {
+      // Calculate completeness percentage
+      const fields = ['client_name', 'opponent', 'case_summary', 'key_facts'];
+      const filled = fields.filter(f => {
+        if (f === 'key_facts') return normalizeFacts(mergedIntake.key_facts).length > 0;
+        return Boolean(mergedIntake[f]);
+      }).length;
+      const pct = Math.round((filled / fields.length) * 100);
+      setCompleteness(pct);
+
+      // Auto-scroll to Create Case button once we have minimum data
+      if (pct >= 50 || complete) {
         setTimeout(() => {
           const btn = document.getElementById("create-case-btn");
           if (btn) {
@@ -138,8 +156,10 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           } else {
             footerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           }
-          createBtnRef.current?.classList.add("animate-pulse");
-          setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
+          if (complete) {
+            createBtnRef.current?.classList.add("animate-pulse");
+            setTimeout(() => createBtnRef.current?.classList.remove("animate-pulse"), 2000);
+          }
         }, 200);
       }
 
@@ -374,16 +394,40 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
               </div>
             </div>
 
-            {isComplete && (
-              <Button
-                id="create-case-btn"
-                onClick={createCase}
-                disabled={!caseType || loadingPrompt || creating}
-                className="w-full ring-2 ring-primary ring-offset-2 transition-all"
-              >
-                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Create Case
-              </Button>
+            {hasMinimumData && (
+              <div className="space-y-3">
+                {/* Completeness indicator */}
+                <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="font-medium text-foreground">
+                      Case completeness: {completeness}%
+                    </span>
+                    {!isComplete && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <AlertCircle className="h-3 w-3" />
+                        You can complete details later
+                      </span>
+                    )}
+                  </div>
+                  <Progress value={completeness} className="h-2" />
+                </div>
+
+                {!isComplete && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Some information may be missing. You can create the case now and complete details later inside the workflow.
+                  </p>
+                )}
+
+                <Button
+                  id="create-case-btn"
+                  onClick={createCase}
+                  disabled={!canCreate}
+                  className="w-full ring-2 ring-primary ring-offset-2 transition-all"
+                >
+                  {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  Create Case {!isComplete && completeness < 100 ? "(Continue later)" : ""}
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -396,8 +440,8 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           <Button
             ref={createBtnRef}
             onClick={createCase}
-            disabled={!caseType || messages.length === 0 || loadingPrompt || creating || !isComplete}
-            className={isComplete ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
+            disabled={!canCreate}
+            className={canCreate ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}
           >
             {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Create Case
