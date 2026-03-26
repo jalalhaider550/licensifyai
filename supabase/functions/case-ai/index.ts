@@ -443,19 +443,13 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("case-ai error:", error instanceof Error ? error.stack : error);
+    console.error("ERROR:", error instanceof Error ? error.message : String(error));
 
-    // Return fallback instead of crashing
-    try {
-      const body = await req.clone().json().catch(() => ({}));
-      const fallback = buildFallbackResponse((body as any)?.action || "next-steps");
-      return new Response(JSON.stringify({ content: JSON.stringify(fallback), fallback: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch {
-      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Return fallback instead of crashing — use already-parsed body
+    const fallbackAction = body?.action || "next-steps";
+    const fallback = buildFallbackResponse(fallbackAction);
+    return new Response(JSON.stringify({ success: true, content: JSON.stringify(fallback), fallback: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
