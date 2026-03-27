@@ -31,16 +31,6 @@ import {
   triggerBrowserDownload,
 } from "@/lib/fileDownloads";
 import { DocumentUploadReview, type ReviewedDocument } from "@/components/app/DocumentUploadReview";
-import { toast } from "sonner";
-import {
-  createLegalDocxBlob,
-  createLegalPdfBlob,
-  type LegalDocumentPayload,
-} from "@/lib/legalDocuments";
-import {
-  prepareBrowserDownload,
-  triggerBrowserDownload,
-} from "@/lib/fileDownloads";
 
 interface SubClause {
   number: string;
