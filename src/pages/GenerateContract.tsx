@@ -19,6 +19,7 @@ import {
   Download,
   Edit3,
   FileText,
+  FileUp,
   Loader2,
   Plus,
   RefreshCcw,
@@ -37,6 +38,7 @@ import {
   prepareBrowserDownload,
   triggerBrowserDownload,
 } from "@/lib/fileDownloads";
+import { DocumentUploadReview, type ReviewedDocument } from "@/components/app/DocumentUploadReview";
 
 interface SubClause {
   number: string;
@@ -163,6 +165,28 @@ const GenerateContract = () => {
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const [addClauseFrom, setAddClauseFrom] = useState<string | null>(null);
+  const [mode, setMode] = useState<"create" | "upload">("create");
+  const [originalUploadText, setOriginalUploadText] = useState<string | null>(null);
+
+  const handleUploadReviewed = (doc: ReviewedDocument, _review: any, originalText: string) => {
+    const mapped: GeneratedDocument = {
+      title: doc.title || "Uploaded Contract",
+      date: doc.date || new Date().toISOString().split("T")[0],
+      parties: { partyA: doc.parties?.partyA || doc.parties?.disclosingParty || "", partyB: doc.parties?.partyB || doc.parties?.receivingParty || "" },
+      recitals: doc.recitals || "",
+      definitions: doc.definitions || [],
+      clauses: doc.clauses || [],
+      governingLaw: doc.governingLaw || "",
+      signatureBlock: doc.signatureBlock || "",
+      warnings: (doc.warnings || []) as DocumentWarning[],
+    };
+    setPartyA(mapped.parties.partyA);
+    setPartyB(mapped.parties.partyB);
+    setDocument(mapped);
+    setVersions([mapped]);
+    setOriginalUploadText(originalText);
+    setExpandedClauses(new Set());
+  };
 
   const toggleClause = (index: number) => {
     setExpandedClauses((prev) => {
@@ -368,6 +392,32 @@ const GenerateContract = () => {
 
         {!document ? (
           <div className="space-y-6">
+            {/* Mode selector */}
+            <div className="flex gap-2">
+              <Button
+                variant={mode === "create" ? "default" : "outline"}
+                onClick={() => setMode("create")}
+                className="flex-1"
+              >
+                <FileText className="mr-2 h-4 w-4" /> Create New
+              </Button>
+              <Button
+                variant={mode === "upload" ? "default" : "outline"}
+                onClick={() => setMode("upload")}
+                className="flex-1"
+              >
+                <FileUp className="mr-2 h-4 w-4" /> Upload & Review
+              </Button>
+            </div>
+
+            {mode === "upload" ? (
+              <DocumentUploadReview
+                documentType="Contract"
+                onDocumentReviewed={handleUploadReviewed}
+                onCancel={() => setMode("create")}
+              />
+            ) : (
+            <>
             {/* Form */}
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -459,6 +509,8 @@ const GenerateContract = () => {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
               {generating ? "Generating Contract…" : "Generate Contract"}
             </Button>
+            </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

@@ -4,13 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertTriangle,
@@ -19,6 +12,7 @@ import {
   Download,
   Edit3,
   FileText,
+  FileUp,
   Loader2,
   Plus,
   RefreshCcw,
@@ -36,6 +30,7 @@ import {
   prepareBrowserDownload,
   triggerBrowserDownload,
 } from "@/lib/fileDownloads";
+import { DocumentUploadReview, type ReviewedDocument } from "@/components/app/DocumentUploadReview";
 
 interface SubClause {
   number: string;
@@ -128,6 +123,26 @@ const GenerateNDA = () => {
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const [addClauseFrom, setAddClauseFrom] = useState<string | null>(null);
+  const [mode, setMode] = useState<"create" | "upload">("create");
+
+  const handleUploadReviewed = (doc: ReviewedDocument, _review: any, _originalText: string) => {
+    const mapped: GeneratedNDA = {
+      title: doc.title || "Uploaded NDA",
+      date: doc.date || new Date().toISOString().split("T")[0],
+      parties: { disclosingParty: doc.parties?.partyA || doc.parties?.disclosingParty || "", receivingParty: doc.parties?.partyB || doc.parties?.receivingParty || "" },
+      recitals: doc.recitals || "",
+      definitions: doc.definitions || [],
+      clauses: doc.clauses || [],
+      governingLaw: doc.governingLaw || "",
+      signatureBlock: doc.signatureBlock || "",
+      warnings: (doc.warnings || []) as DocumentWarning[],
+    };
+    setDisclosingParty(mapped.parties.disclosingParty);
+    setReceivingParty(mapped.parties.receivingParty);
+    setDocument(mapped);
+    setVersions([mapped]);
+    setExpandedClauses(new Set());
+  };
 
   const toggleClause = (index: number) => {
     setExpandedClauses((prev) => {
@@ -321,6 +336,32 @@ const GenerateNDA = () => {
 
         {!document ? (
           <div className="space-y-6">
+            {/* Mode selector */}
+            <div className="flex gap-2">
+              <Button
+                variant={mode === "create" ? "default" : "outline"}
+                onClick={() => setMode("create")}
+                className="flex-1"
+              >
+                <FileText className="mr-2 h-4 w-4" /> Create New
+              </Button>
+              <Button
+                variant={mode === "upload" ? "default" : "outline"}
+                onClick={() => setMode("upload")}
+                className="flex-1"
+              >
+                <FileUp className="mr-2 h-4 w-4" /> Upload & Review
+              </Button>
+            </div>
+
+            {mode === "upload" ? (
+              <DocumentUploadReview
+                documentType="NDA"
+                onDocumentReviewed={handleUploadReviewed}
+                onCancel={() => setMode("create")}
+              />
+            ) : (
+            <>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -372,6 +413,8 @@ const GenerateNDA = () => {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
               {generating ? "Generating NDA…" : "Generate NDA"}
             </Button>
+            </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
