@@ -30,7 +30,7 @@ MANDATORY RULES — FOLLOW THESE WITHOUT EXCEPTION:
     d. CONTEXTUAL LINKING: Do NOT just list cases — explain WHY each case is relevant and HOW it applies to the user's specific situation.
     e. In Legal Analysis sections, actively apply case law principles to the facts (e.g., "Applying the principle from Bolton v Mahadeva [1972], since the services were substantially defective...").
     f. In Strategy sections, use case law to justify the recommended approach.
-    g. ANTI-HALLUCINATION: If no directly analogous case law is available, state "No directly analogous case found — analysis based on general legal principles" and cite the general principle instead. NEVER invent case names.`;`
+    g. ANTI-HALLUCINATION: If no directly analogous case law is available, state "No directly analogous case found — analysis based on general legal principles" and cite the general principle instead. NEVER invent case names.`;
 
 const buildPrompt = (body: any) => {
   const caseType = body.caseType || "general_legal";
