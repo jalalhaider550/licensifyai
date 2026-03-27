@@ -19,6 +19,7 @@ import {
   Download,
   Edit3,
   FileText,
+  FileUp,
   Loader2,
   Plus,
   RefreshCcw,
@@ -26,6 +27,18 @@ import {
   Undo2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  createLegalDocxBlob,
+  createLegalPdfBlob,
+  slugifyFileName,
+  type LegalDocumentPayload,
+} from "@/lib/legalDocuments";
+import {
+  prepareBrowserDownload,
+  triggerBrowserDownload,
+} from "@/lib/fileDownloads";
+import { DocumentUploadReview, type ReviewedDocument } from "@/components/app/DocumentUploadReview";
 import { toast } from "sonner";
 import {
   createLegalDocxBlob,
@@ -163,6 +176,28 @@ const GenerateContract = () => {
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const [addClauseFrom, setAddClauseFrom] = useState<string | null>(null);
+  const [mode, setMode] = useState<"create" | "upload">("create");
+  const [originalUploadText, setOriginalUploadText] = useState<string | null>(null);
+
+  const handleUploadReviewed = (doc: ReviewedDocument, _review: any, originalText: string) => {
+    const mapped: GeneratedDocument = {
+      title: doc.title || "Uploaded Contract",
+      date: doc.date || new Date().toISOString().split("T")[0],
+      parties: { partyA: doc.parties?.partyA || doc.parties?.disclosingParty || "", partyB: doc.parties?.partyB || doc.parties?.receivingParty || "" },
+      recitals: doc.recitals || "",
+      definitions: doc.definitions || [],
+      clauses: doc.clauses || [],
+      governingLaw: doc.governingLaw || "",
+      signatureBlock: doc.signatureBlock || "",
+      warnings: (doc.warnings || []) as DocumentWarning[],
+    };
+    setPartyA(mapped.parties.partyA);
+    setPartyB(mapped.parties.partyB);
+    setDocument(mapped);
+    setVersions([mapped]);
+    setOriginalUploadText(originalText);
+    setExpandedClauses(new Set());
+  };
 
   const toggleClause = (index: number) => {
     setExpandedClauses((prev) => {
