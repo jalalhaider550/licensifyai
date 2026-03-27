@@ -143,6 +143,26 @@ export const CaseRecommendationPanel = ({
               </SectionCollapsible>
             )}
 
+            {analysis.caseReferences && analysis.caseReferences.length > 0 && (
+              <SectionCollapsible title="Case Law References" icon={BookOpen}>
+                <ul className="space-y-2 text-sm">
+                  {analysis.caseReferences.map((ref, i) => (
+                    <li key={i} className="rounded bg-muted/30 p-2">
+                      <p className="font-semibold text-foreground">
+                        <span className="text-primary">{ref.caseName}</span>
+                        <span className="text-muted-foreground font-normal"> ({ref.year})</span>
+                        {ref.jurisdiction && (
+                          <span className="ml-2 inline-flex rounded-full border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{ref.jurisdiction}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-foreground mt-0.5 italic">→ {ref.principle}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ref.relevance}</p>
+                    </li>
+                  ))}
+                </ul>
+              </SectionCollapsible>
+            )}
+
             {analysis.legalAnalysis && analysis.legalAnalysis.length > 0 && (
               <SectionCollapsible title="Legal Analysis (IRAC)" icon={Brain}>
                 <div className="space-y-3 text-sm">
