@@ -893,13 +893,21 @@ const CaseDetail = () => {
     return parseLegalWorkProduct(actionWorkspaceContent);
   };
 
+  const buildDynamicFileName = (docTitle: string, format: string) => {
+    const docType = slugifyFileName(docTitle || "Document").replace(/-/g, "_");
+    const client = clientName?.trim()
+      ? clientName.trim().replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")
+      : "LicensifyAI";
+    const date = new Date().toISOString().split("T")[0];
+    return `${docType}_${client}_${date}.${format}`;
+  };
+
   const exportWorkspace = async (format: "pdf" | "docx") => {
     setExportLoadingFormat(format);
 
     try {
       const product = currentWorkspaceProduct();
-      const fileBase = slugifyFileName(actionWorkspaceTitle || product.title || "legal-draft");
-      const fileName = `${fileBase}.${format}`;
+      const fileName = buildDynamicFileName(actionWorkspaceTitle || product.title || "legal-draft", format);
       const mimeType =
         format === "docx"
           ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
