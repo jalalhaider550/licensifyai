@@ -4,30 +4,30 @@ const steps = [
   {
     number: "01",
     icon: Upload,
-    title: "Upload Documents",
+    title: "Input Your Legal Query",
     description:
-      "Upload business documents, contracts, or case files. Accepted formats include PDF, Word, and text files.",
+      "Upload documents, describe your case, or enter a legal question. Accepted formats include PDF, Word, and text files.",
   },
   {
     number: "02",
     icon: Brain,
-    title: "AI Extracts & Analyzes",
+    title: "AI Analyzes & Structures",
     description:
-      "AI reads your documents, extracts key data — parties, obligations, risks, compliance details — and builds a structured case profile.",
+      "AI identifies legal issues, applies relevant statutes and case law, and generates a structured legal execution brief with IRAC analysis.",
   },
   {
     number: "03",
     icon: FileCheck,
-    title: "Generate Documents & Actions",
+    title: "Strategy, Documents & Actions",
     description:
-      "Generate contracts, compliance documents, reports, and action plans tailored to your case data and workflow requirements.",
+      "Get recommended strategy with alternatives, generate legal documents (notices, contracts, pleadings), and receive a step-by-step action plan.",
   },
   {
     number: "04",
     icon: Send,
-    title: "Review, Edit & Export",
+    title: "Execute & Follow Up",
     description:
-      "Review generated outputs in the built-in editor, make corrections, and export as Word or PDF for submission.",
+      "Execute each action, track deadlines and limitation periods, and follow dynamic next-step recommendations until the matter resolves.",
   },
 ];
 

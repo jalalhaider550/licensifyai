@@ -51,12 +51,12 @@ export const FeaturesSection = () => {
     <section id="features" className="border-t border-border bg-muted/30">
       <div className="container mx-auto px-6 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-widest text-primary">Platform Capabilities</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-primary">Legal Execution Engine</span>
           <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-            Everything You Need for Licensing & Case Workflows
+            Not a Chatbot — A Legal Operating System
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Purpose-built tools for firms managing licensing applications and complex case workflows across industries.
+            Structured analysis, actionable strategy, document generation, and step-by-step execution plans — all in one platform.
           </p>
         </div>
 
