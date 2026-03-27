@@ -1,48 +1,48 @@
 import {
-  Upload,
-  FileSearch,
-  FilePlus,
-  PackageCheck,
-  Users,
+  Brain,
+  FileText,
+  Scale,
+  Shield,
   Workflow,
+  Zap,
 } from "lucide-react";
 
 const features = [
   {
-    icon: Users,
-    title: "Client Onboarding Automation",
+    icon: Brain,
+    title: "Legal Execution Engine",
     description:
-      "Streamline client intake with structured profiles, company data, directors, shareholders, and ownership details in one workspace.",
+      "Transform any legal query into structured analysis, strategy, step-by-step action plans, and ready-to-use documents — not just advice.",
   },
   {
-    icon: FilePlus,
-    title: "AI Document Generation",
+    icon: FileText,
+    title: "AI Document Generator",
     description:
-      "Generate contracts, reports, compliance documents, filings, and business plans powered by AI — ready for review and submission.",
+      "Generate legal notices, contracts, NDAs, demand letters, court pleadings, and compliance documents — formal, jurisdiction-aware, and ready to use.",
   },
   {
     icon: Workflow,
-    title: "Case Workflow Management",
+    title: "Case Workflow Automation",
     description:
-      "Manage all case types — licensing, disputes, corporate, employment, IP — with AI-driven next steps and action tracking.",
+      "Manage all case types — licensing, disputes, corporate, employment, IP — with AI-driven next steps, action tracking, and deadline management.",
   },
   {
-    icon: PackageCheck,
-    title: "Licensing Automation",
+    icon: Scale,
+    title: "Strategy & Analysis Mode",
     description:
-      "Track application readiness, identify missing documents, and assemble submission-ready packages for regulators across jurisdictions.",
+      "Compare multiple legal paths, assess risks with probability scoring, and get recommended strategies backed by statute and case law references.",
   },
   {
-    icon: FileSearch,
-    title: "Client Data Extraction & Validation",
+    icon: Shield,
+    title: "Legal Research Layer",
     description:
-      "AI reads uploaded documents and automatically extracts key data — services, revenue models, compliance details — and validates completeness.",
+      "Automatic citation of relevant statutes, regulations, and case laws. IRAC-structured reasoning grounded in objective legal authority.",
   },
   {
-    icon: Upload,
-    title: "Document Upload & Processing",
+    icon: Zap,
+    title: "Dynamic Follow-Up Engine",
     description:
-      "Upload business plans, contracts, and filings. Drag-and-drop with support for PDF, Word, and text files with automatic parsing.",
+      "After every output: next steps, missing info detection, document generation prompts. The system never stops at advice — it drives execution.",
   },
 ];
 
