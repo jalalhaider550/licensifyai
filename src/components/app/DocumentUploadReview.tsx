@@ -407,6 +407,41 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
                   </p>
                 </div>
 
+                {/* Review Contract Button - Primary CTA */}
+                {!review && (
+                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 space-y-2">
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      onClick={() => handleReviewAndImprove("improve")}
+                      disabled={reviewing || generatingFromDoc}
+                    >
+                      {reviewing ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Gavel className="mr-2 h-5 w-5" />
+                      )}
+                      {reviewing ? "Analyzing contract…" : "Review Contract"}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      AI will perform a full legal review with strength score, risk rating, and clause-by-clause analysis.
+                    </p>
+                  </div>
+                )}
+
+                {/* Review error with retry */}
+                {reviewError && !reviewing && !review && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <XCircle className="h-4 w-4 shrink-0" />
+                      Review failed. Please try again.
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleReviewAndImprove("improve")}>
+                      Retry Review
+                    </Button>
+                  </div>
+                )}
+
                 <Separator />
 
                 <div className="space-y-2">
