@@ -147,15 +147,15 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [showComparison, setShowComparison] = useState(false);
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
+  const [reviewError, setReviewError] = useState(false);
+  const reviewSectionRef = useRef<HTMLDivElement>(null);
 
-  // Auto-trigger review when text is extracted
-  const autoReviewTriggered = useRef(false);
+  // Auto-scroll to review when it appears
   useEffect(() => {
-    if (extractedText && !review && !reviewing && !autoReviewTriggered.current) {
-      autoReviewTriggered.current = true;
-      handleReviewAndImprove("improve");
+    if (review && reviewSectionRef.current) {
+      reviewSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [extractedText]);
+  }, [review]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
