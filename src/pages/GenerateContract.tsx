@@ -509,6 +509,8 @@ const GenerateContract = () => {
               {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
               {generating ? "Generating Contract…" : "Generate Contract"}
             </Button>
+            </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
