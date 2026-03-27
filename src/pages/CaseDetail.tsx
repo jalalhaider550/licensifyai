@@ -10,11 +10,13 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileText,
   Loader2,
   Mail,
   MessageSquare,
   RefreshCcw,
   Save,
+  Scale,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -116,6 +118,7 @@ const CaseDetail = () => {
   const [actionWorkspaceTitle, setActionWorkspaceTitle] = useState("");
   const [actionWorkspaceContent, setActionWorkspaceContent] = useState("");
   const [actionWorkspaceOpen, setActionWorkspaceOpen] = useState(false);
+  const [strategicAnalysis, setStrategicAnalysis] = useState<any>(null);
   const [pendingUploadPrompt, setPendingUploadPrompt] = useState(false);
   const [workspaceProduct, setWorkspaceProduct] = useState<LegalWorkProduct | null>(null);
   const [workspaceActionType, setWorkspaceActionType] = useState("draft_document");
@@ -638,6 +641,18 @@ const CaseDetail = () => {
       const parsedMissingItems = parseMissingInfoActions(parsed.missingItems || missingItems);
       const nextStatus = parsed.status || getComputedStatus(summary, factsText, parsedSteps.length, documents.length);
 
+      // Store strategic analysis sections for collapsible display
+      setStrategicAnalysis({
+        caseSummary: parsed.caseSummary || null,
+        keyLegalIssues: parsed.keyLegalIssues || [],
+        applicableLaws: parsed.applicableLaws || [],
+        legalAnalysis: parsed.legalAnalysis || [],
+        recommendedStrategy: parsed.recommendedStrategy || null,
+        requiredDocuments: parsed.requiredDocuments || [],
+        risksAndConsiderations: parsed.risksAndConsiderations || [],
+        nextImmediateAction: parsed.nextImmediateAction || null,
+      });
+
       const { data: updatedCase, error: updateError } = await db
         .from("cases")
         .update({
@@ -646,6 +661,16 @@ const CaseDetail = () => {
             ...(caseItem.ai_context || {}),
             missingItems: parsedMissingItems,
             lastDecisionAt: new Date().toISOString(),
+            strategicAnalysis: {
+              caseSummary: parsed.caseSummary,
+              keyLegalIssues: parsed.keyLegalIssues,
+              applicableLaws: parsed.applicableLaws,
+              legalAnalysis: parsed.legalAnalysis,
+              recommendedStrategy: parsed.recommendedStrategy,
+              requiredDocuments: parsed.requiredDocuments,
+              risksAndConsiderations: parsed.risksAndConsiderations,
+              nextImmediateAction: parsed.nextImmediateAction,
+            },
           },
           status: nextStatus,
         })
@@ -659,8 +684,8 @@ const CaseDetail = () => {
         case_id: caseItem.id,
         user_id: user.id,
         activity_type: "decision",
-        title: "Generated next steps",
-        content: "AI generated legally actionable next steps for this case.",
+        title: "Generated legal execution brief",
+        content: "AI generated a structured legal execution brief with analysis, strategy, and actionable next steps.",
         metadata: { steps: parsedSteps },
       });
 
@@ -1013,18 +1038,60 @@ const CaseDetail = () => {
               {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               {thinking ? "Analysing…" : "What should I do next?"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const docAction: CaseRecommendation = {
+                  title: "Generate Legal Document",
+                  actionLabel: "Generate draft",
+                  actionType: "draft_document",
+                  draftType: "legal_document",
+                  priority: "medium",
+                  documentCategory: "correspondence",
+                  why: "Generate a legal document based on current case data.",
+                  legalBasis: "",
+                  confidence: "MEDIUM",
+                };
+                handleCaseAction(docAction, "top-generate-doc");
+              }}
+              disabled={actionBusyKey === "top-generate-doc"}
+            >
+              {actionBusyKey === "top-generate-doc" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              Generate Document
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const strategyAction: CaseRecommendation = {
+                  title: "Refine Legal Strategy",
+                  actionLabel: "Generate strategy",
+                  actionType: "generate_strategy",
+                  draftType: "strategic_assessment",
+                  priority: "medium",
+                  documentCategory: "strategy",
+                  why: "Generate a comprehensive legal strategy assessment based on current case data.",
+                  legalBasis: "",
+                  confidence: "MEDIUM",
+                };
+                handleCaseAction(strategyAction, "top-refine-strategy");
+              }}
+              disabled={actionBusyKey === "top-refine-strategy"}
+            >
+              {actionBusyKey === "top-refine-strategy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scale className="mr-2 h-4 w-4" />}
+              Refine Strategy
+            </Button>
           </div>
         </div>
 
         <div className="mb-6 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold text-foreground">Case understanding</h2>
+              <h2 className="font-display text-base font-semibold text-foreground">Legal Execution Status</h2>
               <span className="text-sm text-muted-foreground">{caseItem.progress_percentage || 0}% complete</span>
             </div>
             <Progress value={caseItem.progress_percentage || 0} className="h-2" />
             <p className="mt-3 text-sm text-muted-foreground">
-              AI keeps the case summary, facts, and next-step reasoning updated as you edit data or upload documents.
+              AI maintains the case summary, legal analysis, and execution plan as you edit data or upload documents.
             </p>
           </div>
 
@@ -1102,6 +1169,7 @@ const CaseDetail = () => {
                   busyKey={actionBusyKey}
                   requestBusyKey={requestBusyKey}
                   requestStatusByLabel={requestStatusByLabel}
+                  strategicAnalysis={strategicAnalysis || caseItem?.ai_context?.strategicAnalysis || null}
                   onShowWhyChange={setShowWhy}
                   onAction={handleCaseAction}
                   onRequestFromClient={handleOpenSingleRequestDialog}

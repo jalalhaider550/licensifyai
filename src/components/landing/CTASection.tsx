@@ -17,10 +17,10 @@ export const CTASection = () => {
             </div>
 
             <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
-              Start Automating Your Workflows Today
+              From Legal Questions to Execution — In Minutes
             </h2>
             <p className="mt-4 text-base text-primary-foreground/80 max-w-xl mx-auto">
-              Join firms saving hundreds of hours on licensing applications and case workflow management.
+              Strategy, documents, and next steps. Join law firms and in-house teams using Licensify AI as their legal execution engine.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">

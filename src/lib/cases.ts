@@ -24,6 +24,9 @@ export interface CaseRecommendation {
   actionType?: CaseActionType;
   draftType?: string;
   documentCategory?: string;
+  legalBasis?: string;
+  confidence?: string;
+  phase?: string;
 }
 
 export interface MissingInfoAction {
