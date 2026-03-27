@@ -142,9 +142,18 @@ Return JSON exactly like:
     {
       "issue": "Identified legal issue",
       "rule": "Applicable law or principle",
-      "analysis": "Application to facts",
+      "analysis": "Application to facts — reference case law where applicable (e.g. 'Applying Bolton v Mahadeva [1972]...')",
       "conclusion": "Preliminary view",
       "confidence": "HIGH/MEDIUM/LOW"
+    }
+  ],
+  "caseReferences": [
+    {
+      "caseName": "e.g. Bolton v Mahadeva",
+      "year": "1972",
+      "principle": "Defective performance may justify non-payment if the defect is substantial",
+      "relevance": "How this case applies to the user's specific situation",
+      "jurisdiction": "England & Wales"
     }
   ]
 }`,
