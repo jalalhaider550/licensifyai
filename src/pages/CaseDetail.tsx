@@ -118,6 +118,7 @@ const CaseDetail = () => {
   const [actionWorkspaceTitle, setActionWorkspaceTitle] = useState("");
   const [actionWorkspaceContent, setActionWorkspaceContent] = useState("");
   const [actionWorkspaceOpen, setActionWorkspaceOpen] = useState(false);
+  const [strategicAnalysis, setStrategicAnalysis] = useState<any>(null);
   const [pendingUploadPrompt, setPendingUploadPrompt] = useState(false);
   const [workspaceProduct, setWorkspaceProduct] = useState<LegalWorkProduct | null>(null);
   const [workspaceActionType, setWorkspaceActionType] = useState("draft_document");
@@ -640,6 +641,18 @@ const CaseDetail = () => {
       const parsedMissingItems = parseMissingInfoActions(parsed.missingItems || missingItems);
       const nextStatus = parsed.status || getComputedStatus(summary, factsText, parsedSteps.length, documents.length);
 
+      // Store strategic analysis sections for collapsible display
+      setStrategicAnalysis({
+        caseSummary: parsed.caseSummary || null,
+        keyLegalIssues: parsed.keyLegalIssues || [],
+        applicableLaws: parsed.applicableLaws || [],
+        legalAnalysis: parsed.legalAnalysis || [],
+        recommendedStrategy: parsed.recommendedStrategy || null,
+        requiredDocuments: parsed.requiredDocuments || [],
+        risksAndConsiderations: parsed.risksAndConsiderations || [],
+        nextImmediateAction: parsed.nextImmediateAction || null,
+      });
+
       const { data: updatedCase, error: updateError } = await db
         .from("cases")
         .update({
@@ -648,6 +661,16 @@ const CaseDetail = () => {
             ...(caseItem.ai_context || {}),
             missingItems: parsedMissingItems,
             lastDecisionAt: new Date().toISOString(),
+            strategicAnalysis: {
+              caseSummary: parsed.caseSummary,
+              keyLegalIssues: parsed.keyLegalIssues,
+              applicableLaws: parsed.applicableLaws,
+              legalAnalysis: parsed.legalAnalysis,
+              recommendedStrategy: parsed.recommendedStrategy,
+              requiredDocuments: parsed.requiredDocuments,
+              risksAndConsiderations: parsed.risksAndConsiderations,
+              nextImmediateAction: parsed.nextImmediateAction,
+            },
           },
           status: nextStatus,
         })
@@ -661,8 +684,8 @@ const CaseDetail = () => {
         case_id: caseItem.id,
         user_id: user.id,
         activity_type: "decision",
-        title: "Generated next steps",
-        content: "AI generated legally actionable next steps for this case.",
+        title: "Generated legal execution brief",
+        content: "AI generated a structured legal execution brief with analysis, strategy, and actionable next steps.",
         metadata: { steps: parsedSteps },
       });
 
