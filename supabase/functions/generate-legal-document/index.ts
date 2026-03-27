@@ -19,6 +19,133 @@ const CLAUSE_LIBRARY = [
   "Data Protection",
 ];
 
+function detectScenarioRisks(body: any): string[] {
+  const risks: string[] = [];
+  const allText = [
+    body.specialInstructions || "",
+    body.specialClauses || "",
+    body.scopeOfWork || "",
+    body.paymentTerms || "",
+    body.terminationClause || "",
+    body.generationMode || "",
+  ].join(" ").toLowerCase();
+
+  // Payment risk signals
+  if (/non[- ]?payment|late payment|default|arrears|overdue|unpaid|deposit|upfront|advance payment/i.test(allText)) {
+    risks.push("HIGH_PAYMENT_RISK");
+  }
+  // Strict / protective signals
+  if (/strict|protective|penalty|penalt|enforce|heavy|punitive/i.test(allText) || body.generationMode === "strict") {
+    risks.push("STRICT_PROTECTION");
+  }
+  // Favor party signals
+  if (/favor.*party.*a|protect.*party.*a|benefit.*party.*a/i.test(allText) || body.generationMode === "favor_party_a") {
+    risks.push("FAVOR_PARTY_A");
+  }
+  if (/favor.*party.*b|protect.*party.*b|benefit.*party.*b/i.test(allText) || body.generationMode === "favor_party_b") {
+    risks.push("FAVOR_PARTY_B");
+  }
+  // Performance / KPI signals
+  if (/kpi|performance|deliverable|milestone|sla|service level/i.test(allText)) {
+    risks.push("PERFORMANCE_BASED");
+  }
+  // IP risk signals
+  if (/intellectual property|ip rights|copyright|patent|trade secret/i.test(allText)) {
+    risks.push("IP_SENSITIVE");
+  }
+  // Confidentiality emphasis
+  if (/confidential|nda|non[- ]?disclosure|sensitive information/i.test(allText)) {
+    risks.push("CONFIDENTIALITY_EMPHASIS");
+  }
+  // Termination risk
+  if (/terminat|cancel|exit|walk away|break clause/i.test(allText)) {
+    risks.push("TERMINATION_RISK");
+  }
+
+  return risks;
+}
+
+function buildScenarioInstructions(risks: string[], partyA: string, partyB: string): string {
+  if (risks.length === 0) return "";
+
+  const instructions: string[] = ["\n\nSCENARIO-SPECIFIC INSTRUCTIONS (MANDATORY — adapt the contract to these detected risks):"];
+
+  if (risks.includes("HIGH_PAYMENT_RISK")) {
+    instructions.push(`
+PAYMENT RISK DETECTED — You MUST include ALL of the following:
+- Upfront deposit/advance payment clause (minimum 25-50% before work begins)
+- Late payment interest clause (e.g. 2-4% above base rate per month)
+- Right to suspend services on non-payment (after 14 days overdue)
+- Minimum commitment period with early exit penalties
+- Clear payment milestones tied to deliverables
+- Right to recover debt collection costs`);
+  }
+
+  if (risks.includes("STRICT_PROTECTION")) {
+    instructions.push(`
+STRICT PROTECTION MODE — You MUST:
+- Limit the client's (${partyB}'s) right to terminate without cause
+- Require minimum notice period of 90 days for termination
+- Include liquidated damages for early termination
+- Add penalty clauses for breach (specific monetary amounts or percentages)
+- Strengthen payment enforcement with acceleration clauses
+- Include personal guarantee provisions where appropriate
+- Add KPI/performance measurement clauses with clear benchmarks
+- Include audit rights for ${partyA}`);
+  }
+
+  if (risks.includes("FAVOR_PARTY_A")) {
+    instructions.push(`
+FAVOR PARTY A (${partyA}) — Ensure:
+- Liability cap applies only to ${partyA}, not ${partyB}
+- ${partyA} has broader termination rights
+- IP ownership vests in ${partyA}
+- Indemnity obligations fall primarily on ${partyB}
+- ${partyA} retains right to assign without consent`);
+  }
+
+  if (risks.includes("FAVOR_PARTY_B")) {
+    instructions.push(`
+FAVOR PARTY B (${partyB}) — Ensure:
+- Flexible termination for ${partyB} with short notice
+- Liability cap applies to ${partyB}
+- Payment terms favorable to ${partyB}
+- ${partyB} retains more IP rights`);
+  }
+
+  if (risks.includes("PERFORMANCE_BASED")) {
+    instructions.push(`
+PERFORMANCE-BASED CONTRACT — Include:
+- Specific KPIs with measurable targets
+- Performance review periods (monthly/quarterly)
+- Right to terminate for persistent underperformance
+- Performance bonus/penalty structure
+- SLA with response time commitments`);
+  }
+
+  if (risks.includes("IP_SENSITIVE")) {
+    instructions.push(`
+IP-SENSITIVE CONTRACT — Include:
+- Detailed IP ownership and assignment clauses
+- Pre-existing IP carve-outs
+- License-back provisions
+- IP indemnification
+- Non-compete and non-solicitation for IP-related work`);
+  }
+
+  if (risks.includes("TERMINATION_RISK")) {
+    instructions.push(`
+TERMINATION RISK DETECTED — Include:
+- Graduated termination notice periods
+- Termination for cause vs convenience distinction
+- Wind-down and transition obligations
+- Post-termination survival clauses
+- Return of materials and data obligations`);
+  }
+
+  return instructions.join("\n");
+}
+
 function buildContractPrompt(body: any) {
   const {
     contractType,
@@ -33,6 +160,9 @@ function buildContractPrompt(body: any) {
     specialInstructions,
     generationMode,
   } = body;
+
+  const detectedRisks = detectScenarioRisks(body);
+  const scenarioInstructions = buildScenarioInstructions(detectedRisks, partyA, partyB);
 
   let modeInstruction = "";
   switch (generationMode) {
@@ -52,7 +182,9 @@ function buildContractPrompt(body: any) {
       modeInstruction = "Draft standard professional clauses with reasonable protections for both parties.";
   }
 
-  return `You are a senior commercial lawyer. Generate a COMPLETE, PROFESSIONAL ${contractType} contract.
+  return `You are a senior commercial lawyer (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract.
+
+CRITICAL: This is NOT a generic template. You must tailor EVERY clause to the specific scenario, parties, and risks described below. Generic boilerplate is unacceptable.
 
 PARTIES:
 - Party A: ${partyA}
@@ -67,19 +199,21 @@ ${specialClauses ? `SPECIAL CLAUSES TO INCLUDE: ${specialClauses}` : ""}
 
 GENERATION MODE: ${modeInstruction}
 ${specialInstructions ? `SPECIAL INSTRUCTIONS: ${specialInstructions}` : ""}
+${detectedRisks.length > 0 ? `\nDETECTED RISK PROFILE: ${detectedRisks.join(", ")}` : ""}
+${scenarioInstructions}
 
 Return a JSON object with this EXACT structure:
 {
   "title": "CONTRACT TITLE",
   "date": "Date string",
   "parties": { "partyA": "${partyA}", "partyB": "${partyB}" },
-  "recitals": "WHEREAS clauses as a single string",
+  "recitals": "WHEREAS clauses as a single string — tailored to the specific business relationship",
   "definitions": [{ "term": "Term", "definition": "Definition text" }],
   "clauses": [
     {
       "number": "1",
       "title": "Clause Title",
-      "body": "Full clause text with professional legal language",
+      "body": "Full clause text with professional legal language tailored to this scenario",
       "subClauses": [{ "number": "1.1", "body": "Sub-clause text" }]
     }
   ],
@@ -93,6 +227,7 @@ Return a JSON object with this EXACT structure:
 MANDATORY CLAUSES (include ALL): Definitions, Scope of Work/Services, Payment, Duration/Term, Termination, Confidentiality, Intellectual Property, Limitation of Liability, Indemnity, Dispute Resolution, Governing Law, Force Majeure, General Provisions (Notices, Amendments, Severability, Entire Agreement).
 
 Each clause must be FULL professional legal text — not summaries. Use proper legal language and numbered sub-clauses.
+Tailor every clause to the specific parties, scope, and risk profile. Do NOT produce generic boilerplate.
 After generating, analyze and add warnings for any missing clauses, risk imbalances, or jurisdiction issues.`;
 }
 
