@@ -197,7 +197,7 @@ Return JSON exactly like:
       return {
         systemPrompt: `${LEGAL_PERSONA}
 
-You are advising the instructing solicitor on the next strategic moves for this matter. Each recommendation must be legally precise, strategically sound, and executable. Every action should read like a task a qualified lawyer would actually perform — not generic advice.
+You are advising the instructing solicitor on the next strategic moves for this matter. Your output must function as a complete legal execution brief — not generic advice. Every output must follow the STRICT 9-SECTION RESPONSE STRUCTURE below.
 
 ${GUARDRAILS}
 
@@ -214,28 +214,57 @@ NEXT STEPS RULES:
 CRITICAL — MISSING INFORMATION CONSISTENCY:
 - If "EXISTING MISSING INFORMATION" is listed in the context, you MUST include ALL of those items in your "missingItems" array. Do NOT omit them. Do NOT say "no additional information required" when missing items exist.
 - You may ADD new missing items you discover, but you must NEVER remove or ignore existing ones.
-- In your "strategicOverview", if missing information exists, you MUST acknowledge it. For example: "The following actions can proceed in parallel, however [N] items of outstanding information should be collected to ensure a complete matter file."
-- For each recommended step, if it can proceed despite missing info, state in the "why" field: "This step can proceed, however the following information remains outstanding for completeness: [list relevant missing items]."
-- For steps that CANNOT proceed without specific missing info, state clearly: "This action requires the following information before it can be completed: [list items]."
-- NEVER produce a response that contradicts the known missing information state of the case.`,
+- In your "strategicOverview", if missing information exists, you MUST acknowledge it.
+- NEVER produce a response that contradicts the known missing information state of the case.
+
+STRICT 9-SECTION RESPONSE STRUCTURE — you MUST populate ALL sections:
+1. caseSummary: Facts, parties, jurisdiction (or assumption)
+2. keyLegalIssues: List core legal questions
+3. applicableLaws: Relevant statutes, regulations, case laws
+4. legalAnalysis: Apply law to facts using IRAC, explain reasoning
+5. recommendedStrategy: Best option, alternatives, why this approach
+6. actionPlan: Step-by-step with immediate actions, pre-litigation, formal action, post-action
+7. requiredDocuments: List documents needed, generate drafts when relevant
+8. risksAndConsiderations: Legal risks, commercial risks, probability
+9. nextImmediateAction: Single clear instruction for the user`,
 
         userPrompt: `${contextBlock}
 
-EXAMPLE of a well-structured next step:
-{
-  "title": "Draft Pre-Action Protocol Letter (Professional Negligence)",
-  "actionLabel": "Generate draft",
-  "actionType": "draft_document",
-  "draftType": "pre-action protocol letter",
-  "priority": "high",
-  "documentCategory": "correspondence",
-  "why": "Under the Pre-Action Protocol for Professional Claims, a Letter of Claim must be sent giving the defendant 3 months to investigate and respond. Failure to comply may result in adverse costs consequences under CPR r.44.3(5)(a). Given the limitation period expires in approximately 14 months, this should be issued promptly to preserve the litigation timetable.",
-  "legalBasis": "Pre-Action Protocol for Professional Claims, CPR Part 44",
-  "confidence": "HIGH"
-}
-
 Return JSON exactly like:
 {
+  "caseSummary": {
+    "facts": "concise factual summary",
+    "parties": ["Party A (capacity)", "Party B (capacity)"],
+    "jurisdiction": "England & Wales",
+    "assumptions": ["any assumptions made due to missing info"]
+  },
+  "keyLegalIssues": [
+    {
+      "issue": "core legal question",
+      "significance": "why this matters"
+    }
+  ],
+  "applicableLaws": [
+    {
+      "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
+      "relevance": "how it applies to this case",
+      "jurisdiction": "England & Wales"
+    }
+  ],
+  "legalAnalysis": [
+    {
+      "issue": "legal issue",
+      "rule": "applicable law or principle",
+      "application": "how it applies to the facts",
+      "conclusion": "preliminary view",
+      "confidence": "HIGH/MEDIUM/LOW"
+    }
+  ],
+  "recommendedStrategy": {
+    "bestOption": "recommended approach",
+    "alternatives": ["alternative approach 1"],
+    "reasoning": "why this approach is recommended"
+  },
   "steps": [
     {
       "title": "specific professional action title",
@@ -246,9 +275,26 @@ Return JSON exactly like:
       "documentCategory": "correspondence",
       "why": "detailed legal reasoning with statute/rule references",
       "legalBasis": "relevant statute, rule, or principle",
-      "confidence": "HIGH/MEDIUM/LOW"
+      "confidence": "HIGH/MEDIUM/LOW",
+      "phase": "immediate|pre-litigation|formal-action|post-action"
     }
   ],
+  "requiredDocuments": [
+    {
+      "document": "document name",
+      "purpose": "why it is needed",
+      "canGenerate": true
+    }
+  ],
+  "risksAndConsiderations": [
+    {
+      "type": "legal|commercial|procedural",
+      "risk": "description of the risk",
+      "probability": "HIGH/MEDIUM/LOW",
+      "mitigation": "how to mitigate"
+    }
+  ],
+  "nextImmediateAction": "single clear instruction for the user right now",
   "missingItems": [
     {
       "label": "Upload Executed Agreement",

@@ -13,29 +13,29 @@ export const HeroSection = () => {
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary animate-fade-in">
             <Sparkles className="h-3.5 w-3.5" />
-            AI-Powered Licensing & Case Workflow Automation
+            The Operating System for Legal Work
           </div>
 
           <h1 className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl animate-fade-in-up">
-            Automate Licensing & Case Workflows{" "}
+            Licensify AI —{" "}
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              with AI
+              The Operating System for Legal Work
             </span>
           </h1>
 
           <p className="mt-6 text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: "80ms" }}>
-            Licensify AI helps firms handle licensing and all types of case workflows — from client onboarding and data extraction to document generation and submission-ready outputs.
+            From legal questions to execution. Strategy, documents, and next steps — in minutes. AI-powered legal analysis, document generation, and case workflow automation for law firms and in-house teams.
           </p>
 
           <p className="mt-3 text-sm text-muted-foreground/80 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-            Designed for firms operating in the UK and US regulatory environments. Streamline compliance automation, licensing workflows, and case management software across industries.
+            AI legal assistant for law firms and in-house teams in the UK and US. Structured analysis, actionable strategy, and submission-ready documents.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
             {[
-              "AI document generation",
-              "Case workflow management",
-              "Licensing automation",
+              "Legal execution engine",
+              "Strategy & document generation",
+              "Step-by-step action plans",
             ].map((item) => (
               <span key={item} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
