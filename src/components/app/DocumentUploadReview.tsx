@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -148,6 +148,15 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
 
+  // Auto-trigger review when text is extracted
+  const autoReviewTriggered = useRef(false);
+  useEffect(() => {
+    if (extractedText && !review && !reviewing && !autoReviewTriggered.current) {
+      autoReviewTriggered.current = true;
+      handleReviewAndImprove("improve");
+    }
+  }, [extractedText]);
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
@@ -185,7 +194,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
         return;
       }
       setExtractedText(text);
-      toast.success("Document uploaded and parsed successfully.");
+      toast.success("Document uploaded — starting AI review…");
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Unable to read document. Please upload a valid PDF or Word file.");
@@ -312,6 +321,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     setImprovedText(null);
     setShowComparison(false);
     setUserInstruction("");
+    autoReviewTriggered.current = false;
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -371,6 +381,16 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Extracting document content…
+              </div>
+            )}
+
+            {!extracting && reviewing && !review && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Analyzing contract…</p>
+                  <p className="text-xs text-muted-foreground">AI is performing a full legal review. This may take up to 60 seconds.</p>
+                </div>
               </div>
             )}
 
