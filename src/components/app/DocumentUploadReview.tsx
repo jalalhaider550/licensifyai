@@ -5,13 +5,18 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BookOpen,
+  CheckCircle2,
   FileText,
   FileUp,
+  Gavel,
   Loader2,
+  Scale,
   Shield,
   Sparkles,
   Upload,
   X,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
