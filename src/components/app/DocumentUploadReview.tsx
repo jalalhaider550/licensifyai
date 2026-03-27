@@ -208,6 +208,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     if (!extractedText) return;
     setSelectedMode(mode);
     setReviewing(true);
+    setReviewError(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-legal-document", {
@@ -259,6 +260,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       toast.success("Document reviewed and improved successfully");
     } catch (err: any) {
       console.error(err);
+      setReviewError(true);
       toast.error(err.message || "Failed to review document");
     } finally {
       setReviewing(false);
@@ -321,7 +323,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     setImprovedText(null);
     setShowComparison(false);
     setUserInstruction("");
-    autoReviewTriggered.current = false;
+    setReviewError(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
