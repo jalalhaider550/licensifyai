@@ -146,6 +146,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [generatingFromDoc, setGeneratingFromDoc] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [improvedText, setImprovedText] = useState<string | null>(null);
+  const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -237,14 +238,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       }
 
       if (parsed.improvedDocument) {
-        // Build a text representation for comparison
         const improvedLines = parsed.improvedDocument.clauses
           ?.map((c: DocumentClause) => `${c.number}. ${c.title}\n${c.body}`)
           .join("\n\n") || "";
         setImprovedText(improvedLines);
-        onDocumentReviewed(parsed.improvedDocument, parsed.review, extractedText);
+        setPendingDoc({ doc: parsed.improvedDocument, review: parsed.review, originalText: extractedText });
       } else {
-        onDocumentReviewed(parsed, parsed.review, extractedText);
+        setPendingDoc({ doc: parsed, review: parsed.review, originalText: extractedText });
       }
 
       toast.success("Document reviewed and improved successfully");
@@ -694,6 +694,21 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Executive Summary</p>
             <p className="text-sm text-foreground">{review.summary}</p>
           </div>
+          {/* Proceed Button */}
+          {pendingDoc && (
+            <div className="pt-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  onDocumentReviewed(pendingDoc.doc, pendingDoc.review as DocumentReview, pendingDoc.originalText);
+                }}
+              >
+                <FileText className="mr-1 h-4 w-4" />
+                Proceed to Edit Document
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">Open the document editor to make changes, add clauses, and download.</p>
+            </div>
+          )}
         </div>
       )}
 
