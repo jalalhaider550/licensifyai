@@ -238,14 +238,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       }
 
       if (parsed.improvedDocument) {
-        // Build a text representation for comparison
         const improvedLines = parsed.improvedDocument.clauses
           ?.map((c: DocumentClause) => `${c.number}. ${c.title}\n${c.body}`)
           .join("\n\n") || "";
         setImprovedText(improvedLines);
-        onDocumentReviewed(parsed.improvedDocument, parsed.review, extractedText);
+        setPendingDoc({ doc: parsed.improvedDocument, review: parsed.review, originalText: extractedText });
       } else {
-        onDocumentReviewed(parsed, parsed.review, extractedText);
+        setPendingDoc({ doc: parsed, review: parsed.review, originalText: extractedText });
       }
 
       toast.success("Document reviewed and improved successfully");
