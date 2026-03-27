@@ -1086,12 +1086,12 @@ const CaseDetail = () => {
         <div className="mb-6 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold text-foreground">Case understanding</h2>
+              <h2 className="font-display text-base font-semibold text-foreground">Legal Execution Status</h2>
               <span className="text-sm text-muted-foreground">{caseItem.progress_percentage || 0}% complete</span>
             </div>
             <Progress value={caseItem.progress_percentage || 0} className="h-2" />
             <p className="mt-3 text-sm text-muted-foreground">
-              AI keeps the case summary, facts, and next-step reasoning updated as you edit data or upload documents.
+              AI maintains the case summary, legal analysis, and execution plan as you edit data or upload documents.
             </p>
           </div>
 
