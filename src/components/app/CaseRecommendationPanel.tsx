@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, Scale, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, Brain, Calendar, ChevronDown, ChevronRight, Clock, Scale, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -13,6 +13,19 @@ interface CaseReference {
   jurisdiction?: string;
 }
 
+interface TimelinePhase {
+  period: string;
+  actions: string[];
+}
+
+interface TimelineAndDeadlines {
+  immediate?: TimelinePhase;
+  shortTerm?: TimelinePhase;
+  midTerm?: TimelinePhase;
+  litigationTrigger?: string;
+  limitationPeriod?: string;
+}
+
 interface StrategicAnalysis {
   caseSummary?: { facts?: string; parties?: string[]; jurisdiction?: string; assumptions?: string[] };
   keyLegalIssues?: { issue: string; significance: string }[];
@@ -23,6 +36,7 @@ interface StrategicAnalysis {
   requiredDocuments?: { document: string; purpose: string; canGenerate?: boolean }[];
   risksAndConsiderations?: { type: string; risk: string; probability: string; mitigation: string }[];
   nextImmediateAction?: string;
+  timelineAndDeadlines?: TimelineAndDeadlines;
 }
 
 interface CaseRecommendationPanelProps {
