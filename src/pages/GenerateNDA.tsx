@@ -123,6 +123,26 @@ const GenerateNDA = () => {
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const [addClauseFrom, setAddClauseFrom] = useState<string | null>(null);
+  const [mode, setMode] = useState<"create" | "upload">("create");
+
+  const handleUploadReviewed = (doc: ReviewedDocument, _review: any, _originalText: string) => {
+    const mapped: GeneratedNDA = {
+      title: doc.title || "Uploaded NDA",
+      date: doc.date || new Date().toISOString().split("T")[0],
+      parties: { disclosingParty: doc.parties?.partyA || doc.parties?.disclosingParty || "", receivingParty: doc.parties?.partyB || doc.parties?.receivingParty || "" },
+      recitals: doc.recitals || "",
+      definitions: doc.definitions || [],
+      clauses: doc.clauses || [],
+      governingLaw: doc.governingLaw || "",
+      signatureBlock: doc.signatureBlock || "",
+      warnings: (doc.warnings || []) as DocumentWarning[],
+    };
+    setDisclosingParty(mapped.parties.disclosingParty);
+    setReceivingParty(mapped.parties.receivingParty);
+    setDocument(mapped);
+    setVersions([mapped]);
+    setExpandedClauses(new Set());
+  };
 
   const toggleClause = (index: number) => {
     setExpandedClauses((prev) => {
