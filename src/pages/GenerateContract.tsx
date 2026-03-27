@@ -392,6 +392,32 @@ const GenerateContract = () => {
 
         {!document ? (
           <div className="space-y-6">
+            {/* Mode selector */}
+            <div className="flex gap-2">
+              <Button
+                variant={mode === "create" ? "default" : "outline"}
+                onClick={() => setMode("create")}
+                className="flex-1"
+              >
+                <FileText className="mr-2 h-4 w-4" /> Create New
+              </Button>
+              <Button
+                variant={mode === "upload" ? "default" : "outline"}
+                onClick={() => setMode("upload")}
+                className="flex-1"
+              >
+                <FileUp className="mr-2 h-4 w-4" /> Upload & Review
+              </Button>
+            </div>
+
+            {mode === "upload" ? (
+              <DocumentUploadReview
+                documentType="Contract"
+                onDocumentReviewed={handleUploadReviewed}
+                onCancel={() => setMode("create")}
+              />
+            ) : (
+            <>
             {/* Form */}
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
