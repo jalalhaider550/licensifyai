@@ -215,7 +215,7 @@ serve(async (req) => {
     const timeout = setTimeout(() => controller.abort(), 120000);
 
     try {
-      const aiResponse = await fetch("https://ai-gateway.lovable.dev/api/chat/completions", {
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -238,6 +238,21 @@ serve(async (req) => {
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
         console.error(`[generate-legal-document] AI error: ${aiResponse.status}`, errText);
+
+        if (aiResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ success: false, error: "AI rate limit exceeded. Please wait a moment and try again.", errorType: "rate_limit" }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (aiResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Your AI balance is used up. Please top up to continue.", errorType: "credits_exhausted" }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         return new Response(
           JSON.stringify({ success: false, error: "AI service temporarily unavailable. Please try again." }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
