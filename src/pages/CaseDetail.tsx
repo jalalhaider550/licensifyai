@@ -10,11 +10,13 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileText,
   Loader2,
   Mail,
   MessageSquare,
   RefreshCcw,
   Save,
+  Scale,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -1012,6 +1014,48 @@ const CaseDetail = () => {
             >
               {thinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               {thinking ? "Analysing…" : "What should I do next?"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const docAction: CaseRecommendation = {
+                  title: "Generate Legal Document",
+                  actionLabel: "Generate draft",
+                  actionType: "draft_document",
+                  draftType: "legal_document",
+                  priority: "medium",
+                  documentCategory: "correspondence",
+                  why: "Generate a legal document based on current case data.",
+                  legalBasis: "",
+                  confidence: "MEDIUM",
+                };
+                handleCaseAction(docAction, "top-generate-doc");
+              }}
+              disabled={actionBusyKey === "top-generate-doc"}
+            >
+              {actionBusyKey === "top-generate-doc" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              Generate Document
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const strategyAction: CaseRecommendation = {
+                  title: "Refine Legal Strategy",
+                  actionLabel: "Generate strategy",
+                  actionType: "generate_strategy",
+                  draftType: "strategic_assessment",
+                  priority: "medium",
+                  documentCategory: "strategy",
+                  why: "Generate a comprehensive legal strategy assessment based on current case data.",
+                  legalBasis: "",
+                  confidence: "MEDIUM",
+                };
+                handleCaseAction(strategyAction, "top-refine-strategy");
+              }}
+              disabled={actionBusyKey === "top-refine-strategy"}
+            >
+              {actionBusyKey === "top-refine-strategy" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scale className="mr-2 h-4 w-4" />}
+              Refine Strategy
             </Button>
           </div>
         </div>
