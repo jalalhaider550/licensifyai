@@ -18,6 +18,8 @@ import {
   Menu,
   X,
   Scale,
+  FilePen,
+  ShieldCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +32,11 @@ const navItems = [
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
   { to: "/tasks", icon: ListTodo, label: "Tasks" },
   { to: "/activity", icon: Activity, label: "Activity" },
+];
+
+const legalDocItems = [
+  { to: "/generate-contract", icon: FilePen, label: "Generate Contract" },
+  { to: "/generate-nda", icon: ShieldCheck, label: "Generate NDA" },
 ];
 
 const bottomNavItems = [
@@ -85,12 +92,33 @@ export const AppShell = ({ children }: AppShellProps) => {
         </span>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Workspace
         </p>
         {navItems.map((item) => {
           const active = location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+                active
+                  ? "bg-sidebar-primary/15 text-sidebar-primary"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <p className="px-3 mt-4 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+          Legal Documents
+        </p>
+        {legalDocItems.map((item) => {
+          const active = location.pathname === item.to;
           return (
             <Link
               key={item.to}

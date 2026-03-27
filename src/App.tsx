@@ -27,7 +27,8 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import ClientPortal from "./pages/ClientPortal";
 import ClientInfoRequest from "./pages/ClientInfoRequest";
-
+import GenerateContract from "./pages/GenerateContract";
+import GenerateNDA from "./pages/GenerateNDA";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -61,6 +62,8 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/portal" element={<ClientPortal />} />
             <Route path="/client-request" element={<ClientInfoRequest />} />
+            <Route path="/generate-contract" element={<GenerateContract />} />
+            <Route path="/generate-nda" element={<GenerateNDA />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
