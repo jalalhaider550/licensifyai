@@ -147,15 +147,15 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [showComparison, setShowComparison] = useState(false);
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
+  const [reviewError, setReviewError] = useState(false);
+  const reviewSectionRef = useRef<HTMLDivElement>(null);
 
-  // Auto-trigger review when text is extracted
-  const autoReviewTriggered = useRef(false);
+  // Auto-scroll to review when it appears
   useEffect(() => {
-    if (extractedText && !review && !reviewing && !autoReviewTriggered.current) {
-      autoReviewTriggered.current = true;
-      handleReviewAndImprove("improve");
+    if (review && reviewSectionRef.current) {
+      reviewSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [extractedText]);
+  }, [review]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -208,6 +208,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     if (!extractedText) return;
     setSelectedMode(mode);
     setReviewing(true);
+    setReviewError(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-legal-document", {
@@ -259,6 +260,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       toast.success("Document reviewed and improved successfully");
     } catch (err: any) {
       console.error(err);
+      setReviewError(true);
       toast.error(err.message || "Failed to review document");
     } finally {
       setReviewing(false);
@@ -321,7 +323,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     setImprovedText(null);
     setShowComparison(false);
     setUserInstruction("");
-    autoReviewTriggered.current = false;
+    setReviewError(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -405,6 +407,41 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
                   </p>
                 </div>
 
+                {/* Review Contract Button - Primary CTA */}
+                {!review && (
+                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 space-y-2">
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      onClick={() => handleReviewAndImprove("improve")}
+                      disabled={reviewing || generatingFromDoc}
+                    >
+                      {reviewing ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <Gavel className="mr-2 h-5 w-5" />
+                      )}
+                      {reviewing ? "Analyzing contract…" : "Review Contract"}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      AI will perform a full legal review with strength score, risk rating, and clause-by-clause analysis.
+                    </p>
+                  </div>
+                )}
+
+                {/* Review error with retry */}
+                {reviewError && !reviewing && !review && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <XCircle className="h-4 w-4 shrink-0" />
+                      Review failed. Please try again.
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleReviewAndImprove("improve")}>
+                      Retry Review
+                    </Button>
+                  </div>
+                )}
+
                 <Separator />
 
                 <div className="space-y-2">
@@ -477,7 +514,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       </div>
 
       {review && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+        <div ref={reviewSectionRef} className="rounded-xl border border-border bg-card p-5 space-y-5">
           {/* Header with badges */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
