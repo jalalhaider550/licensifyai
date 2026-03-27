@@ -315,6 +315,9 @@ serve(async (req) => {
       case "review-document":
         systemPrompt = buildReviewDocumentPrompt(body);
         break;
+      case "generate-from-document":
+        systemPrompt = buildGenerateFromDocumentPrompt(body);
+        break;
       default:
         return new Response(
           JSON.stringify({ success: false, error: "Unknown action" }),
