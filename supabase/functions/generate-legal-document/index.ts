@@ -173,6 +173,76 @@ Return a JSON object:
 Generate COMPLETE professional legal text. Do not summarize.`;
 }
 
+function buildReviewDocumentPrompt(body: any) {
+  const { documentText, documentType, improvementMode } = body;
+
+  let modeInstruction = "";
+  switch (improvementMode) {
+    case "strict":
+      modeInstruction = "Make all clauses stricter and more protective. Add heavy penalties for breach.";
+      break;
+    case "balanced":
+      modeInstruction = "Balance all clauses to protect both parties equally.";
+      break;
+    case "favor_party_a":
+      modeInstruction = "Revise clauses to strongly favor the first party mentioned.";
+      break;
+    case "add_missing":
+      modeInstruction = "Focus on adding all missing essential clauses without changing existing ones significantly.";
+      break;
+    default:
+      modeInstruction = "Improve the document professionally while maintaining its intent.";
+  }
+
+  return `You are a senior commercial lawyer performing a legal document review and improvement.
+
+DOCUMENT TYPE: ${documentType || "Legal Agreement"}
+IMPROVEMENT MODE: ${modeInstruction}
+
+ORIGINAL DOCUMENT TEXT:
+---
+${documentText}
+---
+
+Analyze this document thoroughly and return a JSON object with this EXACT structure:
+{
+  "review": {
+    "summary": "Brief professional summary of the document",
+    "missingClauses": ["List of important clauses that are missing"],
+    "risks": [{ "severity": "high" | "medium" | "low", "description": "Risk description" }],
+    "improvements": ["Specific improvement suggestions"]
+  },
+  "improvedDocument": {
+    "title": "DOCUMENT TITLE",
+    "date": "${new Date().toISOString().split("T")[0]}",
+    "parties": { "partyA": "First party name from document", "partyB": "Second party name from document" },
+    "recitals": "WHEREAS clauses",
+    "definitions": [{ "term": "Term", "definition": "Definition text" }],
+    "clauses": [
+      {
+        "number": "1",
+        "title": "Clause Title",
+        "body": "Full clause text with professional legal language",
+        "subClauses": [{ "number": "1.1", "body": "Sub-clause text" }]
+      }
+    ],
+    "governingLaw": "Governing law clause text",
+    "signatureBlock": "Signature block text",
+    "warnings": [
+      { "type": "missing_clause" | "risk_imbalance" | "jurisdiction_issue", "message": "Warning text" }
+    ]
+  }
+}
+
+RULES:
+1. Extract and restructure ALL content from the original document into proper clause format
+2. Add any missing essential clauses
+3. Improve weak or vague language
+4. Maintain the original intent and parties
+5. Each clause must be FULL professional legal text
+6. Include warnings for any issues found`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -193,6 +263,9 @@ serve(async (req) => {
         break;
       case "regenerate-clause":
         systemPrompt = buildRegenerateClausePrompt(body);
+        break;
+      case "review-document":
+        systemPrompt = buildReviewDocumentPrompt(body);
         break;
       default:
         return new Response(
