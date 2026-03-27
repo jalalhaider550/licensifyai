@@ -1169,6 +1169,7 @@ const CaseDetail = () => {
                   busyKey={actionBusyKey}
                   requestBusyKey={requestBusyKey}
                   requestStatusByLabel={requestStatusByLabel}
+                  strategicAnalysis={strategicAnalysis || caseItem?.ai_context?.strategicAnalysis || null}
                   onShowWhyChange={setShowWhy}
                   onAction={handleCaseAction}
                   onRequestFromClient={handleOpenSingleRequestDialog}
