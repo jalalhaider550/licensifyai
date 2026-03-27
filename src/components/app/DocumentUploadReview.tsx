@@ -17,6 +17,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
 
+interface ClauseBreakdown {
+  clauseName: string;
+  whatItDoes: string;
+  strength: "strong" | "weak" | "moderate";
+  favors: string;
+  riskLevel: "high" | "medium" | "low";
+  analysis: string;
+}
+
+interface CaseReference {
+  caseName: string;
+  year: string;
+  principle: string;
+  relevance: string;
+}
+
+interface ImprovementItem {
+  clause: string;
+  currentIssue: string;
+  suggestedFix: string;
+}
+
 interface ReviewRisk {
   severity: "high" | "medium" | "low";
   description: string;
@@ -24,13 +46,30 @@ interface ReviewRisk {
 
 interface DocumentReview {
   summary: string;
+  caseSummary?: {
+    parties?: { partyA?: string; partyB?: string };
+    documentType?: string;
+    jurisdiction?: string;
+    purpose?: string;
+  };
+  clauseByClauseBreakdown?: ClauseBreakdown[];
   keyIssues?: string[];
-  legalAnalysis?: string;
+  applicableLaws?: {
+    statutes?: string[];
+    caseReferences?: CaseReference[];
+  };
+  legalAnalysis?: string | {
+    overallStrength?: string;
+    enforceability?: string;
+    commercialFairness?: string;
+    riskExposure?: string;
+  };
   missingClauses: string[];
   risks: ReviewRisk[];
-  improvements: string[];
+  improvements: (string | ImprovementItem)[];
   riskLevel?: "high" | "medium" | "low";
   strengthScore?: number;
+  redFlags?: string[];
 }
 
 interface SubClause {
