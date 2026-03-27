@@ -157,8 +157,28 @@ const GenerateNDA = () => {
           specialInstructions,
         },
       });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to generate NDA");
+      if (error) {
+        if (error.message?.includes("402") || data?.errorType === "credits_exhausted") {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        if (error.message?.includes("429") || data?.errorType === "rate_limit") {
+          toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
+          return;
+        }
+        throw error;
+      }
+      if (!data?.success) {
+        if (data?.errorType === "credits_exhausted") {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        if (data?.errorType === "rate_limit") {
+          toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
+          return;
+        }
+        throw new Error(data?.error || "Failed to generate NDA");
+      }
       const doc = data.document as GeneratedNDA;
       setDocument(doc);
       setVersions([doc]);
