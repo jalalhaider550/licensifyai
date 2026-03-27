@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertTriangle,
+  ArrowRightLeft,
+  FileText,
   FileUp,
   Loader2,
   Shield,
@@ -21,9 +24,13 @@ interface ReviewRisk {
 
 interface DocumentReview {
   summary: string;
+  keyIssues?: string[];
+  legalAnalysis?: string;
   missingClauses: string[];
   risks: ReviewRisk[];
   improvements: string[];
+  riskLevel?: "high" | "medium" | "low";
+  strengthScore?: number;
 }
 
 interface SubClause {
@@ -77,6 +84,12 @@ const severityColor: Record<string, string> = {
   low: "text-muted-foreground",
 };
 
+const riskBadge: Record<string, string> = {
+  high: "bg-destructive/10 text-destructive border-destructive/30",
+  medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  low: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+};
+
 export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCancel }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -85,12 +98,16 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [reviewing, setReviewing] = useState(false);
   const [review, setReview] = useState<DocumentReview | null>(null);
   const [selectedMode, setSelectedMode] = useState<ImprovementMode>("improve");
+  const [userInstruction, setUserInstruction] = useState("");
+  const [generatingFromDoc, setGeneratingFromDoc] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [improvedText, setImprovedText] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (selected.size > maxSize) {
       toast.error("File too large. Maximum size is 10MB.");
       return;
@@ -111,6 +128,8 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
 
     setFile(selected);
     setReview(null);
+    setImprovedText(null);
+    setShowComparison(false);
     setExtracting(true);
 
     try {
@@ -140,9 +159,10 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       const { data, error } = await supabase.functions.invoke("generate-legal-document", {
         body: {
           action: "review-document",
-          documentText: extractedText.slice(0, 30000), // Limit to avoid token overflow
+          documentText: extractedText.slice(0, 30000),
           documentType,
           improvementMode: mode,
+          userInstruction: userInstruction.trim() || undefined,
         },
       });
 
@@ -173,9 +193,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       }
 
       if (parsed.improvedDocument) {
+        // Build a text representation for comparison
+        const improvedLines = parsed.improvedDocument.clauses
+          ?.map((c: DocumentClause) => `${c.number}. ${c.title}\n${c.body}`)
+          .join("\n\n") || "";
+        setImprovedText(improvedLines);
         onDocumentReviewed(parsed.improvedDocument, parsed.review, extractedText);
       } else {
-        // Fallback: treat the whole response as the document
         onDocumentReviewed(parsed, parsed.review, extractedText);
       }
 
@@ -188,10 +212,62 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     }
   };
 
+  const handleGenerateFromDocument = async () => {
+    if (!extractedText) return;
+    if (!userInstruction.trim()) {
+      toast.error("Please enter an instruction for what you want to generate.");
+      return;
+    }
+    setGeneratingFromDoc(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-legal-document", {
+        body: {
+          action: "generate-from-document",
+          documentText: extractedText.slice(0, 30000),
+          documentType,
+          userInstruction: userInstruction.trim(),
+        },
+      });
+
+      if (error) {
+        if (error.message?.includes("402")) {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        if (error.message?.includes("429")) {
+          toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
+          return;
+        }
+        throw error;
+      }
+
+      if (!data?.success) {
+        if (data?.errorType === "credits_exhausted") {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        throw new Error(data?.error || "Failed to generate document");
+      }
+
+      const doc = data.document;
+      onDocumentReviewed(doc, null as any, extractedText);
+      toast.success("New document generated from your upload");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to generate document");
+    } finally {
+      setGeneratingFromDoc(false);
+    }
+  };
+
   const clearFile = () => {
     setFile(null);
     setExtractedText(null);
     setReview(null);
+    setImprovedText(null);
+    setShowComparison(false);
+    setUserInstruction("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -267,7 +343,22 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
 
                 <Separator />
 
-                {/* AI Review Actions */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">What do you want to do with this document?</p>
+                  <Textarea
+                    value={userInstruction}
+                    onChange={(e) => setUserInstruction(e.target.value)}
+                    rows={2}
+                    placeholder='e.g. "Make this stricter", "Convert to NDA", "Add payment terms", "Make UK compliant"'
+                    className="border-primary/30"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: AI will combine your instruction with the selected mode below.
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div>
                   <p className="text-sm font-semibold text-foreground mb-3">Choose how AI should process this document:</p>
                   <div className="flex flex-wrap gap-2">
@@ -277,7 +368,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
                         variant={selectedMode === mode.value && reviewing ? "default" : "outline"}
                         size="sm"
                         onClick={() => handleReviewAndImprove(mode.value)}
-                        disabled={reviewing}
+                        disabled={reviewing || generatingFromDoc}
                       >
                         {reviewing && selectedMode === mode.value ? (
                           <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -288,6 +379,25 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
                       </Button>
                     ))}
                   </div>
+                </div>
+
+                <div className="pt-1">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleGenerateFromDocument}
+                    disabled={reviewing || generatingFromDoc || !userInstruction.trim()}
+                  >
+                    {generatingFromDoc ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="mr-1 h-4 w-4" />
+                    )}
+                    Generate New Document from This
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Requires an instruction above (e.g. "Convert to NDA", "Create service agreement from these terms").
+                  </p>
                 </div>
 
                 {reviewing && (
@@ -302,15 +412,49 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
         )}
       </div>
 
-      {/* Review Results (shown inline before navigation to workspace) */}
       {review && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <h3 className="font-display text-base font-semibold text-foreground">AI Legal Review</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-base font-semibold text-foreground">AI Legal Review</h3>
+            <div className="flex items-center gap-2">
+              {review.riskLevel && (
+                <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full border ${riskBadge[review.riskLevel] || riskBadge.medium}`}>
+                  Risk: {review.riskLevel}
+                </span>
+              )}
+              {typeof review.strengthScore === "number" && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary">
+                  Strength: {review.strengthScore}/10
+                </span>
+              )}
+            </div>
+          </div>
 
           <div>
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
             <p className="text-sm text-foreground">{review.summary}</p>
           </div>
+
+          {review.keyIssues && review.keyIssues.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Key Issues</p>
+              <ul className="space-y-1">
+                {review.keyIssues.map((issue, i) => (
+                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                    <Shield className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    {issue}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {review.legalAnalysis && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Legal Analysis</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{review.legalAnalysis}</p>
+            </div>
+          )}
 
           {review.missingClauses?.length > 0 && (
             <div>
@@ -353,6 +497,42 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {extractedText && improvedText && (
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowComparison((p) => !p)}
+          >
+            <ArrowRightLeft className="mr-1 h-4 w-4" />
+            {showComparison ? "Hide Comparison" : "Compare Original vs Improved"}
+          </Button>
+
+          {showComparison && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Original Document</p>
+                <div className="max-h-80 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {extractedText.slice(0, 5000)}
+                    {extractedText.length > 5000 && "\n\n… [truncated]"}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">AI Improved Version</p>
+                <div className="max-h-80 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {improvedText.slice(0, 5000)}
+                    {improvedText.length > 5000 && "\n\n… [truncated]"}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

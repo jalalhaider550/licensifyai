@@ -174,7 +174,7 @@ Generate COMPLETE professional legal text. Do not summarize.`;
 }
 
 function buildReviewDocumentPrompt(body: any) {
-  const { documentText, documentType, improvementMode } = body;
+  const { documentText, documentType, improvementMode, userInstruction } = body;
 
   let modeInstruction = "";
   switch (improvementMode) {
@@ -198,6 +198,7 @@ function buildReviewDocumentPrompt(body: any) {
 
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 IMPROVEMENT MODE: ${modeInstruction}
+${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
 
 ORIGINAL DOCUMENT TEXT:
 ---
@@ -208,9 +209,13 @@ Analyze this document thoroughly and return a JSON object with this EXACT struct
 {
   "review": {
     "summary": "Brief professional summary of the document",
+    "keyIssues": ["List of key legal issues identified"],
+    "legalAnalysis": "Detailed legal analysis of the document's strengths and weaknesses (2-3 paragraphs)",
     "missingClauses": ["List of important clauses that are missing"],
     "risks": [{ "severity": "high" | "medium" | "low", "description": "Risk description" }],
-    "improvements": ["Specific improvement suggestions"]
+    "improvements": ["Specific improvement suggestions"],
+    "riskLevel": "high" | "medium" | "low",
+    "strengthScore": 1-10
   },
   "improvedDocument": {
     "title": "DOCUMENT TITLE",
@@ -240,7 +245,50 @@ RULES:
 3. Improve weak or vague language
 4. Maintain the original intent and parties
 5. Each clause must be FULL professional legal text
-6. Include warnings for any issues found`;
+6. Include warnings for any issues found
+7. "keyIssues" must list specific legal concerns (e.g. vague indemnity, missing IP clause)
+8. "legalAnalysis" must be a detailed IRAC-style analysis
+9. "riskLevel" is the overall document risk assessment
+10. "strengthScore" is 1 (very weak) to 10 (excellent) rating of the document`;
+}
+
+function buildGenerateFromDocumentPrompt(body: any) {
+  const { documentText, documentType, userInstruction, targetDocumentType } = body;
+
+  return `You are a senior commercial lawyer. Using the uploaded document as a reference/source, generate a NEW ${targetDocumentType || documentType || "Legal Agreement"}.
+
+USER INSTRUCTION: ${userInstruction || "Improve and restructure this document professionally"}
+
+SOURCE DOCUMENT:
+---
+${documentText}
+---
+
+Extract key details (parties, terms, obligations, jurisdiction) from the source and generate a completely new, professional document.
+
+Return a JSON object with this EXACT structure:
+{
+  "title": "DOCUMENT TITLE",
+  "date": "${new Date().toISOString().split("T")[0]}",
+  "parties": { "partyA": "First party name", "partyB": "Second party name" },
+  "recitals": "WHEREAS clauses",
+  "definitions": [{ "term": "Term", "definition": "Definition text" }],
+  "clauses": [
+    {
+      "number": "1",
+      "title": "Clause Title",
+      "body": "Full clause text with professional legal language",
+      "subClauses": [{ "number": "1.1", "body": "Sub-clause text" }]
+    }
+  ],
+  "governingLaw": "Governing law clause text",
+  "signatureBlock": "Signature block text",
+  "warnings": [
+    { "type": "missing_clause" | "risk_imbalance" | "jurisdiction_issue", "message": "Warning text" }
+  ]
+}
+
+Each clause must be FULL professional legal text. Apply the user instruction to shape the output.`;
 }
 
 serve(async (req) => {
@@ -266,6 +314,9 @@ serve(async (req) => {
         break;
       case "review-document":
         systemPrompt = buildReviewDocumentPrompt(body);
+        break;
+      case "generate-from-document":
+        systemPrompt = buildGenerateFromDocumentPrompt(body);
         break;
       default:
         return new Response(
