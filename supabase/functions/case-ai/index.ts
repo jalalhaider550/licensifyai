@@ -252,13 +252,22 @@ Return JSON exactly like:
       "significance": "why this matters"
     }
   ],
-  "applicableLaws": [
-    {
-      "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
-      "relevance": "how it applies to this case",
-      "jurisdiction": "England & Wales"
-    }
-  ],
+   "applicableLaws": [
+248:     {
+249:       "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
+250:       "relevance": "how it applies to this case",
+251:       "jurisdiction": "England & Wales"
+252:     }
+253:   ],
+254:   "caseReferences": [
+255:     {
+256:       "caseName": "e.g. Bolton v Mahadeva",
+257:       "year": "1972",
+258:       "principle": "Established that defective performance may justify non-payment if the defect is substantial",
+259:       "relevance": "How this case applies to the user's specific situation",
+260:       "jurisdiction": "England & Wales"
+261:     }
+262:   ],
   "legalAnalysis": [
     {
       "issue": "legal issue",
