@@ -694,6 +694,21 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Executive Summary</p>
             <p className="text-sm text-foreground">{review.summary}</p>
           </div>
+          {/* Proceed Button */}
+          {pendingDoc && (
+            <div className="pt-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  onDocumentReviewed(pendingDoc.doc, pendingDoc.review as DocumentReview, pendingDoc.originalText);
+                }}
+              >
+                <FileText className="mr-1 h-4 w-4" />
+                Proceed to Edit Document
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">Open the document editor to make changes, add clauses, and download.</p>
+            </div>
+          )}
         </div>
       )}
 
