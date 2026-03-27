@@ -1,14 +1,23 @@
-import { AlertCircle, ArrowRight, Brain, ChevronDown, ChevronRight, Scale, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, Scale, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { type CaseRecommendation, type MissingInfoAction, normalizeCasePriority } from "@/lib/cases";
 
+interface CaseReference {
+  caseName: string;
+  year: string;
+  principle: string;
+  relevance: string;
+  jurisdiction?: string;
+}
+
 interface StrategicAnalysis {
   caseSummary?: { facts?: string; parties?: string[]; jurisdiction?: string; assumptions?: string[] };
   keyLegalIssues?: { issue: string; significance: string }[];
   applicableLaws?: { statute: string; relevance: string; jurisdiction?: string }[];
+  caseReferences?: CaseReference[];
   legalAnalysis?: { issue: string; rule: string; application: string; conclusion: string; confidence: string }[];
   recommendedStrategy?: { bestOption: string; alternatives?: string[]; reasoning: string };
   requiredDocuments?: { document: string; purpose: string; canGenerate?: boolean }[];
@@ -128,6 +137,26 @@ export const CaseRecommendationPanel = ({
                     <li key={i} className="rounded bg-muted/30 p-2">
                       <p className="font-mono text-xs font-semibold text-primary">{law.statute}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{law.relevance}</p>
+                    </li>
+                  ))}
+                </ul>
+              </SectionCollapsible>
+            )}
+
+            {analysis.caseReferences && analysis.caseReferences.length > 0 && (
+              <SectionCollapsible title="Case Law References" icon={BookOpen}>
+                <ul className="space-y-2 text-sm">
+                  {analysis.caseReferences.map((ref, i) => (
+                    <li key={i} className="rounded bg-muted/30 p-2">
+                      <p className="font-semibold text-foreground">
+                        <span className="text-primary">{ref.caseName}</span>
+                        <span className="text-muted-foreground font-normal"> ({ref.year})</span>
+                        {ref.jurisdiction && (
+                          <span className="ml-2 inline-flex rounded-full border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{ref.jurisdiction}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-foreground mt-0.5 italic">→ {ref.principle}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ref.relevance}</p>
                     </li>
                   ))}
                 </ul>

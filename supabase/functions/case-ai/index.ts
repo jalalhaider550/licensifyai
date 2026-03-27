@@ -14,7 +14,7 @@ const LEGAL_PERSONA = `You are a senior commercial solicitor (England & Wales qu
 const GUARDRAILS = `
 MANDATORY RULES — FOLLOW THESE WITHOUT EXCEPTION:
 1. ACCURACY OVER SPEED: Take time to reason through the legal position carefully. Never guess.
-2. NO HALLUCINATION: If you lack sufficient facts to reach a conclusion, state "UNCERTAIN — additional information required" and explain what is missing.
+2. NO HALLUCINATION: If you lack sufficient facts to reach a conclusion, state "UNCERTAIN — additional information required" and explain what is missing. NEVER fabricate case names, citations, or legal authorities that do not exist.
 3. JURISDICTION AWARENESS: Always state which jurisdiction's law you are applying. Do not mix legal principles across jurisdictions without explicit notice.
 4. CONFIDENCE SCORING: For every substantive conclusion, assign a confidence level: HIGH (well-established law, clear facts), MEDIUM (reasonable interpretation, some ambiguity), or LOW (significant uncertainty, limited facts).
 5. IRAC STRUCTURE: Where applicable, structure analysis using Issue → Rule (cite the legal principle or statute) → Application (apply to the facts) → Conclusion.
@@ -22,7 +22,15 @@ MANDATORY RULES — FOLLOW THESE WITHOUT EXCEPTION:
 7. CAVEATS: Always include a "caveats" array listing limitations of the analysis (e.g., "Based on information provided; formal legal advice requires full document review").
 8. PRECISION: Use correct legal terminology. "Breach" not "violation" (UK context). "Claimant" not "plaintiff" (post-CPR). "Without prejudice" where appropriate.
 9. SOURCE REFERENCES: Where possible, reference relevant statutes, regulations, or legal principles (e.g., "Section 2 of the Unfair Contract Terms Act 1977", "FCA SYSC 6.1.1R").
-10. STRUCTURED OUTPUT: Return ONLY valid JSON. No markdown, no code fences, no commentary outside the JSON.`;
+10. STRUCTURED OUTPUT: Return ONLY valid JSON. No markdown, no code fences, no commentary outside the JSON.
+11. CASE LAW REFERENCES: You MUST include relevant case law in every legal analysis, strategy, and assessment output. Follow these sub-rules:
+    a. Include 1-3 relevant case law references per legal issue where available.
+    b. Jurisdiction priority: UK first, then US, unless user specifies otherwise.
+    c. For each case cite: case name, year, and the principle established (1-2 lines max).
+    d. CONTEXTUAL LINKING: Do NOT just list cases — explain WHY each case is relevant and HOW it applies to the user's specific situation.
+    e. In Legal Analysis sections, actively apply case law principles to the facts (e.g., "Applying the principle from Bolton v Mahadeva [1972], since the services were substantially defective...").
+    f. In Strategy sections, use case law to justify the recommended approach.
+    g. ANTI-HALLUCINATION: If no directly analogous case law is available, state "No directly analogous case found — analysis based on general legal principles" and cite the general principle instead. NEVER invent case names.`;
 
 const buildPrompt = (body: any) => {
   const caseType = body.caseType || "general_legal";
@@ -134,9 +142,18 @@ Return JSON exactly like:
     {
       "issue": "Identified legal issue",
       "rule": "Applicable law or principle",
-      "analysis": "Application to facts",
+      "analysis": "Application to facts — reference case law where applicable (e.g. 'Applying Bolton v Mahadeva [1972]...')",
       "conclusion": "Preliminary view",
       "confidence": "HIGH/MEDIUM/LOW"
+    }
+  ],
+  "caseReferences": [
+    {
+      "caseName": "e.g. Bolton v Mahadeva",
+      "year": "1972",
+      "principle": "Defective performance may justify non-payment if the defect is substantial",
+      "relevance": "How this case applies to the user's specific situation",
+      "jurisdiction": "England & Wales"
     }
   ]
 }`,
@@ -244,13 +261,22 @@ Return JSON exactly like:
       "significance": "why this matters"
     }
   ],
-  "applicableLaws": [
-    {
-      "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
-      "relevance": "how it applies to this case",
-      "jurisdiction": "England & Wales"
-    }
-  ],
+   "applicableLaws": [
+248:     {
+249:       "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
+250:       "relevance": "how it applies to this case",
+251:       "jurisdiction": "England & Wales"
+252:     }
+253:   ],
+254:   "caseReferences": [
+255:     {
+256:       "caseName": "e.g. Bolton v Mahadeva",
+257:       "year": "1972",
+258:       "principle": "Established that defective performance may justify non-payment if the defect is substantial",
+259:       "relevance": "How this case applies to the user's specific situation",
+260:       "jurisdiction": "England & Wales"
+261:     }
+262:   ],
   "legalAnalysis": [
     {
       "issue": "legal issue",
