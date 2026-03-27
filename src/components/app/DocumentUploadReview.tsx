@@ -5,17 +5,44 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BookOpen,
+  CheckCircle2,
   FileText,
   FileUp,
+  Gavel,
   Loader2,
+  Scale,
   Shield,
   Sparkles,
   Upload,
   X,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/documentParser";
+
+interface ClauseBreakdown {
+  clauseName: string;
+  whatItDoes: string;
+  strength: "strong" | "weak" | "moderate";
+  favors: string;
+  riskLevel: "high" | "medium" | "low";
+  analysis: string;
+}
+
+interface CaseReference {
+  caseName: string;
+  year: string;
+  principle: string;
+  relevance: string;
+}
+
+interface ImprovementItem {
+  clause: string;
+  currentIssue: string;
+  suggestedFix: string;
+}
 
 interface ReviewRisk {
   severity: "high" | "medium" | "low";
@@ -24,13 +51,30 @@ interface ReviewRisk {
 
 interface DocumentReview {
   summary: string;
+  caseSummary?: {
+    parties?: { partyA?: string; partyB?: string };
+    documentType?: string;
+    jurisdiction?: string;
+    purpose?: string;
+  };
+  clauseByClauseBreakdown?: ClauseBreakdown[];
   keyIssues?: string[];
-  legalAnalysis?: string;
+  applicableLaws?: {
+    statutes?: string[];
+    caseReferences?: CaseReference[];
+  };
+  legalAnalysis?: string | {
+    overallStrength?: string;
+    enforceability?: string;
+    commercialFairness?: string;
+    riskExposure?: string;
+  };
   missingClauses: string[];
   risks: ReviewRisk[];
-  improvements: string[];
+  improvements: (string | ImprovementItem)[];
   riskLevel?: "high" | "medium" | "low";
   strengthScore?: number;
+  redFlags?: string[];
 }
 
 interface SubClause {
@@ -413,9 +457,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
       </div>
 
       {review && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-base font-semibold text-foreground">AI Legal Review</h3>
+        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+          {/* Header with badges */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+              <Gavel className="h-5 w-5 text-primary" />
+              Full Legal Review
+            </h3>
             <div className="flex items-center gap-2">
               {review.riskLevel && (
                 <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full border ${riskBadge[review.riskLevel] || riskBadge.medium}`}>
@@ -430,14 +478,73 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             </div>
           </div>
 
-          <div>
-            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
-            <p className="text-sm text-foreground">{review.summary}</p>
-          </div>
+          {/* 1. Case Summary */}
+          {review.caseSummary && (
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <FileText className="h-4 w-4" /> 1. Case Summary
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {review.caseSummary.parties?.partyA && (
+                  <div><span className="font-medium text-muted-foreground">Party A:</span> <span className="text-foreground">{review.caseSummary.parties.partyA}</span></div>
+                )}
+                {review.caseSummary.parties?.partyB && (
+                  <div><span className="font-medium text-muted-foreground">Party B:</span> <span className="text-foreground">{review.caseSummary.parties.partyB}</span></div>
+                )}
+                {review.caseSummary.documentType && (
+                  <div><span className="font-medium text-muted-foreground">Type:</span> <span className="text-foreground">{review.caseSummary.documentType}</span></div>
+                )}
+                {review.caseSummary.jurisdiction && (
+                  <div><span className="font-medium text-muted-foreground">Jurisdiction:</span> <span className="text-foreground">{review.caseSummary.jurisdiction}</span></div>
+                )}
+              </div>
+              {review.caseSummary.purpose && (
+                <p className="text-sm text-foreground">{review.caseSummary.purpose}</p>
+              )}
+            </div>
+          )}
 
+          {/* 2. Clause-by-Clause Breakdown */}
+          {review.clauseByClauseBreakdown && review.clauseByClauseBreakdown.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Scale className="h-4 w-4" /> 2. Clause-by-Clause Breakdown
+              </p>
+              <div className="space-y-3">
+                {review.clauseByClauseBreakdown.map((clause, i) => (
+                  <div key={i} className="rounded-lg border border-border p-3 space-y-1.5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <p className="text-sm font-semibold text-foreground">{clause.clauseName}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${riskBadge[clause.riskLevel] || riskBadge.medium}`}>
+                          {clause.riskLevel}
+                        </span>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                          clause.strength === "strong" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" :
+                          clause.strength === "weak" ? "border-destructive/30 bg-destructive/10 text-destructive" :
+                          "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                        }`}>
+                          {clause.strength}
+                        </span>
+                        <span className="text-[10px] font-medium text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                          Favors: {clause.favors}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{clause.whatItDoes}</p>
+                    <p className="text-xs text-foreground border-t border-border pt-1.5">{clause.analysis}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Key Legal Issues */}
           {review.keyIssues && review.keyIssues.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Key Issues</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" /> 3. Key Legal Issues
+              </p>
               <ul className="space-y-1">
                 {review.keyIssues.map((issue, i) => (
                   <li key={i} className="text-sm text-foreground flex items-start gap-2">
@@ -449,13 +556,91 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             </div>
           )}
 
-          {review.legalAnalysis && (
+          {/* 4. Applicable Laws & Case References */}
+          {review.applicableLaws && (
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Legal Analysis</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{review.legalAnalysis}</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" /> 4. Applicable Laws & Case References
+              </p>
+              {review.applicableLaws.statutes && review.applicableLaws.statutes.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Statutes</p>
+                  <ul className="space-y-0.5">
+                    {review.applicableLaws.statutes.map((s, i) => (
+                      <li key={i} className="text-sm text-foreground">• {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {review.applicableLaws.caseReferences && review.applicableLaws.caseReferences.length > 0 && (
+                <div className="space-y-2">
+                  {review.applicableLaws.caseReferences.map((ref, i) => (
+                    <div key={i} className="rounded-lg border border-border bg-muted/20 p-3">
+                      <p className="text-sm font-semibold text-foreground">{ref.caseName} ({ref.year})</p>
+                      <p className="text-xs text-muted-foreground italic">{ref.principle}</p>
+                      <p className="text-xs text-foreground mt-1">→ {ref.relevance}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
+          {/* 5. Legal Analysis */}
+          {review.legalAnalysis && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Scale className="h-4 w-4" /> 5. Legal Analysis
+              </p>
+              {typeof review.legalAnalysis === "string" ? (
+                <p className="text-sm text-foreground whitespace-pre-wrap">{review.legalAnalysis}</p>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  {review.legalAnalysis.overallStrength && (
+                    <div><span className="font-medium text-muted-foreground">Overall Strength:</span> <span className="text-foreground">{review.legalAnalysis.overallStrength}</span></div>
+                  )}
+                  {review.legalAnalysis.enforceability && (
+                    <div><span className="font-medium text-muted-foreground">Enforceability:</span> <span className="text-foreground">{review.legalAnalysis.enforceability}</span></div>
+                  )}
+                  {review.legalAnalysis.commercialFairness && (
+                    <div><span className="font-medium text-muted-foreground">Commercial Fairness:</span> <span className="text-foreground">{review.legalAnalysis.commercialFairness}</span></div>
+                  )}
+                  {review.legalAnalysis.riskExposure && (
+                    <div><span className="font-medium text-muted-foreground">Risk Exposure:</span> <span className="text-foreground">{review.legalAnalysis.riskExposure}</span></div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 6. Recommended Improvements */}
+          {review.improvements?.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4" /> 6. Recommended Improvements
+              </p>
+              <div className="space-y-2">
+                {review.improvements.map((imp, i) => (
+                  <div key={i} className="text-sm">
+                    {typeof imp === "string" ? (
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span className="text-foreground">{imp}</span>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-border p-2.5 space-y-1">
+                        <p className="font-medium text-foreground">{imp.clause}</p>
+                        <p className="text-xs text-destructive">Issue: {imp.currentIssue}</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Fix: {imp.suggestedFix}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 7. Missing Clauses */}
           {review.missingClauses?.length > 0 && (
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Missing Clauses</p>
@@ -470,6 +655,24 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             </div>
           )}
 
+          {/* 8. Red Flags */}
+          {review.redFlags && review.redFlags.length > 0 && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm font-semibold text-destructive uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <XCircle className="h-4 w-4" /> 8. Red Flags
+              </p>
+              <ul className="space-y-1.5">
+                {review.redFlags.map((flag, i) => (
+                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                    <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    {flag}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Risk Analysis */}
           {review.risks?.length > 0 && (
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Risk Analysis</p>
@@ -486,19 +689,11 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             </div>
           )}
 
-          {review.improvements?.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Suggested Improvements</p>
-              <ul className="space-y-1">
-                {review.improvements.map((imp, i) => (
-                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    {imp}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Executive Summary */}
+          <div className="border-t border-border pt-3">
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Executive Summary</p>
+            <p className="text-sm text-foreground">{review.summary}</p>
+          </div>
         </div>
       )}
 

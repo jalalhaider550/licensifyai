@@ -329,7 +329,7 @@ function buildReviewDocumentPrompt(body: any) {
       modeInstruction = "Improve the document professionally while maintaining its intent.";
   }
 
-  return `You are a senior commercial lawyer performing a legal document review and improvement.
+  return `You are a SENIOR COMMERCIAL LAWYER (15+ years PQE) performing a FULL LEGAL REVIEW — not a summary.
 
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 IMPROVEMENT MODE: ${modeInstruction}
@@ -340,22 +340,61 @@ ORIGINAL DOCUMENT TEXT:
 ${documentText}
 ---
 
-Analyze this document thoroughly and return a JSON object with this EXACT structure:
+CRITICAL: You must perform a COMPLETE clause-by-clause legal analysis like a senior lawyer reviewing a contract for a client. Do NOT just summarize. Analyze EVERY clause.
+
+Return a JSON object with this EXACT structure:
 {
   "review": {
-    "summary": "Brief professional summary of the document",
-    "keyIssues": ["List of key legal issues identified"],
-    "legalAnalysis": "Detailed legal analysis of the document's strengths and weaknesses (2-3 paragraphs)",
-    "missingClauses": ["List of important clauses that are missing"],
-    "risks": [{ "severity": "high" | "medium" | "low", "description": "Risk description" }],
-    "improvements": ["Specific improvement suggestions"],
+    "caseSummary": {
+      "parties": { "partyA": "Name and role", "partyB": "Name and role" },
+      "documentType": "Type of document identified",
+      "jurisdiction": "Jurisdiction identified or inferred",
+      "purpose": "Purpose and commercial context of this document"
+    },
+    "clauseByClauseBreakdown": [
+      {
+        "clauseName": "e.g. Termination",
+        "whatItDoes": "Plain English explanation of the clause",
+        "strength": "strong" | "weak" | "moderate",
+        "favors": "Party A" | "Party B" | "Neutral",
+        "riskLevel": "high" | "medium" | "low",
+        "analysis": "Detailed legal analysis of this specific clause — what works, what is problematic, what is missing"
+      }
+    ],
+    "keyIssues": ["Specific legal issues: missing clauses, ambiguities, unbalanced terms, enforcement risks"],
+    "applicableLaws": {
+      "statutes": ["Relevant statutes and legislation"],
+      "caseReferences": [
+        {
+          "caseName": "e.g. Bolton v Mahadeva",
+          "year": "1972",
+          "principle": "1-2 line principle established",
+          "relevance": "How this case applies to THIS document"
+        }
+      ]
+    },
+    "legalAnalysis": {
+      "overallStrength": "Assessment of overall document strength",
+      "enforceability": "How enforceable is this document",
+      "commercialFairness": "Is this commercially fair or one-sided",
+      "riskExposure": "Key risk exposures identified"
+    },
+    "improvements": [
+      {
+        "clause": "Which clause to fix",
+        "currentIssue": "What is wrong",
+        "suggestedFix": "Exact specific improvement — not generic"
+      }
+    ],
+    "strengthScore": 1-10,
     "riskLevel": "high" | "medium" | "low",
-    "strengthScore": 1-10
+    "redFlags": ["Dangerous clauses, missing protections, one-sided risks that need immediate attention"],
+    "summary": "Executive summary of the review in 2-3 sentences"
   },
   "improvedDocument": {
     "title": "DOCUMENT TITLE",
     "date": "${new Date().toISOString().split("T")[0]}",
-    "parties": { "partyA": "First party name from document", "partyB": "Second party name from document" },
+    "parties": { "partyA": "First party name", "partyB": "Second party name" },
     "recitals": "WHEREAS clauses",
     "definitions": [{ "term": "Term", "definition": "Definition text" }],
     "clauses": [
@@ -374,17 +413,19 @@ Analyze this document thoroughly and return a JSON object with this EXACT struct
   }
 }
 
-RULES:
-1. Extract and restructure ALL content from the original document into proper clause format
-2. Add any missing essential clauses
-3. Improve weak or vague language
-4. Maintain the original intent and parties
-5. Each clause must be FULL professional legal text
-6. Include warnings for any issues found
-7. "keyIssues" must list specific legal concerns (e.g. vague indemnity, missing IP clause)
-8. "legalAnalysis" must be a detailed IRAC-style analysis
-9. "riskLevel" is the overall document risk assessment
-10. "strengthScore" is 1 (very weak) to 10 (excellent) rating of the document`;
+STRICT RULES:
+1. clauseByClauseBreakdown MUST analyze EVERY major clause in the document — do NOT skip any
+2. For each clause assess: strength, who it favors, risk level, and provide detailed analysis
+3. keyIssues must list SPECIFIC legal concerns — not generic statements
+4. applicableLaws must include 1-3 REAL case law references with jurisdiction priority: UK first, then US
+5. DO NOT hallucinate case law — if unsure, use general legal principles and state clearly
+6. improvements must be SPECIFIC — reference exact clauses and provide exact suggested fixes
+7. redFlags must highlight genuinely dangerous or one-sided provisions
+8. legalAnalysis must cover enforceability, commercial fairness, and risk exposure in detail
+9. The improved document must fix ALL identified issues
+10. strengthScore: 1 (very weak/dangerous) to 10 (excellent/comprehensive)
+
+FAIL CONDITION: If your output reads like a summary instead of a clause-by-clause legal review, it has FAILED.`;
 }
 
 function buildGenerateFromDocumentPrompt(body: any) {
