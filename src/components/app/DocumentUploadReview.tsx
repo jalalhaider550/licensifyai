@@ -146,6 +146,7 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [generatingFromDoc, setGeneratingFromDoc] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [improvedText, setImprovedText] = useState<string | null>(null);
+  const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
