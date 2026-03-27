@@ -234,16 +234,27 @@ CRITICAL — MISSING INFORMATION CONSISTENCY:
 - In your "strategicOverview", if missing information exists, you MUST acknowledge it.
 - NEVER produce a response that contradicts the known missing information state of the case.
 
-STRICT 9-SECTION RESPONSE STRUCTURE — you MUST populate ALL sections:
+STRICT 10-SECTION RESPONSE STRUCTURE — you MUST populate ALL sections:
 1. caseSummary: Facts, parties, jurisdiction (or assumption)
 2. keyLegalIssues: List core legal questions
 3. applicableLaws: Relevant statutes, regulations, case laws
 4. legalAnalysis: Apply law to facts using IRAC, explain reasoning
 5. recommendedStrategy: Best option, alternatives, why this approach
-6. actionPlan: Step-by-step with immediate actions, pre-litigation, formal action, post-action
+6. actionPlan: Step-by-step with immediate actions, pre-litigation, formal action, post-action — EACH step MUST include a timeline field
 7. requiredDocuments: List documents needed, generate drafts when relevant
 8. risksAndConsiderations: Legal risks, commercial risks, probability
-9. nextImmediateAction: Single clear instruction for the user`,
+9. nextImmediateAction: Single clear instruction for the user
+10. timelineAndDeadlines: Structured timeline with immediate, short-term, mid-term phases and litigation trigger
+
+TIMELINE & DEADLINE RULES (MANDATORY):
+- Every step MUST include a "timeline" field with a specific timeframe (e.g., "Within 24-48 hours", "Within 7 days").
+- Every step MUST include an "expectedOutcome" field describing the expected result.
+- Every step MUST include an "ifFails" field describing what to do if this step fails or gets no response.
+- Include limitation periods where relevant (e.g., "Contract claims in England: 6 years under Limitation Act 1980, s.5").
+- For UK pre-litigation: Letter Before Action standard response period is 14 days (CPR Pre-Action Protocol).
+- For court filing: provide realistic ranges, not exact processing times. If uncertain, say "approximate".
+- Include escalation triggers: when to escalate from negotiation to formal action to court proceedings.
+- Do NOT guess exact court processing times — use realistic ranges.`,
 
         userPrompt: `${contextBlock}
 
@@ -261,22 +272,22 @@ Return JSON exactly like:
       "significance": "why this matters"
     }
   ],
-   "applicableLaws": [
-248:     {
-249:       "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
-250:       "relevance": "how it applies to this case",
-251:       "jurisdiction": "England & Wales"
-252:     }
-253:   ],
-254:   "caseReferences": [
-255:     {
-256:       "caseName": "e.g. Bolton v Mahadeva",
-257:       "year": "1972",
-258:       "principle": "Established that defective performance may justify non-payment if the defect is substantial",
-259:       "relevance": "How this case applies to the user's specific situation",
-260:       "jurisdiction": "England & Wales"
-261:     }
-262:   ],
+  "applicableLaws": [
+    {
+      "statute": "e.g. Unfair Contract Terms Act 1977, s.2",
+      "relevance": "how it applies to this case",
+      "jurisdiction": "England & Wales"
+    }
+  ],
+  "caseReferences": [
+    {
+      "caseName": "e.g. Bolton v Mahadeva",
+      "year": "1972",
+      "principle": "Established that defective performance may justify non-payment if the defect is substantial",
+      "relevance": "How this case applies to the user's specific situation",
+      "jurisdiction": "England & Wales"
+    }
+  ],
   "legalAnalysis": [
     {
       "issue": "legal issue",
@@ -302,7 +313,10 @@ Return JSON exactly like:
       "why": "detailed legal reasoning with statute/rule references",
       "legalBasis": "relevant statute, rule, or principle",
       "confidence": "HIGH/MEDIUM/LOW",
-      "phase": "immediate|pre-litigation|formal-action|post-action"
+      "phase": "immediate|pre-litigation|formal-action|post-action",
+      "timeline": "e.g. Within 24-48 hours",
+      "expectedOutcome": "what should result from this step",
+      "ifFails": "what to do if this step fails or gets no response"
     }
   ],
   "requiredDocuments": [
@@ -321,6 +335,13 @@ Return JSON exactly like:
     }
   ],
   "nextImmediateAction": "single clear instruction for the user right now",
+  "timelineAndDeadlines": {
+    "immediate": { "period": "0-2 days", "actions": ["action descriptions with deadlines"] },
+    "shortTerm": { "period": "3-14 days", "actions": ["action descriptions with deadlines"] },
+    "midTerm": { "period": "15-30 days", "actions": ["action descriptions with deadlines"] },
+    "litigationTrigger": "Clear statement of when to escalate to court proceedings and why (e.g. 'If no response to Letter Before Action within 14 days, file claim within 7 days thereafter')",
+    "limitationPeriod": "Applicable limitation period with statutory reference (e.g. '6 years for contract claims under Limitation Act 1980, s.5')"
+  },
   "missingItems": [
     {
       "label": "Upload Executed Agreement",

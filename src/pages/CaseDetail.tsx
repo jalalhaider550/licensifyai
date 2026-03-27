@@ -652,6 +652,7 @@ const CaseDetail = () => {
         requiredDocuments: parsed.requiredDocuments || [],
         risksAndConsiderations: parsed.risksAndConsiderations || [],
         nextImmediateAction: parsed.nextImmediateAction || null,
+        timelineAndDeadlines: parsed.timelineAndDeadlines || null,
       });
 
       const { data: updatedCase, error: updateError } = await db
@@ -672,6 +673,7 @@ const CaseDetail = () => {
               requiredDocuments: parsed.requiredDocuments,
               risksAndConsiderations: parsed.risksAndConsiderations,
               nextImmediateAction: parsed.nextImmediateAction,
+              timelineAndDeadlines: parsed.timelineAndDeadlines,
             },
           },
           status: nextStatus,

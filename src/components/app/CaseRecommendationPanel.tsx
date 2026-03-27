@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, BookOpen, Brain, ChevronDown, ChevronRight, Scale, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, Brain, Calendar, ChevronDown, ChevronRight, Clock, Scale, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -13,6 +13,19 @@ interface CaseReference {
   jurisdiction?: string;
 }
 
+interface TimelinePhase {
+  period: string;
+  actions: string[];
+}
+
+interface TimelineAndDeadlines {
+  immediate?: TimelinePhase;
+  shortTerm?: TimelinePhase;
+  midTerm?: TimelinePhase;
+  litigationTrigger?: string;
+  limitationPeriod?: string;
+}
+
 interface StrategicAnalysis {
   caseSummary?: { facts?: string; parties?: string[]; jurisdiction?: string; assumptions?: string[] };
   keyLegalIssues?: { issue: string; significance: string }[];
@@ -23,6 +36,7 @@ interface StrategicAnalysis {
   requiredDocuments?: { document: string; purpose: string; canGenerate?: boolean }[];
   risksAndConsiderations?: { type: string; risk: string; probability: string; mitigation: string }[];
   nextImmediateAction?: string;
+  timelineAndDeadlines?: TimelineAndDeadlines;
 }
 
 interface CaseRecommendationPanelProps {
@@ -232,6 +246,71 @@ export const CaseRecommendationPanel = ({
                 </ul>
               </SectionCollapsible>
             )}
+
+            {/* Timeline & Deadlines — NEW */}
+            {analysis.timelineAndDeadlines && (
+              <SectionCollapsible title="Timeline & Deadlines" icon={Calendar} defaultOpen>
+                <div className="space-y-3 text-sm">
+                  {analysis.timelineAndDeadlines.immediate && (
+                    <div className="rounded bg-destructive/5 border border-destructive/20 p-2">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Clock className="h-3.5 w-3.5 text-destructive" />
+                        <p className="text-xs font-bold uppercase tracking-wider text-destructive">Immediate ({analysis.timelineAndDeadlines.immediate.period})</p>
+                      </div>
+                      <ul className="space-y-0.5">
+                        {analysis.timelineAndDeadlines.immediate.actions.map((a, i) => (
+                          <li key={i} className="text-foreground text-xs flex items-start gap-1.5">
+                            <span className="text-destructive mt-0.5">•</span> {a}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analysis.timelineAndDeadlines.shortTerm && (
+                    <div className="rounded bg-amber-500/5 border border-amber-500/20 p-2">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                        <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Short-term ({analysis.timelineAndDeadlines.shortTerm.period})</p>
+                      </div>
+                      <ul className="space-y-0.5">
+                        {analysis.timelineAndDeadlines.shortTerm.actions.map((a, i) => (
+                          <li key={i} className="text-foreground text-xs flex items-start gap-1.5">
+                            <span className="text-amber-500 mt-0.5">•</span> {a}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analysis.timelineAndDeadlines.midTerm && (
+                    <div className="rounded bg-primary/5 border border-primary/20 p-2">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <p className="text-xs font-bold uppercase tracking-wider text-primary">Mid-term ({analysis.timelineAndDeadlines.midTerm.period})</p>
+                      </div>
+                      <ul className="space-y-0.5">
+                        {analysis.timelineAndDeadlines.midTerm.actions.map((a, i) => (
+                          <li key={i} className="text-foreground text-xs flex items-start gap-1.5">
+                            <span className="text-primary mt-0.5">•</span> {a}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analysis.timelineAndDeadlines.litigationTrigger && (
+                    <div className="rounded bg-destructive/10 border border-destructive/30 p-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-destructive mb-0.5">⚖️ Litigation Trigger</p>
+                      <p className="text-xs text-foreground">{analysis.timelineAndDeadlines.litigationTrigger}</p>
+                    </div>
+                  )}
+                  {analysis.timelineAndDeadlines.limitationPeriod && (
+                    <div className="rounded bg-muted/30 border border-border p-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5">⏳ Limitation Period</p>
+                      <p className="text-xs text-foreground">{analysis.timelineAndDeadlines.limitationPeriod}</p>
+                    </div>
+                  )}
+                </div>
+              </SectionCollapsible>
+            )}
           </div>
         </div>
       )}
@@ -278,7 +357,19 @@ export const CaseRecommendationPanel = ({
                       {step.legalBasis && (
                         <p className="mt-1 font-mono text-[11px] text-primary/70">{step.legalBasis}</p>
                       )}
+                      {(step as any).timeline && (
+                        <p className="mt-1 text-xs text-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-semibold">⏱ {(step as any).timeline}</span>
+                        </p>
+                      )}
                       {showWhy && step.why ? <p className="mt-1 text-xs text-muted-foreground">{step.why}</p> : null}
+                      {showWhy && (step as any).expectedOutcome && (
+                        <p className="mt-0.5 text-xs text-muted-foreground"><span className="font-semibold text-foreground">Expected outcome:</span> {(step as any).expectedOutcome}</p>
+                      )}
+                      {showWhy && (step as any).ifFails && (
+                        <p className="mt-0.5 text-xs text-destructive/80"><span className="font-semibold">If this fails:</span> {(step as any).ifFails}</p>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
