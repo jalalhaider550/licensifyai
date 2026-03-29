@@ -322,11 +322,76 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     }
   };
 
+  const handleFixIssues = async (mode: "all" | "clause", clauseIndex?: number) => {
+    if (!extractedText || !review) return;
+    
+    if (mode === "all") setFixingAll(true);
+    else setFixingClause(clauseIndex ?? null);
+
+    try {
+      const fixInstruction = mode === "all"
+        ? "Apply ALL recommended improvements, fix all identified issues, add missing clauses, and resolve all red flags. Return the complete improved contract."
+        : `Fix only this specific clause: "${review.clauseByClauseBreakdown?.[clauseIndex!]?.clauseName}". Issue: ${review.clauseByClauseBreakdown?.[clauseIndex!]?.analysis}`;
+
+      const { data, error } = await supabase.functions.invoke("generate-legal-document", {
+        body: {
+          action: "review-document",
+          documentText: extractedText.slice(0, 30000),
+          documentType,
+          improvementMode: "improve",
+          userInstruction: fixInstruction,
+        },
+      });
+
+      if (error) {
+        if (error.message?.includes("402")) {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        throw error;
+      }
+
+      if (!data?.success) {
+        if (data?.errorType === "credits_exhausted") {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        throw new Error(data?.error || "Failed to fix issues");
+      }
+
+      const parsed = data.document;
+      if (parsed.improvedDocument) {
+        const lines = parsed.improvedDocument.clauses
+          ?.map((c: DocumentClause) => `${c.number}. ${c.title}\n${c.body}`)
+          .join("\n\n") || "";
+        setFixedText(lines);
+        setFixedDoc(parsed.improvedDocument);
+        setShowFixComparison(true);
+        setPendingDoc({ doc: parsed.improvedDocument, review: parsed.review || review, originalText: extractedText });
+      } else {
+        setFixedDoc(parsed);
+        setPendingDoc({ doc: parsed, review: parsed.review || review, originalText: extractedText });
+      }
+
+      toast.success(mode === "all" ? "All issues fixed successfully" : "Clause fixed successfully");
+      setTimeout(() => fixSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to fix issues. Please try again.");
+    } finally {
+      setFixingAll(false);
+      setFixingClause(null);
+    }
+  };
+
   const clearFile = () => {
     setFile(null);
     setExtractedText(null);
     setReview(null);
     setImprovedText(null);
+    setFixedText(null);
+    setFixedDoc(null);
+    setShowFixComparison(false);
     setShowComparison(false);
     setUserInstruction("");
     setReviewError(false);
