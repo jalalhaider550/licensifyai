@@ -148,7 +148,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
   const [reviewError, setReviewError] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
+  const [fixingClause, setFixingClause] = useState<number | null>(null);
+  const [fixedText, setFixedText] = useState<string | null>(null);
+  const [fixedDoc, setFixedDoc] = useState<ReviewedDocument | null>(null);
+  const [showFixComparison, setShowFixComparison] = useState(false);
   const reviewSectionRef = useRef<HTMLDivElement>(null);
+  const fixSectionRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to review when it appears
   useEffect(() => {
@@ -316,11 +322,76 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
     }
   };
 
+  const handleFixIssues = async (mode: "all" | "clause", clauseIndex?: number) => {
+    if (!extractedText || !review) return;
+    
+    if (mode === "all") setFixingAll(true);
+    else setFixingClause(clauseIndex ?? null);
+
+    try {
+      const fixInstruction = mode === "all"
+        ? "Apply ALL recommended improvements, fix all identified issues, add missing clauses, and resolve all red flags. Return the complete improved contract."
+        : `Fix only this specific clause: "${review.clauseByClauseBreakdown?.[clauseIndex!]?.clauseName}". Issue: ${review.clauseByClauseBreakdown?.[clauseIndex!]?.analysis}`;
+
+      const { data, error } = await supabase.functions.invoke("generate-legal-document", {
+        body: {
+          action: "review-document",
+          documentText: extractedText.slice(0, 30000),
+          documentType,
+          improvementMode: "improve",
+          userInstruction: fixInstruction,
+        },
+      });
+
+      if (error) {
+        if (error.message?.includes("402")) {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        throw error;
+      }
+
+      if (!data?.success) {
+        if (data?.errorType === "credits_exhausted") {
+          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
+          return;
+        }
+        throw new Error(data?.error || "Failed to fix issues");
+      }
+
+      const parsed = data.document;
+      if (parsed.improvedDocument) {
+        const lines = parsed.improvedDocument.clauses
+          ?.map((c: DocumentClause) => `${c.number}. ${c.title}\n${c.body}`)
+          .join("\n\n") || "";
+        setFixedText(lines);
+        setFixedDoc(parsed.improvedDocument);
+        setShowFixComparison(true);
+        setPendingDoc({ doc: parsed.improvedDocument, review: parsed.review || review, originalText: extractedText });
+      } else {
+        setFixedDoc(parsed);
+        setPendingDoc({ doc: parsed, review: parsed.review || review, originalText: extractedText });
+      }
+
+      toast.success(mode === "all" ? "All issues fixed successfully" : "Clause fixed successfully");
+      setTimeout(() => fixSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to fix issues. Please try again.");
+    } finally {
+      setFixingAll(false);
+      setFixingClause(null);
+    }
+  };
+
   const clearFile = () => {
     setFile(null);
     setExtractedText(null);
     setReview(null);
     setImprovedText(null);
+    setFixedText(null);
+    setFixedDoc(null);
+    setShowFixComparison(false);
     setShowComparison(false);
     setUserInstruction("");
     setReviewError(false);
@@ -751,6 +822,133 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Executive Summary</p>
             <p className="text-sm text-foreground">{review.summary}</p>
           </div>
+
+          {/* Fix Issues Section */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Fix Identified Issues
+              </p>
+              <p className="text-xs text-muted-foreground">
+                AI will automatically apply all recommended fixes, resolve red flags, and add missing clauses.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => handleFixIssues("all")}
+                  disabled={fixingAll || fixingClause !== null || reviewing}
+                >
+                  {fixingAll ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  )}
+                  {fixingAll ? "Applying all fixes…" : "Apply All Fixes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const el = document.getElementById("clause-fix-section");
+                    el?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  disabled={!review.clauseByClauseBreakdown?.length}
+                >
+                  <Scale className="mr-2 h-4 w-4" />
+                  Fix Clause-by-Clause
+                </Button>
+              </div>
+            </div>
+
+            {/* Clause-by-clause fix buttons */}
+            {review.clauseByClauseBreakdown && review.clauseByClauseBreakdown.length > 0 && (
+              <div id="clause-fix-section" className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Fix Individual Clauses
+                </p>
+                {review.clauseByClauseBreakdown.map((clause, i) => (
+                  (clause.riskLevel === "high" || clause.riskLevel === "medium" || clause.strength === "weak") && (
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-border p-2.5 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{clause.clauseName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{clause.analysis?.slice(0, 80)}…</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFixIssues("clause", i)}
+                        disabled={fixingAll || fixingClause !== null}
+                        className="shrink-0"
+                      >
+                        {fixingClause === i ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-1 h-3 w-3" />
+                        )}
+                        Fix
+                      </Button>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fixed document comparison */}
+          {fixedText && (
+            <div ref={fixSectionRef} className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  Fixed Contract Ready
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFixComparison((p) => !p)}
+                >
+                  <ArrowRightLeft className="mr-1 h-4 w-4" />
+                  {showFixComparison ? "Hide Comparison" : "Show Before vs After"}
+                </Button>
+              </div>
+
+              {showFixComparison && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Original Contract</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {extractedText?.slice(0, 5000)}
+                        {(extractedText?.length || 0) > 5000 && "\n\n… [truncated]"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">Fixed Version</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {fixedText.slice(0, 5000)}
+                        {fixedText.length > 5000 && "\n\n… [truncated]"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Clean revised contract */}
+              {!showFixComparison && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Revised Contract</p>
+                  <div className="max-h-96 overflow-y-auto">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                      {fixedText.slice(0, 8000)}
+                      {fixedText.length > 8000 && "\n\n… [truncated]"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Proceed Button */}
           {pendingDoc && (
             <div className="pt-2">
