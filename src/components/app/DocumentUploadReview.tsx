@@ -822,6 +822,133 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Executive Summary</p>
             <p className="text-sm text-foreground">{review.summary}</p>
           </div>
+
+          {/* Fix Issues Section */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Fix Identified Issues
+              </p>
+              <p className="text-xs text-muted-foreground">
+                AI will automatically apply all recommended fixes, resolve red flags, and add missing clauses.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => handleFixIssues("all")}
+                  disabled={fixingAll || fixingClause !== null || reviewing}
+                >
+                  {fixingAll ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  )}
+                  {fixingAll ? "Applying all fixes…" : "Apply All Fixes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const el = document.getElementById("clause-fix-section");
+                    el?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  disabled={!review.clauseByClauseBreakdown?.length}
+                >
+                  <Scale className="mr-2 h-4 w-4" />
+                  Fix Clause-by-Clause
+                </Button>
+              </div>
+            </div>
+
+            {/* Clause-by-clause fix buttons */}
+            {review.clauseByClauseBreakdown && review.clauseByClauseBreakdown.length > 0 && (
+              <div id="clause-fix-section" className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Fix Individual Clauses
+                </p>
+                {review.clauseByClauseBreakdown.map((clause, i) => (
+                  (clause.riskLevel === "high" || clause.riskLevel === "medium" || clause.strength === "weak") && (
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-border p-2.5 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{clause.clauseName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{clause.analysis?.slice(0, 80)}…</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFixIssues("clause", i)}
+                        disabled={fixingAll || fixingClause !== null}
+                        className="shrink-0"
+                      >
+                        {fixingClause === i ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-1 h-3 w-3" />
+                        )}
+                        Fix
+                      </Button>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fixed document comparison */}
+          {fixedText && (
+            <div ref={fixSectionRef} className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  Fixed Contract Ready
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFixComparison((p) => !p)}
+                >
+                  <ArrowRightLeft className="mr-1 h-4 w-4" />
+                  {showFixComparison ? "Hide Comparison" : "Show Before vs After"}
+                </Button>
+              </div>
+
+              {showFixComparison && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Original Contract</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {extractedText?.slice(0, 5000)}
+                        {(extractedText?.length || 0) > 5000 && "\n\n… [truncated]"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">Fixed Version</p>
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-foreground whitespace-pre-wrap">
+                        {fixedText.slice(0, 5000)}
+                        {fixedText.length > 5000 && "\n\n… [truncated]"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Clean revised contract */}
+              {!showFixComparison && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary">Revised Contract</p>
+                  <div className="max-h-96 overflow-y-auto">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                      {fixedText.slice(0, 8000)}
+                      {fixedText.length > 8000 && "\n\n… [truncated]"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Proceed Button */}
           {pendingDoc && (
             <div className="pt-2">
