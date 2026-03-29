@@ -148,7 +148,13 @@ export const DocumentUploadReview = ({ documentType, onDocumentReviewed, onCance
   const [improvedText, setImprovedText] = useState<string | null>(null);
   const [pendingDoc, setPendingDoc] = useState<{ doc: ReviewedDocument; review: DocumentReview | null; originalText: string } | null>(null);
   const [reviewError, setReviewError] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
+  const [fixingClause, setFixingClause] = useState<number | null>(null);
+  const [fixedText, setFixedText] = useState<string | null>(null);
+  const [fixedDoc, setFixedDoc] = useState<ReviewedDocument | null>(null);
+  const [showFixComparison, setShowFixComparison] = useState(false);
   const reviewSectionRef = useRef<HTMLDivElement>(null);
+  const fixSectionRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to review when it appears
   useEffect(() => {
