@@ -216,7 +216,20 @@ export default function ConveyancingCaseDetail() {
               </div>
               <p className="text-xs text-muted-foreground font-medium">Next actions:</p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveStep("client_intake")}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
+                  if (!caseData.intake_token) {
+                    toast({ title: "No intake token found", variant: "destructive" });
+                    return;
+                  }
+                  const link = `${window.location.origin}/conveyancing-intake?token=${caseData.intake_token}`;
+                  try {
+                    await navigator.clipboard.writeText(link);
+                    toast({ title: "Client intake link copied to clipboard!" });
+                  } catch {
+                    // Fallback: show the link
+                    prompt("Copy this link and send it to your client:", link);
+                  }
+                }}>
                   <LinkIcon className="h-3.5 w-3.5" /> Send Client Intake Link
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => {
