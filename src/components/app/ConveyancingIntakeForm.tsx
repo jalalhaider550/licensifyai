@@ -43,6 +43,8 @@ interface IntakeFormProps {
     property_category: string;
     mortgage_status: string;
   };
+  /** Override user_id for public/anonymous usage (client-facing link) */
+  userId?: string;
   onComplete: () => void;
 }
 
@@ -80,8 +82,9 @@ type FormData = {
   declaration_confirmed: boolean;
 };
 
-export function ConveyancingIntakeForm({ caseId, caseData, onComplete }: IntakeFormProps) {
+export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, onComplete }: IntakeFormProps) {
   const { user } = useAuth();
+  const effectiveUserId = userIdProp || user?.id;
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [existingId, setExistingId] = useState<string | null>(null);
@@ -122,7 +125,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, onComplete }: IntakeF
 
   // Load existing intake if any
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     (supabase as any)
       .from("conveyancing_client_intake")
       .select("*")
@@ -165,7 +168,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, onComplete }: IntakeF
           }));
         }
       });
-  }, [user, caseId]);
+  }, [effectiveUserId, caseId]);
 
   const set = (field: keyof FormData, value: any) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -188,7 +191,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, onComplete }: IntakeF
   };
 
   const saveIntake = async (complete: boolean) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     setSaving(true);
     try {
       // Upload files if present
@@ -202,7 +205,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, onComplete }: IntakeF
 
       const payload: Record<string, any> = {
         case_id: caseId,
-        user_id: user.id,
+        user_id: effectiveUserId,
         full_name: form.full_name,
         date_of_birth: form.date_of_birth || null,
         email: form.email,

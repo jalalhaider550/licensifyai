@@ -557,6 +557,7 @@ export type Database = {
           current_step: string
           estate_agent: string
           id: string
+          intake_token: string | null
           metadata: Json
           mortgage_status: string
           notes: string
@@ -583,6 +584,7 @@ export type Database = {
           current_step?: string
           estate_agent?: string
           id?: string
+          intake_token?: string | null
           metadata?: Json
           mortgage_status?: string
           notes?: string
@@ -609,6 +611,7 @@ export type Database = {
           current_step?: string
           estate_agent?: string
           id?: string
+          intake_token?: string | null
           metadata?: Json
           mortgage_status?: string
           notes?: string
