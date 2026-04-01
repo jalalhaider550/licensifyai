@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, Loader2,
-  Send, FileText, Sparkles, Home,
+  Send, FileText, Sparkles, Home, LinkIcon, ClipboardList, BarChart3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,11 +38,21 @@ interface StepData {
 interface CaseData {
   id: string;
   property_address: string;
+  postcode: string;
   client_type: string;
+  client_name: string;
+  transaction_type: string;
   price: number;
+  tenure: string;
+  property_category: string;
+  mortgage_status: string;
   current_step: string;
   status: string;
+  readiness_score: number;
   notes: string;
+  other_side_name: string;
+  other_side_firm: string;
+  target_completion_date: string | null;
 }
 
 const statusIcon = (s: string) => {
@@ -89,6 +99,9 @@ export default function ConveyancingCaseDetail() {
   const currentStepData = steps.find((s) => s.step_key === activeStep);
   const currentConfig = STEP_CONFIG.find((s) => s.key === activeStep);
 
+  const doneCount = steps.filter((s) => s.status === "done").length;
+  const totalMissing = steps.reduce((acc, s) => acc + (s.missing_items?.length || 0), 0);
+
   const handleAiAction = async () => {
     if (!caseData || !currentConfig || !user) return;
     setAiLoading(true);
@@ -100,25 +113,27 @@ export default function ConveyancingCaseDetail() {
           stepLabel: currentConfig.label,
           propertyAddress: caseData.property_address,
           clientType: caseData.client_type,
+          transactionType: caseData.transaction_type,
           price: caseData.price,
+          tenure: caseData.tenure,
+          mortgageStatus: caseData.mortgage_status,
+          propertyCategory: caseData.property_category,
+          clientName: caseData.client_name,
           caseId: id,
         },
       });
 
       if (error) throw error;
-
       const result = data?.result || data;
       if (result?.error) {
         toast({ title: result.error, variant: "destructive" });
       } else {
-        // Save AI output to step
         if (currentStepData) {
           await supabase
             .from("conveyancing_steps" as any)
             .update({ ai_output: result, status: "done", completed_at: new Date().toISOString() } as any)
             .eq("id", currentStepData.id);
         }
-        // Advance current step
         const stepIndex = STEP_CONFIG.findIndex((s) => s.key === activeStep);
         if (stepIndex < STEP_CONFIG.length - 1) {
           const nextStep = STEP_CONFIG[stepIndex + 1].key;
@@ -128,7 +143,6 @@ export default function ConveyancingCaseDetail() {
             .eq("id", id);
           setCaseData((prev) => prev ? { ...prev, current_step: nextStep } : prev);
         }
-        // Refresh steps
         const { data: refreshed } = await supabase
           .from("conveyancing_steps" as any)
           .select("*")
@@ -148,7 +162,6 @@ export default function ConveyancingCaseDetail() {
     if (!message.trim()) return;
     setMessages((prev) => [...prev, { role: "user", text: message.trim() }]);
     setMessage("");
-    // Simulate response (in real app would tie to case-collaboration)
     setTimeout(() => {
       setMessages((prev) => [...prev, { role: "system", text: "Message received. This will be linked to the case timeline." }]);
     }, 600);
@@ -181,20 +194,71 @@ export default function ConveyancingCaseDetail() {
             <h1 className="text-lg font-bold text-foreground truncate">{caseData.property_address}</h1>
           </div>
           <Badge variant="outline" className="capitalize">{caseData.client_type}</Badge>
+          <Badge variant="secondary" className="capitalize">{caseData.transaction_type}</Badge>
           {caseData.price > 0 && <span className="text-sm text-muted-foreground">£{caseData.price.toLocaleString()}</span>}
         </div>
+
+        {/* Post-creation banner — shown when nothing is done yet */}
+        {doneCount === 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Case Readiness: {caseData.readiness_score}%</p>
+                </div>
+                <Badge variant="secondary" className="text-[10px]">{totalMissing} items missing</Badge>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${caseData.readiness_score}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">Next actions:</p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveStep("client_intake")}>
+                  <LinkIcon className="h-3.5 w-3.5" /> Send Client Intake Link
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => {
+                  const step = caseData.client_type === "seller" ? "contract_pack" : "searches";
+                  setActiveStep(step);
+                }}>
+                  <ClipboardList className="h-3.5 w-3.5" /> 
+                  {caseData.client_type === "seller" ? "Prepare Contract Pack" : "Order Searches"}
+                </Button>
+              </div>
+              {caseData.tenure === "leasehold" && (
+                <p className="text-[11px] text-primary font-medium">⚡ Leasehold detected — additional enquiries will be flagged</p>
+              )}
+              {caseData.mortgage_status === "yes" && (
+                <p className="text-[11px] text-primary font-medium">⚡ Mortgage confirmed — lender checks enabled</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Case info strip */}
+        {caseData.client_name && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-b border-border pb-3">
+            <span><strong className="text-foreground">Client:</strong> {caseData.client_name}</span>
+            {caseData.other_side_name && <span><strong className="text-foreground">Other side:</strong> {caseData.other_side_name}</span>}
+            {caseData.other_side_firm && <span><strong className="text-foreground">Firm:</strong> {caseData.other_side_firm}</span>}
+            <span><strong className="text-foreground">Tenure:</strong> {caseData.tenure}</span>
+            <span><strong className="text-foreground">Mortgage:</strong> {caseData.mortgage_status}</span>
+            {caseData.target_completion_date && <span><strong className="text-foreground">Target:</strong> {new Date(caseData.target_completion_date).toLocaleDateString()}</span>}
+          </div>
+        )}
 
         {/* 3-column layout */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Left: Workflow Steps */}
           <Card className="md:col-span-3">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Workflow</CardTitle>
+              <CardTitle className="text-sm">Workflow ({doneCount}/{steps.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 p-3">
               {STEP_CONFIG.map((step) => {
                 const sd = steps.find((s) => s.step_key === step.key);
                 const isActive = activeStep === step.key;
+                const missing = sd?.missing_items?.length || 0;
                 return (
                   <button
                     key={step.key}
@@ -206,7 +270,10 @@ export default function ConveyancingCaseDetail() {
                     }`}
                   >
                     {statusIcon(sd?.status || "pending")}
-                    <span className="truncate">{step.label}</span>
+                    <span className="truncate flex-1">{step.label}</span>
+                    {missing > 0 && sd?.status !== "done" && (
+                      <span className="text-[10px] bg-destructive/10 text-destructive rounded-full px-1.5">{missing}</span>
+                    )}
                   </button>
                 );
               })}
@@ -227,7 +294,7 @@ export default function ConveyancingCaseDetail() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Missing items */}
-              {currentStepData?.missing_items && currentStepData.missing_items.length > 0 && (
+              {currentStepData?.missing_items && currentStepData.missing_items.length > 0 && currentStepData.status !== "done" && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                   <p className="text-xs font-semibold text-destructive mb-1">What's Missing</p>
                   <ul className="text-xs text-destructive/80 space-y-0.5">
