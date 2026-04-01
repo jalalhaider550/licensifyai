@@ -27,9 +27,12 @@ interface ConveyancingCase {
   id: string;
   property_address: string;
   client_type: string;
+  client_name: string;
+  transaction_type: string;
   price: number;
   current_step: string;
   status: string;
+  readiness_score: number;
   created_at: string;
   client_id: string | null;
 }
