@@ -88,7 +88,7 @@ export const CaseDraftWorkspace = ({
         </div>
       </div>
 
-      <Textarea value={content} onChange={(event) => onChange(event.target.value)} rows={18} className="mt-4 font-mono text-sm leading-relaxed" />
+      <FormattedLegalContent content={content} onChange={onChange} />
 
       {downloadFallback ? (
         <div className="mt-4 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground">
