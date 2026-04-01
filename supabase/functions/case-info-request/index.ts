@@ -18,11 +18,11 @@ DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
 8. ALWAYS structure output with clear headings and paragraphs.
 9. Output must be clean, final, and ready to send to a client or opposing party.
 10. HEADING FORMAT — MANDATORY:
-    - NEVER use markdown heading symbols (###, ##, #) in document output.
-    - ALL headings must be clean, numbered, and bold using **double asterisks**.
-    - Correct format: **1. Background**, **2. Legal Position**, **3. Demand**, **4. Next Steps**
+    - NEVER use any markdown symbols in headings — no ###, ##, #, and no ** asterisks.
+    - ALL headings must be plain numbered text only.
+    - Correct format: 1. Background, 2. Legal Position, 3. Demand, 4. Next Steps
     - Maintain consistent sequential numbering throughout the entire document.
-    - Sub-sections use decimal numbering: **1.1**, **1.2**, **2.1**, etc.
+    - Sub-sections use decimal numbering: 1.1, 1.2, 2.1, etc.
     - NEVER mix heading styles — every heading in the document must follow this format.`;
 
 const decodeBase64 = (value: string) => Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
