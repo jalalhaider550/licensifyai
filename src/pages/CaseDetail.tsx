@@ -76,6 +76,9 @@ import {
   buildCaseInfoRequestMessage,
   getCaseInfoRequestStatusLabel,
 } from "@/lib/caseInfoRequests";
+import type { CaseRisk, CaseDeadline, LitigationData, CorporateData } from "@/lib/cases";
+import { RiskPanel, DeadlinePanel, LitigationPanel, CorporatePanel } from "@/components/app/MatterSpecificPanels";
+import { RichDocumentEditor } from "@/components/app/RichDocumentEditor";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
