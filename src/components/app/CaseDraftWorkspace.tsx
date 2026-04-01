@@ -1,6 +1,6 @@
 import { CheckCircle2, Copy, Download, FileText, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useRef, useCallback } from "react";
 
 interface DownloadFallbackLink {
   url: string;
