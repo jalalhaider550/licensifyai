@@ -71,6 +71,7 @@ const App = () => (
             <Route path="/conveyancing" element={<ConveyancingCases />} />
             <Route path="/conveyancing/new" element={<ConveyancingNewCase />} />
             <Route path="/conveyancing/:id" element={<ConveyancingCaseDetail />} />
+            <Route path="/conveyancing-intake" element={<ConveyancingClientIntake />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
