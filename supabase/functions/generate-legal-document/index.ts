@@ -239,7 +239,7 @@ Full legal text. No markdown.`;
 
 function buildRegenerateClausePrompt(body: any) {
   const { clause, instruction, documentContext } = body;
-  return `You are a senior commercial lawyer. Regenerate this clause based on the instruction.
+  return `You are a practising senior commercial solicitor. Regenerate this clause with authority. The output must be definitive legal text.
 CURRENT CLAUSE: #${clause.number} "${clause.title}": ${clause.body}
 ${clause.subClauses?.length ? `Sub-clauses: ${JSON.stringify(clause.subClauses)}` : ""}
 CONTEXT: ${documentContext || "Standard commercial agreement"}
