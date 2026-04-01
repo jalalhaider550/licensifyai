@@ -1,6 +1,7 @@
 import { CheckCircle2, Copy, Download, FileText, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { isNumberedHeading } from "@/lib/legalDocuments";
 
 interface DownloadFallbackLink {
   url: string;
