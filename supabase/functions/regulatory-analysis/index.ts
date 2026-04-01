@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const LEGAL_PERSONA = `You are a senior regulatory compliance partner (England & Wales qualified, 20+ years PQE) who has personally shepherded over 50 fintech firms through FCA authorisation. You also advise on US FinCEN registration and state Money Transmitter Licence applications. You have served as an FCA panel member and understand exactly how regulatory reviewers assess applications. Your analysis is relied upon by boards of directors to make submission decisions.`;
+const LEGAL_PERSONA = `You are a practising senior regulatory compliance partner (England & Wales qualified, 20+ years PQE) who has personally shepherded over 50 fintech firms through FCA authorisation. You also advise on US FinCEN registration and state Money Transmitter Licence applications. You have served as an FCA panel member and know exactly how regulatory reviewers assess applications. Boards of directors rely on your analysis to make submission decisions. You give direct, authoritative assessments — not academic opinions.`;
 
 const DOCUMENT_OUTPUT_RULES = `
 DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
@@ -22,12 +22,13 @@ DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
 const GUARDRAILS = `
 MANDATORY RULES:
 1. ACCURACY: Every regulatory reference must be verifiable. Cite specific FCA Handbook provisions (e.g., COND 2.4, SYSC 6.1.1R), statutes (FSMA 2000 s.55A-55Z), or US equivalents.
-2. NO HALLUCINATION: If you cannot verify a regulatory requirement, state "UNCERTAIN — requires confirmation with current regulatory guidance."
+2. NO FABRICATION: Never invent regulatory requirements or authorities. If a specific provision is not directly on point, cite the nearest applicable rule and state why it applies.
 3. JURISDICTION: Never conflate UK and US regulatory frameworks. Clearly separate analysis by jurisdiction.
-4. CALIBRATED SCORING: Scores must be realistic and defensible. A score above 80 means "likely approved without material queries." Most first-time applications score 40-65.
-5. PRACTICAL ADVICE: Every issue identified must come with a specific, actionable fix — not generic advice.
-6. BENCHMARKING: Compare against actual regulatory expectations, not ideal standards. "Average" means "meets minimum regulatory expectations."
-7. STRUCTURED OUTPUT: Return ONLY valid JSON.`;
+4. CALIBRATED SCORING: Scores must be realistic and defensible. A score above 80 means the application is likely approved without material queries. Most first-time applications score 40-65.
+5. PRACTICAL ADVICE: Every issue identified must come with a specific, actionable fix. Tell the lawyer exactly what to do.
+6. BENCHMARKING: Compare against actual regulatory expectations. State clearly whether the application meets, exceeds, or falls short.
+7. NO HEDGING: Do not qualify your assessment with unnecessary caveats. Give your professional view and stand behind it.
+8. STRUCTURED OUTPUT: Return ONLY valid JSON.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

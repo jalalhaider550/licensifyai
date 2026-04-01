@@ -199,7 +199,7 @@ function buildContractPrompt(body: any) {
     case "balanced": modeInstr = "Balanced, fair terms for both parties."; break;
     default: modeInstr = "Standard professional clauses.";
   }
-  return `You are a senior commercial lawyer (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract.
+  return `You are a practising senior commercial solicitor (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract. Write with authority — every clause must be definitive legal text ready for execution.
 PARTIES: Party A: ${partyA} | Party B: ${partyB}
 JURISDICTION: ${jurisdiction}
 SCOPE: ${scopeOfWork || "To be defined"}
@@ -222,7 +222,7 @@ Each clause must be FULL legal text. Tailor to scenario. Do NOT use markdown.`;
 function buildNdaPrompt(body: any) {
   const { disclosingParty, receivingParty, jurisdiction, purpose, duration, ndaType, specialInstructions } = body;
   const typeInstr = ndaType === "mutual" ? "MUTUAL NDA — both parties disclose." : `ONE-WAY NDA — ${disclosingParty} discloses to ${receivingParty}.`;
-  return `You are a senior commercial lawyer. Generate a COMPLETE NDA.
+  return `You are a practising senior commercial solicitor. Generate a COMPLETE NDA with full legal authority. Every clause must be definitive and enforceable.
 ${typeInstr}
 DISCLOSING: ${disclosingParty} | RECEIVING: ${receivingParty}
 JURISDICTION: ${jurisdiction}
@@ -239,7 +239,7 @@ Full legal text. No markdown.`;
 
 function buildRegenerateClausePrompt(body: any) {
   const { clause, instruction, documentContext } = body;
-  return `You are a senior commercial lawyer. Regenerate this clause based on the instruction.
+  return `You are a practising senior commercial solicitor. Regenerate this clause with authority. The output must be definitive legal text.
 CURRENT CLAUSE: #${clause.number} "${clause.title}": ${clause.body}
 ${clause.subClauses?.length ? `Sub-clauses: ${JSON.stringify(clause.subClauses)}` : ""}
 CONTEXT: ${documentContext || "Standard commercial agreement"}
@@ -257,7 +257,7 @@ function buildReviewChunkPrompt(chunkText: string, chunkIndex: number, totalChun
     case "add_missing": modeInstr = "Focus on identifying missing clauses."; break;
     default: modeInstr = "Improve professionally.";
   }
-  return `You are a SENIOR COMMERCIAL LAWYER performing a legal review.
+  return `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR performing a legal review. Give definitive assessments — do not hedge.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${modeInstr}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
@@ -286,7 +286,7 @@ function buildReviewSummaryPrompt(chunkResults: any[], documentType: string, imp
   const allIssues = chunkResults.flatMap(c => c.issues || []);
   const allRedFlags = chunkResults.flatMap(c => c.redFlags || []);
 
-  return `You are a SENIOR COMMERCIAL LAWYER. Synthesise this clause-by-clause analysis into a final review and generate an improved document.
+  return `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR. Synthesise this clause-by-clause analysis into a final review and generate an improved document. Be authoritative and decisive in your assessment.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${modeInstr}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
@@ -302,7 +302,7 @@ Return JSON (NO markdown fences):
 
 RULES:
 1. clauseByClauseBreakdown must cover EVERY major clause
-2. Include 1-3 REAL case law references (UK first, then US). Do NOT hallucinate.
+2. Include 1-3 REAL case law references (UK first, then US). Never fabricate authorities.
 3. improvements must be SPECIFIC with exact clause references
 4. strengthScore: 1 (dangerous) to 10 (excellent)
 5. The improved document MUST fix all identified issues
@@ -311,7 +311,7 @@ RULES:
 
 function buildGenerateFromDocumentPrompt(body: any) {
   const { documentText, documentType, userInstruction, targetDocumentType } = body;
-  return `You are a senior commercial lawyer. Using the source document, generate a NEW ${targetDocumentType || documentType || "Legal Agreement"}.
+  return `You are a practising senior commercial solicitor. Using the source document, generate a NEW ${targetDocumentType || documentType || "Legal Agreement"} with full legal authority.
 INSTRUCTION: ${userInstruction || "Improve and restructure professionally"}
 
 SOURCE (truncated):
@@ -355,7 +355,7 @@ serve(async (req) => {
           userInstruction,
         );
         // Replace the chunk analysis placeholder with the actual text
-        const singlePrompt = `You are a SENIOR COMMERCIAL LAWYER performing a FULL LEGAL REVIEW.
+        const singlePrompt = `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR performing a FULL LEGAL REVIEW. Be authoritative and decisive.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${improvementMode || "improve"}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
@@ -370,7 +370,8 @@ Analyze EVERY clause. Return JSON (NO markdown fences):
 
 RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore 1-10. Fix all issues in improved document. NO markdown.`;
 
-        const result = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", singlePrompt, { maxTokens: 16000 });
+        const LAWYER_SYSTEM = "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging. No disclaimers.";
+        const result = await callAI(LOVABLE_API_KEY, LAWYER_SYSTEM, singlePrompt, { maxTokens: 16000 });
         if (!result.ok) return err(result.error, result.errorType);
 
         const parsed = extractJson(result.content);
@@ -388,7 +389,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
       const chunkResults: any[] = [];
       for (let i = 0; i < chunks.length; i++) {
         const chunkPrompt = buildReviewChunkPrompt(chunks[i], i, chunks.length, documentType, improvementMode, userInstruction);
-        const result = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", chunkPrompt, { maxTokens: 6000 });
+        const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", chunkPrompt, { maxTokens: 6000 });
         if (!result.ok) return err(result.error, result.errorType);
 
         const parsed = extractJson(result.content);
@@ -402,7 +403,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
 
       // Summarise all chunks
       const summaryPrompt = buildReviewSummaryPrompt(chunkResults, documentType, improvementMode, userInstruction);
-      const summaryResult = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", summaryPrompt, { maxTokens: 16000 });
+      const summaryResult = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", summaryPrompt, { maxTokens: 16000 });
       if (!summaryResult.ok) return err(summaryResult.error, summaryResult.errorType);
 
       const finalParsed = extractJson(summaryResult.content);
@@ -424,7 +425,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
       default: return err("Unknown action");
     }
 
-    const result = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", prompt, { maxTokens: 12000 });
+    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens: 12000 });
     if (!result.ok) return err(result.error, result.errorType);
 
     const parsed = extractJson(result.content);
