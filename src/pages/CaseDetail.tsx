@@ -840,7 +840,7 @@ const CaseDetail = () => {
           if (error) throw error;
 
           const product = parseLegalWorkProduct(data.content || "");
-          const generatedContent = renderLegalWorkProductText(product);
+          const generatedContent = sanitizeLegalContent(renderLegalWorkProductText(product));
           setActionWorkspaceTitle(title);
           setActionWorkspaceContent(generatedContent);
           setActionWorkspaceOpen(true);
