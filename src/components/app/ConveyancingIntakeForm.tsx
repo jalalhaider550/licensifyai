@@ -43,6 +43,8 @@ interface IntakeFormProps {
     property_category: string;
     mortgage_status: string;
   };
+  /** Override user_id for public/anonymous usage (client-facing link) */
+  userId?: string;
   onComplete: () => void;
 }
 
