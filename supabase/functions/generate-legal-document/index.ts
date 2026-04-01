@@ -302,7 +302,7 @@ Return JSON (NO markdown fences):
 
 RULES:
 1. clauseByClauseBreakdown must cover EVERY major clause
-2. Include 1-3 REAL case law references (UK first, then US). Do NOT hallucinate.
+2. Include 1-3 REAL case law references (UK first, then US). Never fabricate authorities.
 3. improvements must be SPECIFIC with exact clause references
 4. strengthScore: 1 (dangerous) to 10 (excellent)
 5. The improved document MUST fix all identified issues
