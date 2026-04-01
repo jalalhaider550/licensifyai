@@ -1,6 +1,43 @@
 import { CheckCircle2, Copy, Download, FileText, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useRef, useCallback } from "react";
+
+/** Detects lines that are numbered headings like "1. Background" or "2.1 Sub-section" */
+const isNumberedHeading = (line: string) =>
+  /^\d+(\.\d+)*\.?\s+[A-Z]/.test(line.trim());
+
+function FormattedLegalContent({ content, onChange }: { content: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleInput = useCallback(() => {
+    if (!ref.current) return;
+    // Extract plain text back from the rendered div
+    const text = ref.current.innerText;
+    onChange(text);
+  }, [onChange]);
+
+  const lines = content.split("\n");
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      className="mt-4 min-h-[20rem] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-y-auto max-h-[32rem]"
+    >
+      {lines.map((line, i) => {
+        if (isNumberedHeading(line)) {
+          return <p key={i} className="font-bold mt-3 mb-1">{line}</p>;
+        }
+        if (line.trim() === "") {
+          return <p key={i} className="h-4" />;
+        }
+        return <p key={i}>{line}</p>;
+      })}
+    </div>
+  );
+}
 
 interface DownloadFallbackLink {
   url: string;
@@ -88,7 +125,7 @@ export const CaseDraftWorkspace = ({
         </div>
       </div>
 
-      <Textarea value={content} onChange={(event) => onChange(event.target.value)} rows={18} className="mt-4 font-mono text-sm leading-relaxed" />
+      <FormattedLegalContent content={content} onChange={onChange} />
 
       {downloadFallback ? (
         <div className="mt-4 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground">
