@@ -551,43 +551,79 @@ export type Database = {
       conveyancing_cases: {
         Row: {
           client_id: string | null
+          client_name: string
           client_type: string
           created_at: string
           current_step: string
+          estate_agent: string
           id: string
           metadata: Json
+          mortgage_status: string
           notes: string
+          other_side_firm: string
+          other_side_name: string
+          postcode: string
           price: number
           property_address: string
+          property_category: string
+          readiness_score: number
+          referral_source: string
           status: string
+          target_completion_date: string | null
+          tenure: string
+          transaction_type: string
           updated_at: string
           user_id: string
         }
         Insert: {
           client_id?: string | null
+          client_name?: string
           client_type?: string
           created_at?: string
           current_step?: string
+          estate_agent?: string
           id?: string
           metadata?: Json
+          mortgage_status?: string
           notes?: string
+          other_side_firm?: string
+          other_side_name?: string
+          postcode?: string
           price?: number
           property_address: string
+          property_category?: string
+          readiness_score?: number
+          referral_source?: string
           status?: string
+          target_completion_date?: string | null
+          tenure?: string
+          transaction_type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           client_id?: string | null
+          client_name?: string
           client_type?: string
           created_at?: string
           current_step?: string
+          estate_agent?: string
           id?: string
           metadata?: Json
+          mortgage_status?: string
           notes?: string
+          other_side_firm?: string
+          other_side_name?: string
+          postcode?: string
           price?: number
           property_address?: string
+          property_category?: string
+          readiness_score?: number
+          referral_source?: string
           status?: string
+          target_completion_date?: string | null
+          tenure?: string
+          transaction_type?: string
           updated_at?: string
           user_id?: string
         }
