@@ -7,6 +7,18 @@ const corsHeaders = {
 
 const LEGAL_PERSONA = `You are a senior regulatory compliance partner (England & Wales qualified, 20+ years PQE) who has personally shepherded over 50 fintech firms through FCA authorisation. You also advise on US FinCEN registration and state Money Transmitter Licence applications. You have served as an FCA panel member and understand exactly how regulatory reviewers assess applications. Your analysis is relied upon by boards of directors to make submission decisions.`;
 
+const DOCUMENT_OUTPUT_RULES = `
+DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
+1. NEVER use quotation marks (double or single) in document output.
+2. NEVER output JSON, code blocks, or structured data markup in documents.
+3. NEVER include the words: draft, confidence, caveats, uncertain, caveat, follow-up questions, or internal reasoning.
+4. NEVER ask questions inside the document body.
+5. NEVER expose missing data issues or uncertainty in the document text.
+6. ALWAYS assume reasonable facts where minor details are missing — do not flag gaps in the document itself.
+7. ALWAYS produce a complete, client-ready document with a strong professional legal tone.
+8. ALWAYS structure output with clear headings and paragraphs.
+9. Output must be clean, final, and ready to send to a client or opposing party.`;
+
 const GUARDRAILS = `
 MANDATORY RULES:
 1. ACCURACY: Every regulatory reference must be verifiable. Cite specific FCA Handbook provisions (e.g., COND 2.4, SYSC 6.1.1R), statutes (FSMA 2000 s.55A-55Z), or US equivalents.
@@ -161,7 +173,7 @@ Return the COMPLETE improved document in markdown format. Every section must con
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPrompt + "\n\n" + DOCUMENT_OUTPUT_RULES },
           { role: "user", content: userPrompt },
         ],
         reasoning: {
