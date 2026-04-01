@@ -370,7 +370,8 @@ Analyze EVERY clause. Return JSON (NO markdown fences):
 
 RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore 1-10. Fix all issues in improved document. NO markdown.`;
 
-        const result = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", singlePrompt, { maxTokens: 16000 });
+        const LAWYER_SYSTEM = "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging. No disclaimers.";
+        const result = await callAI(LOVABLE_API_KEY, LAWYER_SYSTEM, singlePrompt, { maxTokens: 16000 });
         if (!result.ok) return err(result.error, result.errorType);
 
         const parsed = extractJson(result.content);
