@@ -548,6 +548,106 @@ export type Database = {
         }
         Relationships: []
       }
+      conveyancing_cases: {
+        Row: {
+          client_id: string | null
+          client_type: string
+          created_at: string
+          current_step: string
+          id: string
+          metadata: Json
+          notes: string
+          price: number
+          property_address: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_type?: string
+          created_at?: string
+          current_step?: string
+          id?: string
+          metadata?: Json
+          notes?: string
+          price?: number
+          property_address: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          client_type?: string
+          created_at?: string
+          current_step?: string
+          id?: string
+          metadata?: Json
+          notes?: string
+          price?: number
+          property_address?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conveyancing_cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conveyancing_steps: {
+        Row: {
+          ai_output: Json
+          case_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          missing_items: string[]
+          status: string
+          step_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_output?: Json
+          case_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          missing_items?: string[]
+          status?: string
+          step_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_output?: Json
+          case_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          missing_items?: string[]
+          status?: string
+          step_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conveyancing_steps_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "conveyancing_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       directors: {
         Row: {
           client_id: string

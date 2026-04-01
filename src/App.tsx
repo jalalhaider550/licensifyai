@@ -29,6 +29,9 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientInfoRequest from "./pages/ClientInfoRequest";
 import GenerateContract from "./pages/GenerateContract";
 import GenerateNDA from "./pages/GenerateNDA";
+import ConveyancingCases from "./pages/ConveyancingCases";
+import ConveyancingNewCase from "./pages/ConveyancingNewCase";
+import ConveyancingCaseDetail from "./pages/ConveyancingCaseDetail";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -64,6 +67,9 @@ const App = () => (
             <Route path="/client-request" element={<ClientInfoRequest />} />
             <Route path="/generate-contract" element={<GenerateContract />} />
             <Route path="/generate-nda" element={<GenerateNDA />} />
+            <Route path="/conveyancing" element={<ConveyancingCases />} />
+            <Route path="/conveyancing/new" element={<ConveyancingNewCase />} />
+            <Route path="/conveyancing/:id" element={<ConveyancingCaseDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
