@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, Loader2,
   Send, FileText, Sparkles, Home, LinkIcon, ClipboardList, BarChart3,
+  RefreshCw, ShieldAlert, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { ConveyancingIntakeForm } from "@/components/app/ConveyancingIntakeForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,11 +17,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const STEP_CONFIG = [
-  { key: "client_intake", label: "Client Intake", aiAction: "Request info" },
+  { key: "client_intake", label: "Client Intake", aiAction: "Analyse intake" },
   { key: "contract_pack", label: "Contract Pack", aiAction: "Generate contract pack" },
-  { key: "searches", label: "Searches", aiAction: "Order searches" },
+  { key: "searches", label: "Searches", aiAction: "Run searches analysis" },
   { key: "enquiries", label: "Enquiries", aiAction: "Generate enquiries" },
-  { key: "mortgage", label: "Mortgage", aiAction: "Check mortgage status" },
+  { key: "mortgage", label: "Mortgage", aiAction: "Review mortgage" },
   { key: "report", label: "Report", aiAction: "Generate report" },
   { key: "exchange", label: "Exchange", aiAction: "Prepare exchange" },
   { key: "completion", label: "Completion", aiAction: "Prepare completion" },
@@ -55,6 +56,13 @@ interface CaseData {
   other_side_firm: string;
   target_completion_date: string | null;
   intake_token: string | null;
+  estate_agent: string;
+  referral_source: string;
+}
+
+interface AISection {
+  title: string;
+  content: string;
 }
 
 const statusIcon = (s: string) => {
@@ -62,6 +70,105 @@ const statusIcon = (s: string) => {
   if (s === "blocked") return <AlertTriangle className="h-4 w-4 text-destructive" />;
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 };
+
+/* ── Render structured AI output sections ── */
+function AISectionsDisplay({ data }: { data: any }) {
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+
+  if (!data) return null;
+
+  const sections: AISection[] = data.sections || [];
+  const riskLevel = data.riskLevel || data.overallRisk;
+  const nextAction = data.nextAction;
+  const validationFailed = data.validationFailed;
+
+  if (sections.length === 0) return null;
+
+  const riskColor = riskLevel === "HIGH" ? "text-destructive" : riskLevel === "MEDIUM" ? "text-yellow-600" : riskLevel === "LOW" ? "text-primary" : "text-muted-foreground";
+
+  return (
+    <div className="space-y-3">
+      {/* Risk badge + validation warning */}
+      {riskLevel && (
+        <div className="flex items-center gap-2">
+          {validationFailed ? (
+            <Badge variant="destructive" className="gap-1 text-xs">
+              <ShieldAlert className="h-3 w-3" /> Missing Data
+            </Badge>
+          ) : (
+            <Badge variant="outline" className={`text-xs ${riskColor}`}>
+              Risk: {riskLevel}
+            </Badge>
+          )}
+          {data.completeness !== undefined && (
+            <Badge variant="secondary" className="text-xs">Completeness: {data.completeness}%</Badge>
+          )}
+          {data.fallback && (
+            <Badge variant="secondary" className="text-xs text-yellow-600">Fallback response</Badge>
+          )}
+        </div>
+      )}
+
+      {/* Sections */}
+      {sections.map((section, i) => {
+        const isCollapsed = collapsed[i];
+        return (
+          <div key={i} className="rounded-lg border bg-card">
+            <button
+              className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+              onClick={() => setCollapsed(prev => ({ ...prev, [i]: !prev[i] }))}
+            >
+              <span className="text-sm font-semibold text-foreground">{section.title}</span>
+              {isCollapsed ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />}
+            </button>
+            {!isCollapsed && (
+              <div className="px-3 pb-3 text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                {section.content}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Next action */}
+      {nextAction && !validationFailed && (
+        <div className="rounded-lg border-primary/30 bg-primary/5 border p-3">
+          <p className="text-xs font-semibold text-primary mb-0.5">Next Action</p>
+          <p className="text-xs text-foreground">{nextAction}</p>
+        </div>
+      )}
+
+      {/* Deadlines */}
+      {data.deadlines && data.deadlines.length > 0 && (
+        <div className="rounded-lg border p-3 space-y-1">
+          <p className="text-xs font-semibold text-foreground">Key Deadlines</p>
+          {data.deadlines.map((d: any, i: number) => (
+            <div key={i} className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{d.task}</span>
+              <span className="font-medium text-foreground">{d.deadline}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Searches required */}
+      {data.searchesRequired && data.searchesRequired.length > 0 && (
+        <div className="rounded-lg border p-3 space-y-1">
+          <p className="text-xs font-semibold text-foreground">Searches Required</p>
+          {data.searchesRequired.map((s: any, i: number) => (
+            <div key={i} className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{s.name}</span>
+              <div className="flex gap-2">
+                <Badge variant={s.priority === "essential" ? "destructive" : "secondary"} className="text-[10px]">{s.priority}</Badge>
+                <span className="text-foreground">{s.estimatedCost}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ConveyancingCaseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +181,7 @@ export default function ConveyancingCaseDetail() {
   const [activeStep, setActiveStep] = useState<string>("client_intake");
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
 
@@ -98,63 +206,93 @@ export default function ConveyancingCaseDetail() {
     load();
   }, [user, id]);
 
+  // When active step changes, load existing AI output
+  useEffect(() => {
+    const stepData = steps.find(s => s.step_key === activeStep);
+    if (stepData?.ai_output && typeof stepData.ai_output === "object" && Object.keys(stepData.ai_output).length > 0) {
+      setAiResult(stepData.ai_output);
+    } else {
+      setAiResult(null);
+    }
+  }, [activeStep, steps]);
+
   const currentStepData = steps.find((s) => s.step_key === activeStep);
   const currentConfig = STEP_CONFIG.find((s) => s.key === activeStep);
-
   const doneCount = steps.filter((s) => s.status === "done").length;
   const totalMissing = steps.reduce((acc, s) => acc + (s.missing_items?.length || 0), 0);
 
   const handleAiAction = async () => {
     if (!caseData || !currentConfig || !user) return;
     setAiLoading(true);
+    setAiResult(null);
+
     try {
-      const { data, error } = await supabase.functions.invoke("case-ai", {
+      const { data, error } = await supabase.functions.invoke("conveyancing-ai", {
         body: {
-          action: "conveyancing-step",
-          stepKey: activeStep,
-          stepLabel: currentConfig.label,
+          step: activeStep,
+          caseId: id,
           propertyAddress: caseData.property_address,
+          postcode: caseData.postcode,
+          clientName: caseData.client_name,
           clientType: caseData.client_type,
           transactionType: caseData.transaction_type,
           price: caseData.price,
           tenure: caseData.tenure,
-          mortgageStatus: caseData.mortgage_status,
           propertyCategory: caseData.property_category,
-          clientName: caseData.client_name,
-          caseId: id,
+          mortgageStatus: caseData.mortgage_status,
+          otherSideName: caseData.other_side_name,
+          otherSideFirm: caseData.other_side_firm,
+          estateAgent: caseData.estate_agent,
+          targetCompletionDate: caseData.target_completion_date,
         },
       });
 
       if (error) throw error;
-      const result = data?.result || data;
-      if (result?.error) {
-        toast({ title: result.error, variant: "destructive" });
-      } else {
-        if (currentStepData) {
-          await supabase
-            .from("conveyancing_steps" as any)
-            .update({ ai_output: result, status: "done", completed_at: new Date().toISOString() } as any)
-            .eq("id", currentStepData.id);
-        }
-        const stepIndex = STEP_CONFIG.findIndex((s) => s.key === activeStep);
-        if (stepIndex < STEP_CONFIG.length - 1) {
-          const nextStep = STEP_CONFIG[stepIndex + 1].key;
-          await supabase
-            .from("conveyancing_cases" as any)
-            .update({ current_step: nextStep } as any)
-            .eq("id", id);
-          setCaseData((prev) => prev ? { ...prev, current_step: nextStep } : prev);
-        }
-        const { data: refreshed } = await supabase
-          .from("conveyancing_steps" as any)
-          .select("*")
-          .eq("case_id", id)
-          .order("created_at", { ascending: true });
-        setSteps((refreshed as any[]) || []);
-        toast({ title: `${currentConfig.label} completed` });
+
+      const result = data?.data;
+      if (!result) {
+        throw new Error(data?.error || "No data returned from AI");
       }
+
+      setAiResult(result);
+
+      // If validation failed, don't mark step as done
+      if (result.validationFailed) {
+        toast({ title: "Missing information", description: `Please add: ${result.missingFields?.join(", ")}`, variant: "destructive" });
+        return;
+      }
+
+      // Store AI output and mark step done
+      if (currentStepData) {
+        await supabase
+          .from("conveyancing_steps" as any)
+          .update({ ai_output: result, status: "done", completed_at: new Date().toISOString() } as any)
+          .eq("id", currentStepData.id);
+      }
+
+      // Advance to next step
+      const stepIndex = STEP_CONFIG.findIndex((s) => s.key === activeStep);
+      if (stepIndex < STEP_CONFIG.length - 1) {
+        const nextStep = STEP_CONFIG[stepIndex + 1].key;
+        await supabase
+          .from("conveyancing_cases" as any)
+          .update({ current_step: nextStep } as any)
+          .eq("id", id);
+        setCaseData((prev) => prev ? { ...prev, current_step: nextStep } : prev);
+      }
+
+      // Refresh steps
+      const { data: refreshed } = await supabase
+        .from("conveyancing_steps" as any)
+        .select("*")
+        .eq("case_id", id)
+        .order("created_at", { ascending: true });
+      setSteps((refreshed as any[]) || []);
+      toast({ title: `${currentConfig.label} completed` });
+
     } catch (err: any) {
-      toast({ title: "AI action failed", description: err.message, variant: "destructive" });
+      const errMsg = err?.message || "AI action failed";
+      toast({ title: "AI Error", description: errMsg, variant: "destructive" });
     } finally {
       setAiLoading(false);
     }
@@ -200,7 +338,7 @@ export default function ConveyancingCaseDetail() {
           {caseData.price > 0 && <span className="text-sm text-muted-foreground">£{caseData.price.toLocaleString()}</span>}
         </div>
 
-        {/* Post-creation banner — shown when nothing is done yet */}
+        {/* Post-creation banner */}
         {doneCount === 0 && (
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4 space-y-3">
@@ -226,7 +364,6 @@ export default function ConveyancingCaseDetail() {
                     await navigator.clipboard.writeText(link);
                     toast({ title: "Client intake link copied to clipboard!" });
                   } catch {
-                    // Fallback: show the link
                     prompt("Copy this link and send it to your client:", link);
                   }
                 }}>
@@ -236,7 +373,7 @@ export default function ConveyancingCaseDetail() {
                   const step = caseData.client_type === "seller" ? "contract_pack" : "searches";
                   setActiveStep(step);
                 }}>
-                  <ClipboardList className="h-3.5 w-3.5" /> 
+                  <ClipboardList className="h-3.5 w-3.5" />
                   {caseData.client_type === "seller" ? "Prepare Contract Pack" : "Order Searches"}
                 </Button>
               </div>
@@ -323,21 +460,18 @@ export default function ConveyancingCaseDetail() {
                     mortgage_status: caseData.mortgage_status,
                   }}
                   onComplete={async () => {
-                    // Mark step done
                     if (currentStepData) {
                       await supabase
                         .from("conveyancing_steps" as any)
                         .update({ status: "done", completed_at: new Date().toISOString() } as any)
                         .eq("id", currentStepData.id);
                     }
-                    // Advance to next step
                     const nextStep = STEP_CONFIG[1].key;
                     await supabase
                       .from("conveyancing_cases" as any)
                       .update({ current_step: nextStep } as any)
                       .eq("id", id);
                     setCaseData((prev) => prev ? { ...prev, current_step: nextStep } : prev);
-                    // Refresh steps
                     const { data: refreshed } = await supabase
                       .from("conveyancing_steps" as any)
                       .select("*")
@@ -361,33 +495,55 @@ export default function ConveyancingCaseDetail() {
                     </div>
                   )}
 
-                  {/* AI output */}
-                  {currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && Object.keys(currentStepData.ai_output).length > 0 && (
+                  {/* AI Result — structured sections */}
+                  {aiResult && <AISectionsDisplay data={aiResult} />}
+
+                  {/* AI output from saved step data (when no live result) */}
+                  {!aiResult && currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && 
+                   Object.keys(currentStepData.ai_output).length > 0 && currentStepData.ai_output.sections && (
+                    <AISectionsDisplay data={currentStepData.ai_output} />
+                  )}
+
+                  {/* Legacy AI output (pre-upgrade data) */}
+                  {!aiResult && currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && 
+                   Object.keys(currentStepData.ai_output).length > 0 && !currentStepData.ai_output.sections && (
                     <div className="rounded-lg border bg-muted/50 p-3 max-h-64 overflow-y-auto">
                       <p className="text-xs font-semibold text-foreground mb-2">AI Output</p>
                       <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                        {typeof currentStepData.ai_output === "string"
-                          ? currentStepData.ai_output
-                          : JSON.stringify(currentStepData.ai_output, null, 2)}
+                        {JSON.stringify(currentStepData.ai_output, null, 2)}
                       </pre>
                     </div>
                   )}
 
-                  {/* AI Action button */}
+                  {/* AI Action buttons */}
                   {currentConfig && currentStepData?.status !== "done" && (
-                    <Button onClick={handleAiAction} disabled={aiLoading} className="w-full gap-2">
-                      {aiLoading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
-                      ) : (
-                        <><Sparkles className="h-4 w-4" /> {currentConfig.aiAction}</>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAiAction} disabled={aiLoading} className="flex-1 gap-2">
+                        {aiLoading ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Analysing…</>
+                        ) : (
+                          <><Sparkles className="h-4 w-4" /> {currentConfig.aiAction}</>
+                        )}
+                      </Button>
+                      {aiResult?.validationFailed && (
+                        <Button variant="outline" size="icon" onClick={handleAiAction} disabled={aiLoading} title="Retry">
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   )}
 
+                  {/* Re-run for completed steps */}
                   {currentStepData?.status === "done" && (
-                    <div className="text-center py-4">
-                      <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm font-medium text-foreground">Step Complete</p>
+                    <div className="space-y-3">
+                      <div className="text-center py-2">
+                        <CheckCircle2 className="h-6 w-6 text-primary mx-auto mb-1" />
+                        <p className="text-sm font-medium text-foreground">Step Complete</p>
+                      </div>
+                      <Button variant="outline" onClick={handleAiAction} disabled={aiLoading} className="w-full gap-2 text-xs">
+                        {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        Re-run analysis
+                      </Button>
                     </div>
                   )}
                 </>
