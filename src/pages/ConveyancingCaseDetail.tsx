@@ -46,8 +46,8 @@ interface CaseData {
 }
 
 const statusIcon = (s: string) => {
-  if (s === "done") return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-  if (s === "blocked") return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+  if (s === "done") return <CheckCircle2 className="h-4 w-4 text-primary" />;
+  if (s === "blocked") return <AlertTriangle className="h-4 w-4 text-destructive" />;
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 };
 
