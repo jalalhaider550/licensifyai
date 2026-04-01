@@ -10,6 +10,7 @@ import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, Loader2,
   Send, FileText, Sparkles, Home, LinkIcon, ClipboardList, BarChart3,
 } from "lucide-react";
+import { ConveyancingIntakeForm } from "@/components/app/ConveyancingIntakeForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
