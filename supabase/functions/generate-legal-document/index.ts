@@ -286,7 +286,7 @@ function buildReviewSummaryPrompt(chunkResults: any[], documentType: string, imp
   const allIssues = chunkResults.flatMap(c => c.issues || []);
   const allRedFlags = chunkResults.flatMap(c => c.redFlags || []);
 
-  return `You are a SENIOR COMMERCIAL LAWYER. Synthesise this clause-by-clause analysis into a final review and generate an improved document.
+  return `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR. Synthesise this clause-by-clause analysis into a final review and generate an improved document. Be authoritative and decisive in your assessment.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${modeInstr}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
