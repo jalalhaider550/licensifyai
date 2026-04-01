@@ -311,7 +311,7 @@ RULES:
 
 function buildGenerateFromDocumentPrompt(body: any) {
   const { documentText, documentType, userInstruction, targetDocumentType } = body;
-  return `You are a senior commercial lawyer. Using the source document, generate a NEW ${targetDocumentType || documentType || "Legal Agreement"}.
+  return `You are a practising senior commercial solicitor. Using the source document, generate a NEW ${targetDocumentType || documentType || "Legal Agreement"} with full legal authority.
 INSTRUCTION: ${userInstruction || "Improve and restructure professionally"}
 
 SOURCE (truncated):
