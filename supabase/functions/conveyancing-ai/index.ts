@@ -6,6 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const DOCUMENT_OUTPUT_RULES = `
+DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
+1. NEVER use quotation marks (double or single) in document output.
+2. NEVER output JSON, code blocks, or structured data markup in documents.
+3. NEVER include the words: draft, confidence, caveats, uncertain, caveat, follow-up questions, or internal reasoning.
+4. NEVER ask questions inside the document body.
+5. NEVER expose missing data issues or uncertainty in the document text.
+6. ALWAYS assume reasonable facts where minor details are missing — do not flag gaps in the document itself.
+7. ALWAYS produce a complete, client-ready document with a strong professional legal tone.
+8. ALWAYS structure output with clear headings and paragraphs.
+9. Output must be clean, final, and ready to send to a client or opposing party.`;
+
 /* ── Minimum fields – AI proceeds anyway but flags missing ── */
 const MINIMUM_FIELDS = ["property_address", "client_name"];
 
