@@ -263,7 +263,7 @@ export default function ConveyancingCaseDetail() {
 
               {currentStepData?.status === "done" && (
                 <div className="text-center py-4">
-                  <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                  <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
                   <p className="text-sm font-medium text-foreground">Step Complete</p>
                 </div>
               )}
