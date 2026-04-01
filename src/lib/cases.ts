@@ -5,7 +5,43 @@ export const CASE_TYPES = [
   { value: "employment", label: "Employment", description: "Workplace disputes, contracts, and HR matters." },
   { value: "intellectual_property", label: "Intellectual property", description: "Trade marks, copyright, IP protection, and disputes." },
   { value: "general_legal", label: "General legal", description: "General advisory and mixed legal matters." },
+  { value: "litigation", label: "Litigation", description: "Court proceedings, claims, defences, and dispute resolution." },
+  { value: "conveyancing", label: "Conveyancing", description: "Property transactions, searches, and title work." },
+  { value: "advisory", label: "Advisory", description: "Legal opinions, risk assessments, and strategic advice." },
 ] as const;
+
+export interface CaseRisk {
+  id: string;
+  title: string;
+  level: "HIGH" | "MEDIUM" | "LOW";
+  category: string;
+  description: string;
+  mitigation?: string;
+  detectedAt: string;
+  linkedDocId?: string;
+}
+
+export interface CaseDeadline {
+  id: string;
+  title: string;
+  date: string;
+  type: "court" | "filing" | "milestone" | "limitation" | "contractual";
+  status: "upcoming" | "overdue" | "completed";
+  linkedStepId?: string;
+}
+
+export interface LitigationData {
+  timeline: { date: string; event: string; category: string }[];
+  evidence: { name: string; type: string; status: string; relevance: string }[];
+  filings: { name: string; filedDate?: string; dueDate?: string; status: string }[];
+  courtDates: { date: string; type: string; venue?: string }[];
+}
+
+export interface CorporateData {
+  dueDiligence: { area: string; status: string; findings: string; riskLevel: string }[];
+  obligations: { clause: string; party: string; deadline?: string; status: string }[];
+  entities: { name: string; type: string; jurisdiction: string; relationship: string }[];
+}
 
 export type CaseTypeValue = (typeof CASE_TYPES)[number]["value"];
 
