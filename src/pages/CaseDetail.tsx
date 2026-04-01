@@ -1137,6 +1137,14 @@ const CaseDetail = () => {
           <TabsList className="h-auto flex-wrap gap-1 p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="risks">Risks & Deadlines</TabsTrigger>
+            {(caseItem.case_type === "litigation" || caseItem.case_type === "contract_dispute") && (
+              <TabsTrigger value="litigation">Litigation</TabsTrigger>
+            )}
+            {(caseItem.case_type === "corporate" || caseItem.case_type === "advisory") && (
+              <TabsTrigger value="corporate">Corporate</TabsTrigger>
+            )}
+            <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
 
