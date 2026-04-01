@@ -355,7 +355,7 @@ serve(async (req) => {
           userInstruction,
         );
         // Replace the chunk analysis placeholder with the actual text
-        const singlePrompt = `You are a SENIOR COMMERCIAL LAWYER performing a FULL LEGAL REVIEW.
+        const singlePrompt = `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR performing a FULL LEGAL REVIEW. Be authoritative and decisive.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${improvementMode || "improve"}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
