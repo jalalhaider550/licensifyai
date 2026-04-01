@@ -32,6 +32,7 @@ import GenerateNDA from "./pages/GenerateNDA";
 import ConveyancingCases from "./pages/ConveyancingCases";
 import ConveyancingNewCase from "./pages/ConveyancingNewCase";
 import ConveyancingCaseDetail from "./pages/ConveyancingCaseDetail";
+import ConveyancingClientIntake from "./pages/ConveyancingClientIntake";
 const queryClient = new QueryClient();
 
 const App = () => (
