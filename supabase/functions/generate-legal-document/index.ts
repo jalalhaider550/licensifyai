@@ -199,7 +199,7 @@ function buildContractPrompt(body: any) {
     case "balanced": modeInstr = "Balanced, fair terms for both parties."; break;
     default: modeInstr = "Standard professional clauses.";
   }
-  return `You are a senior commercial lawyer (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract.
+  return `You are a practising senior commercial solicitor (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract. Write with authority — every clause must be definitive legal text ready for execution.
 PARTIES: Party A: ${partyA} | Party B: ${partyB}
 JURISDICTION: ${jurisdiction}
 SCOPE: ${scopeOfWork || "To be defined"}
