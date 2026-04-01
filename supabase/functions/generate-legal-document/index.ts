@@ -425,7 +425,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
       default: return err("Unknown action");
     }
 
-    const result = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", prompt, { maxTokens: 12000 });
+    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens: 12000 });
     if (!result.ok) return err(result.error, result.errorType);
 
     const parsed = extractJson(result.content);
