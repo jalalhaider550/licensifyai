@@ -191,7 +191,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
   };
 
   const saveIntake = async (complete: boolean) => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     setSaving(true);
     try {
       // Upload files if present
