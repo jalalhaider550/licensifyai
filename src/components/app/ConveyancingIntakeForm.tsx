@@ -125,7 +125,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
 
   // Load existing intake if any
   useEffect(() => {
-    if (!user) return;
+    if (!effectiveUserId) return;
     (supabase as any)
       .from("conveyancing_client_intake")
       .select("*")
