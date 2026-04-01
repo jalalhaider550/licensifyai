@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -76,6 +76,9 @@ import {
   buildCaseInfoRequestMessage,
   getCaseInfoRequestStatusLabel,
 } from "@/lib/caseInfoRequests";
+import type { CaseRisk, CaseDeadline, LitigationData, CorporateData } from "@/lib/cases";
+import { RiskPanel, DeadlinePanel, LitigationPanel, CorporatePanel } from "@/components/app/MatterSpecificPanels";
+import { RichDocumentEditor } from "@/components/app/RichDocumentEditor";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -1134,6 +1137,14 @@ const CaseDetail = () => {
           <TabsList className="h-auto flex-wrap gap-1 p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="risks">Risks & Deadlines</TabsTrigger>
+            {(caseItem.case_type === "litigation" || caseItem.case_type === "contract_dispute") && (
+              <TabsTrigger value="litigation">Litigation</TabsTrigger>
+            )}
+            {(caseItem.case_type === "corporate" || caseItem.case_type === "advisory") && (
+              <TabsTrigger value="corporate">Corporate</TabsTrigger>
+            )}
+            <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
 
@@ -1393,6 +1404,134 @@ const CaseDetail = () => {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Risks & Deadlines Tab */}
+          <TabsContent value="risks">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <RiskPanel
+                risks={(caseItem.risks || []) as CaseRisk[]}
+                onAdd={async (risk) => {
+                  const updatedRisks = [...(caseItem.risks || []), risk];
+                  await db.from("cases").update({ risks: updatedRisks }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, risks: updatedRisks });
+                  toast.success("Risk added");
+                }}
+                onRemove={async (riskId) => {
+                  const updatedRisks = ((caseItem.risks || []) as CaseRisk[]).filter((r: CaseRisk) => r.id !== riskId);
+                  await db.from("cases").update({ risks: updatedRisks }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, risks: updatedRisks });
+                  toast.success("Risk removed");
+                }}
+              />
+              <DeadlinePanel
+                deadlines={(caseItem.deadlines || []) as CaseDeadline[]}
+                onAdd={async (deadline) => {
+                  const updated = [...(caseItem.deadlines || []), deadline];
+                  await db.from("cases").update({ deadlines: updated }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, deadlines: updated });
+                  toast.success("Deadline added");
+                }}
+                onRemove={async (deadlineId) => {
+                  const updated = ((caseItem.deadlines || []) as CaseDeadline[]).filter((d: CaseDeadline) => d.id !== deadlineId);
+                  await db.from("cases").update({ deadlines: updated }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, deadlines: updated });
+                }}
+                onComplete={async (deadlineId) => {
+                  const updated = ((caseItem.deadlines || []) as CaseDeadline[]).map((d: CaseDeadline) =>
+                    d.id === deadlineId ? { ...d, status: "completed" as const } : d
+                  );
+                  await db.from("cases").update({ deadlines: updated }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, deadlines: updated });
+                  toast.success("Deadline completed");
+                }}
+              />
+            </div>
+          </TabsContent>
+
+          {/* Litigation Tab */}
+          {(caseItem.case_type === "litigation" || caseItem.case_type === "contract_dispute") && (
+            <TabsContent value="litigation">
+              <LitigationPanel
+                data={(caseItem.case_metadata?.litigation || { timeline: [], evidence: [], filings: [], courtDates: [] }) as LitigationData}
+                onChange={async (litData) => {
+                  const updated = { ...(caseItem.case_metadata || {}), litigation: litData };
+                  await db.from("cases").update({ case_metadata: updated }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, case_metadata: updated });
+                }}
+              />
+            </TabsContent>
+          )}
+
+          {/* Corporate Tab */}
+          {(caseItem.case_type === "corporate" || caseItem.case_type === "advisory") && (
+            <TabsContent value="corporate">
+              <CorporatePanel
+                data={(caseItem.case_metadata?.corporate || { dueDiligence: [], obligations: [], entities: [] }) as CorporateData}
+                onChange={async (corpData) => {
+                  const updated = { ...(caseItem.case_metadata || {}), corporate: corpData };
+                  await db.from("cases").update({ case_metadata: updated }).eq("id", caseItem.id);
+                  setCaseItem({ ...caseItem, case_metadata: updated });
+                }}
+              />
+            </TabsContent>
+          )}
+
+          {/* In-Browser Editor Tab */}
+          <TabsContent value="editor">
+            <RichDocumentEditor
+              content={actionWorkspaceContent || "<p>Start drafting your document here, or generate one from the Overview tab.</p>"}
+              title={actionWorkspaceTitle || "New Document"}
+              onChange={setActionWorkspaceContent}
+              onTitleChange={setActionWorkspaceTitle}
+              onSave={() => persistWorkspaceDraft("draft")}
+              onExportWord={() => exportWorkspace("docx")}
+              onExportPdf={() => exportWorkspace("pdf")}
+              onAiAction={async (action, selected) => {
+                try {
+                  const { data, error } = await supabase.functions.invoke("case-ai", {
+                    body: {
+                      action: "edit-clause",
+                      editType: action,
+                      selectedText: selected,
+                      caseType: caseItem.case_type,
+                      jurisdiction,
+                    },
+                  });
+                  if (error) throw error;
+                  const parsed = parseContentJson(data);
+                  return parsed.revisedText || parsed.content || null;
+                } catch (err: any) {
+                  toast.error(err.message || "AI edit failed");
+                  return null;
+                }
+              }}
+              isSaving={persistingDraft}
+            />
+            {drafts.length > 0 && (
+              <div className="mt-4 rounded-xl border border-border bg-card p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Version History</h3>
+                <div className="space-y-2">
+                  {drafts.slice(0, 10).map((draft) => (
+                    <div key={draft.id} className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">{draft.title}</p>
+                        <p className="text-[10px] text-muted-foreground">v{draft.version_number} · {draft.status} · {formatRelativeDate(draft.created_at)}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
+                        setActionWorkspaceTitle(draft.title);
+                        setActionWorkspaceContent(draft.content);
+                        setWorkspaceProduct(draft.metadata?.structured || null);
+                        setActiveTab("editor");
+                        toast.success("Loaded version " + draft.version_number);
+                      }}>
+                        Load
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="timeline">

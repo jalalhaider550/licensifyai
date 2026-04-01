@@ -397,18 +397,21 @@ export type Database = {
       cases: {
         Row: {
           ai_context: Json
+          case_metadata: Json
           case_summary: string
           case_type: Database["public"]["Enums"]["case_type"]
           client_id: string | null
           client_name: string
           client_summary: string
           created_at: string
+          deadlines: Json
           id: string
           intake_data: Json
           key_facts: string[]
           last_recommendations: Json
           opponent: string | null
           progress_percentage: number
+          risks: Json
           status: string
           title: string
           updated_at: string
@@ -416,18 +419,21 @@ export type Database = {
         }
         Insert: {
           ai_context?: Json
+          case_metadata?: Json
           case_summary?: string
           case_type?: Database["public"]["Enums"]["case_type"]
           client_id?: string | null
           client_name: string
           client_summary?: string
           created_at?: string
+          deadlines?: Json
           id?: string
           intake_data?: Json
           key_facts?: string[]
           last_recommendations?: Json
           opponent?: string | null
           progress_percentage?: number
+          risks?: Json
           status?: string
           title: string
           updated_at?: string
@@ -435,18 +441,21 @@ export type Database = {
         }
         Update: {
           ai_context?: Json
+          case_metadata?: Json
           case_summary?: string
           case_type?: Database["public"]["Enums"]["case_type"]
           client_id?: string | null
           client_name?: string
           client_summary?: string
           created_at?: string
+          deadlines?: Json
           id?: string
           intake_data?: Json
           key_facts?: string[]
           last_recommendations?: Json
           opponent?: string | null
           progress_percentage?: number
+          risks?: Json
           status?: string
           title?: string
           updated_at?: string
@@ -1158,6 +1167,9 @@ export type Database = {
         | "employment"
         | "intellectual_property"
         | "general_legal"
+        | "litigation"
+        | "conveyancing"
+        | "advisory"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1292,6 +1304,9 @@ export const Constants = {
         "employment",
         "intellectual_property",
         "general_legal",
+        "litigation",
+        "conveyancing",
+        "advisory",
       ],
     },
   },
