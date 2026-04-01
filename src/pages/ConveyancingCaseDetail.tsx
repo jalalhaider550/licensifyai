@@ -10,6 +10,7 @@ import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, Loader2,
   Send, FileText, Sparkles, Home, LinkIcon, ClipboardList, BarChart3,
 } from "lucide-react";
+import { ConveyancingIntakeForm } from "@/components/app/ConveyancingIntakeForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -293,46 +294,89 @@ export default function ConveyancingCaseDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Missing items */}
-              {currentStepData?.missing_items && currentStepData.missing_items.length > 0 && currentStepData.status !== "done" && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <p className="text-xs font-semibold text-destructive mb-1">What's Missing</p>
-                  <ul className="text-xs text-destructive/80 space-y-0.5">
-                    {currentStepData.missing_items.map((item, i) => (
-                      <li key={i}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* AI output */}
-              {currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && Object.keys(currentStepData.ai_output).length > 0 && (
-                <div className="rounded-lg border bg-muted/50 p-3 max-h-64 overflow-y-auto">
-                  <p className="text-xs font-semibold text-foreground mb-2">AI Output</p>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                    {typeof currentStepData.ai_output === "string"
-                      ? currentStepData.ai_output
-                      : JSON.stringify(currentStepData.ai_output, null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              {/* AI Action button */}
-              {currentConfig && currentStepData?.status !== "done" && (
-                <Button onClick={handleAiAction} disabled={aiLoading} className="w-full gap-2">
-                  {aiLoading ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
-                  ) : (
-                    <><Sparkles className="h-4 w-4" /> {currentConfig.aiAction}</>
+              {/* Show intake form for client_intake step */}
+              {activeStep === "client_intake" && currentStepData?.status !== "done" && caseData ? (
+                <ConveyancingIntakeForm
+                  caseId={caseData.id}
+                  caseData={{
+                    property_address: caseData.property_address,
+                    postcode: caseData.postcode,
+                    client_name: caseData.client_name,
+                    client_type: caseData.client_type,
+                    price: caseData.price,
+                    tenure: caseData.tenure,
+                    property_category: caseData.property_category,
+                    mortgage_status: caseData.mortgage_status,
+                  }}
+                  onComplete={async () => {
+                    // Mark step done
+                    if (currentStepData) {
+                      await supabase
+                        .from("conveyancing_steps" as any)
+                        .update({ status: "done", completed_at: new Date().toISOString() } as any)
+                        .eq("id", currentStepData.id);
+                    }
+                    // Advance to next step
+                    const nextStep = STEP_CONFIG[1].key;
+                    await supabase
+                      .from("conveyancing_cases" as any)
+                      .update({ current_step: nextStep } as any)
+                      .eq("id", id);
+                    setCaseData((prev) => prev ? { ...prev, current_step: nextStep } : prev);
+                    // Refresh steps
+                    const { data: refreshed } = await supabase
+                      .from("conveyancing_steps" as any)
+                      .select("*")
+                      .eq("case_id", id)
+                      .order("created_at", { ascending: true });
+                    setSteps((refreshed as any[]) || []);
+                    setActiveStep(nextStep);
+                  }}
+                />
+              ) : (
+                <>
+                  {/* Missing items */}
+                  {currentStepData?.missing_items && currentStepData.missing_items.length > 0 && currentStepData.status !== "done" && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <p className="text-xs font-semibold text-destructive mb-1">What's Missing</p>
+                      <ul className="text-xs text-destructive/80 space-y-0.5">
+                        {currentStepData.missing_items.map((item, i) => (
+                          <li key={i}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                </Button>
-              )}
 
-              {currentStepData?.status === "done" && (
-                <div className="text-center py-4">
-                  <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-medium text-foreground">Step Complete</p>
-                </div>
+                  {/* AI output */}
+                  {currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && Object.keys(currentStepData.ai_output).length > 0 && (
+                    <div className="rounded-lg border bg-muted/50 p-3 max-h-64 overflow-y-auto">
+                      <p className="text-xs font-semibold text-foreground mb-2">AI Output</p>
+                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
+                        {typeof currentStepData.ai_output === "string"
+                          ? currentStepData.ai_output
+                          : JSON.stringify(currentStepData.ai_output, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* AI Action button */}
+                  {currentConfig && currentStepData?.status !== "done" && (
+                    <Button onClick={handleAiAction} disabled={aiLoading} className="w-full gap-2">
+                      {aiLoading ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
+                      ) : (
+                        <><Sparkles className="h-4 w-4" /> {currentConfig.aiAction}</>
+                      )}
+                    </Button>
+                  )}
+
+                  {currentStepData?.status === "done" && (
+                    <div className="text-center py-4">
+                      <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
+                      <p className="text-sm font-medium text-foreground">Step Complete</p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
