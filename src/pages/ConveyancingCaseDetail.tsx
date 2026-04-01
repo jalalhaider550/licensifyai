@@ -54,6 +54,7 @@ interface CaseData {
   other_side_name: string;
   other_side_firm: string;
   target_completion_date: string | null;
+  intake_token: string | null;
 }
 
 const statusIcon = (s: string) => {
