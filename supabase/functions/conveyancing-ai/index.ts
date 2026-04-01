@@ -18,11 +18,12 @@ DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
 8. ALWAYS structure output with clear headings and paragraphs.
 9. Output must be clean, final, and ready to send to a client or opposing party.
 10. HEADING FORMAT — MANDATORY:
-    - NEVER use markdown symbols in headings — no ###, ##, #.
-    - ALL headings must be numbered and bold.
-    - Use HTML bold tags for headings: <b>1. Background</b>, <b>2. Legal Position</b>, <b>3. Demand</b>, <b>4. Next Steps</b>
+    - NEVER use markdown symbols in headings — no ###, ##, #, no ** asterisks, no HTML tags like bold or italic tags.
+    - ALL headings must be plain numbered text, rendered bold by the application automatically.
+    - Correct format: 1. Background    2. Legal Position    3. Demand    4. Next Steps
     - Maintain consistent sequential numbering throughout the entire document.
-    - Sub-sections use decimal numbering: <b>1.1</b>, <b>1.2</b>, <b>2.1</b>, etc.
+    - Sub-sections use decimal numbering: 1.1, 1.2, 2.1, etc.
+    - Output ONLY the number, period, and heading text — nothing else.
     - NEVER mix heading styles — every heading in the document must follow this format.`;
 
 /* ── Minimum fields – AI proceeds anyway but flags missing ── */
