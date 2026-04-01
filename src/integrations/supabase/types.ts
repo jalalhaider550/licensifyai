@@ -637,6 +637,140 @@ export type Database = {
           },
         ]
       }
+      conveyancing_client_intake: {
+        Row: {
+          address_postcode: string
+          buying_with_another: boolean | null
+          case_id: string
+          client_role: string
+          country: string
+          created_at: string
+          current_address: string
+          current_step: number
+          date_of_birth: string | null
+          declaration_confirmed: boolean
+          email: string
+          existing_lender_name: string
+          existing_mortgage: boolean | null
+          first_time_buyer: boolean | null
+          full_name: string
+          ground_rent: string
+          has_mortgage: boolean
+          id: string
+          id_document_path: string | null
+          id_document_type: string
+          intake_complete: boolean
+          lease_years_remaining: number | null
+          lender_name: string
+          mortgage_broker: string
+          owns_property_fully: boolean | null
+          phone: string
+          proof_of_address_path: string | null
+          property_address: string
+          property_postcode: string
+          property_type: string
+          property_vacant: boolean | null
+          second_buyer_name: string
+          source_of_funds: string
+          source_of_funds_document_path: string | null
+          submitted_at: string | null
+          tenure: string
+          transaction_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_postcode?: string
+          buying_with_another?: boolean | null
+          case_id: string
+          client_role?: string
+          country?: string
+          created_at?: string
+          current_address?: string
+          current_step?: number
+          date_of_birth?: string | null
+          declaration_confirmed?: boolean
+          email?: string
+          existing_lender_name?: string
+          existing_mortgage?: boolean | null
+          first_time_buyer?: boolean | null
+          full_name?: string
+          ground_rent?: string
+          has_mortgage?: boolean
+          id?: string
+          id_document_path?: string | null
+          id_document_type?: string
+          intake_complete?: boolean
+          lease_years_remaining?: number | null
+          lender_name?: string
+          mortgage_broker?: string
+          owns_property_fully?: boolean | null
+          phone?: string
+          proof_of_address_path?: string | null
+          property_address?: string
+          property_postcode?: string
+          property_type?: string
+          property_vacant?: boolean | null
+          second_buyer_name?: string
+          source_of_funds?: string
+          source_of_funds_document_path?: string | null
+          submitted_at?: string | null
+          tenure?: string
+          transaction_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_postcode?: string
+          buying_with_another?: boolean | null
+          case_id?: string
+          client_role?: string
+          country?: string
+          created_at?: string
+          current_address?: string
+          current_step?: number
+          date_of_birth?: string | null
+          declaration_confirmed?: boolean
+          email?: string
+          existing_lender_name?: string
+          existing_mortgage?: boolean | null
+          first_time_buyer?: boolean | null
+          full_name?: string
+          ground_rent?: string
+          has_mortgage?: boolean
+          id?: string
+          id_document_path?: string | null
+          id_document_type?: string
+          intake_complete?: boolean
+          lease_years_remaining?: number | null
+          lender_name?: string
+          mortgage_broker?: string
+          owns_property_fully?: boolean | null
+          phone?: string
+          proof_of_address_path?: string | null
+          property_address?: string
+          property_postcode?: string
+          property_type?: string
+          property_vacant?: boolean | null
+          second_buyer_name?: string
+          source_of_funds?: string
+          source_of_funds_document_path?: string | null
+          submitted_at?: string | null
+          tenure?: string
+          transaction_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conveyancing_client_intake_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "conveyancing_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conveyancing_steps: {
         Row: {
           ai_output: Json
