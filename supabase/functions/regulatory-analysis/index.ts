@@ -17,7 +17,14 @@ DOCUMENT OUTPUT RULES — APPLY TO ALL GENERATED DOCUMENTS:
 6. ALWAYS assume reasonable facts where minor details are missing — do not flag gaps in the document itself.
 7. ALWAYS produce a complete, client-ready document with a strong professional legal tone.
 8. ALWAYS structure output with clear headings and paragraphs.
-9. Output must be clean, final, and ready to send to a client or opposing party.`;
+9. Output must be clean, final, and ready to send to a client or opposing party.
+10. HEADING FORMAT — MANDATORY:
+    - NEVER use markdown heading symbols (###, ##, #) in document output.
+    - ALL headings must be clean, numbered, and bold using **double asterisks**.
+    - Correct format: **1. Background**, **2. Legal Position**, **3. Demand**, **4. Next Steps**
+    - Maintain consistent sequential numbering throughout the entire document.
+    - Sub-sections use decimal numbering: **1.1**, **1.2**, **2.1**, etc.
+    - NEVER mix heading styles — every heading in the document must follow this format.`;
 
 const GUARDRAILS = `
 MANDATORY RULES:
