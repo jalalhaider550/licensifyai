@@ -1,7 +1,6 @@
 import { CheckCircle2, Copy, Download, FileText, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { isNumberedHeading } from "@/lib/legalDocuments";
 
 interface DownloadFallbackLink {
   url: string;
@@ -89,23 +88,7 @@ export const CaseDraftWorkspace = ({
         </div>
       </div>
 
-      {/* Formatted preview */}
-      <div className="mt-4 max-h-[500px] overflow-y-auto rounded-lg border border-border bg-background p-4 text-sm leading-relaxed font-serif">
-        {content.split("\n").map((line, i) => {
-          const trimmed = line.trim();
-          if (!trimmed) return <div key={i} className="h-3" />;
-          if (isNumberedHeading(trimmed) || trimmed === trimmed.toUpperCase() && trimmed.length > 2) {
-            return <p key={i} className="font-bold mt-3 mb-1">{trimmed}</p>;
-          }
-          return <p key={i} className="mb-1">{trimmed}</p>;
-        })}
-      </div>
-
-      {/* Raw editor */}
-      <details className="mt-2">
-        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Edit raw text</summary>
-        <Textarea value={content} onChange={(event) => onChange(event.target.value)} rows={18} className="mt-2 font-mono text-sm leading-relaxed" />
-      </details>
+      <Textarea value={content} onChange={(event) => onChange(event.target.value)} rows={18} className="mt-4 font-mono text-sm leading-relaxed" />
 
       {downloadFallback ? (
         <div className="mt-4 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground">

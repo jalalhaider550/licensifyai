@@ -77,22 +77,6 @@ export const parseLegalWorkProduct = (raw: string): LegalWorkProduct => {
     sections: [{ heading: "Draft", body: [raw] }],
   };
 };
-/** Strip markdown/HTML formatting artifacts from AI-generated legal content */
-export const sanitizeLegalContent = (text: string): string =>
-  text
-    .replace(/<\/?b>/gi, "")
-    .replace(/<\/?i>/gi, "")
-    .replace(/<\/?strong>/gi, "")
-    .replace(/<\/?em>/gi, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/"([^"]*)"/g, "$1")
-    .replace(/'([^']*)'/g, "$1");
-
-/** Check if a line is a numbered heading like "1. Background" or "2.3 Sub-section" */
-export const isNumberedHeading = (line: string): boolean =>
-  /^\d+(\.\d+)*\.\s+[A-Z]/.test(line.trim());
 
 const renderBullets = (items: string[]) => items.filter(Boolean).map((item) => `• ${item}`);
 
