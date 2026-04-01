@@ -257,7 +257,7 @@ function buildReviewChunkPrompt(chunkText: string, chunkIndex: number, totalChun
     case "add_missing": modeInstr = "Focus on identifying missing clauses."; break;
     default: modeInstr = "Improve professionally.";
   }
-  return `You are a SENIOR COMMERCIAL LAWYER performing a legal review.
+  return `You are a PRACTISING SENIOR COMMERCIAL SOLICITOR performing a legal review. Give definitive assessments — do not hedge.
 DOCUMENT TYPE: ${documentType || "Legal Agreement"}
 MODE: ${modeInstr}
 ${userInstruction ? `USER INSTRUCTION: ${userInstruction}` : ""}
