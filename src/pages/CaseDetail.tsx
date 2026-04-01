@@ -63,6 +63,7 @@ import {
   createLegalPdfBlob,
   parseLegalWorkProduct,
   renderLegalWorkProductText,
+  sanitizeLegalContent,
   slugifyFileName,
   type LegalWorkProduct,
 } from "@/lib/legalDocuments";
