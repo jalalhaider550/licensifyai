@@ -403,7 +403,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
 
       // Summarise all chunks
       const summaryPrompt = buildReviewSummaryPrompt(chunkResults, documentType, improvementMode, userInstruction);
-      const summaryResult = await callAI(LOVABLE_API_KEY, "You are a senior commercial lawyer. Return valid JSON only. No markdown fences.", summaryPrompt, { maxTokens: 16000 });
+      const summaryResult = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", summaryPrompt, { maxTokens: 16000 });
       if (!summaryResult.ok) return err(summaryResult.error, summaryResult.errorType);
 
       const finalParsed = extractJson(summaryResult.content);
