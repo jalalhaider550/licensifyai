@@ -29,6 +29,9 @@ import ClientPortal from "./pages/ClientPortal";
 import ClientInfoRequest from "./pages/ClientInfoRequest";
 import GenerateContract from "./pages/GenerateContract";
 import GenerateNDA from "./pages/GenerateNDA";
+import ConveyancingCases from "./pages/ConveyancingCases";
+import ConveyancingNewCase from "./pages/ConveyancingNewCase";
+import ConveyancingCaseDetail from "./pages/ConveyancingCaseDetail";
 const queryClient = new QueryClient();
 
 const App = () => (
