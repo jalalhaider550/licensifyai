@@ -30,6 +30,7 @@ const navItems = [
   { to: "/documents", icon: FolderOpen, label: "Documents" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
+  { to: "/conveyancing", icon: Home, label: "Conveyancing" },
   { to: "/tasks", icon: ListTodo, label: "Tasks" },
   { to: "/activity", icon: Activity, label: "Activity" },
 ];
