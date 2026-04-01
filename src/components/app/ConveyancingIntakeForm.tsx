@@ -168,7 +168,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
           }));
         }
       });
-  }, [user, caseId]);
+  }, [effectiveUserId, caseId]);
 
   const set = (field: keyof FormData, value: any) => setForm((prev) => ({ ...prev, [field]: value }));
 
