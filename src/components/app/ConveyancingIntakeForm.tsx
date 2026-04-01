@@ -205,7 +205,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
 
       const payload: Record<string, any> = {
         case_id: caseId,
-        user_id: user.id,
+        user_id: effectiveUserId,
         full_name: form.full_name,
         date_of_birth: form.date_of_birth || null,
         email: form.email,
