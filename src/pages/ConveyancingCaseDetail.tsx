@@ -228,9 +228,9 @@ export default function ConveyancingCaseDetail() {
             <CardContent className="space-y-4">
               {/* Missing items */}
               {currentStepData?.missing_items && currentStepData.missing_items.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3">
-                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">What's Missing</p>
-                  <ul className="text-xs text-amber-600 dark:text-amber-300 space-y-0.5">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="text-xs font-semibold text-destructive mb-1">What's Missing</p>
+                  <ul className="text-xs text-destructive/80 space-y-0.5">
                     {currentStepData.missing_items.map((item, i) => (
                       <li key={i}>• {item}</li>
                     ))}
