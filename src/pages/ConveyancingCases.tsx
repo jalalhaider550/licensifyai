@@ -27,9 +27,12 @@ interface ConveyancingCase {
   id: string;
   property_address: string;
   client_type: string;
+  client_name: string;
+  transaction_type: string;
   price: number;
   current_step: string;
   status: string;
+  readiness_score: number;
   created_at: string;
   client_id: string | null;
 }
@@ -139,11 +142,15 @@ export default function ConveyancingCases() {
                     <p className="font-medium text-foreground truncate">{c.property_address}</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="capitalize">{c.client_type}</Badge>
+                      <Badge variant="secondary" className="capitalize">{c.transaction_type}</Badge>
                       <Badge variant="secondary">{STEP_LABELS[c.current_step] || c.current_step}</Badge>
                       {c.price > 0 && (
                         <span className="text-xs text-muted-foreground">£{c.price.toLocaleString()}</span>
                       )}
                     </div>
+                    {c.client_name && (
+                      <p className="text-xs text-muted-foreground">{c.client_name} · Readiness: {c.readiness_score}%</p>
+                    )}
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 ml-3" />
                 </CardContent>
