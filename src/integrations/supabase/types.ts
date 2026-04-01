@@ -676,7 +676,19 @@ export type Database = {
           second_buyer_name: string
           source_of_funds: string
           source_of_funds_document_path: string | null
+          source_of_wealth: string
+          special_instructions: string
           submitted_at: string | null
+          ta10_additional_items: string
+          ta10_excluded_items: string
+          ta10_included_items: string
+          ta6_boundaries: string
+          ta6_disputes: string
+          ta6_guarantees: string
+          ta6_notices: string
+          ta6_planning_works: string
+          ta6_rights_of_way: string
+          ta6_services: string
           tenure: string
           transaction_price: number
           updated_at: string
@@ -717,7 +729,19 @@ export type Database = {
           second_buyer_name?: string
           source_of_funds?: string
           source_of_funds_document_path?: string | null
+          source_of_wealth?: string
+          special_instructions?: string
           submitted_at?: string | null
+          ta10_additional_items?: string
+          ta10_excluded_items?: string
+          ta10_included_items?: string
+          ta6_boundaries?: string
+          ta6_disputes?: string
+          ta6_guarantees?: string
+          ta6_notices?: string
+          ta6_planning_works?: string
+          ta6_rights_of_way?: string
+          ta6_services?: string
           tenure?: string
           transaction_price?: number
           updated_at?: string
@@ -758,7 +782,19 @@ export type Database = {
           second_buyer_name?: string
           source_of_funds?: string
           source_of_funds_document_path?: string | null
+          source_of_wealth?: string
+          special_instructions?: string
           submitted_at?: string | null
+          ta10_additional_items?: string
+          ta10_excluded_items?: string
+          ta10_included_items?: string
+          ta6_boundaries?: string
+          ta6_disputes?: string
+          ta6_guarantees?: string
+          ta6_notices?: string
+          ta6_planning_works?: string
+          ta6_rights_of_way?: string
+          ta6_services?: string
           tenure?: string
           transaction_price?: number
           updated_at?: string

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -14,18 +15,23 @@ import {
 } from "@/components/ui/select";
 import {
   User, Shield, Home, Banknote, CheckCircle2, Loader2, ArrowRight, ArrowLeft, Upload,
+  ClipboardList, Package, MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const STEPS = [
-  { num: 1, label: "Personal Info", icon: User },
+  { num: 1, label: "Personal", icon: User },
   { num: 2, label: "Identity", icon: Shield },
   { num: 3, label: "Property", icon: Home },
   { num: 4, label: "Financial", icon: Banknote },
-  { num: 5, label: "Final", icon: CheckCircle2 },
+  { num: 5, label: "TA6", icon: ClipboardList },
+  { num: 6, label: "TA10", icon: Package },
+  { num: 7, label: "Final", icon: CheckCircle2 },
 ];
+
+const TOTAL_STEPS = STEPS.length;
 
 const SOURCE_OF_FUNDS_OPTIONS = [
   "Salary", "Savings", "Business income", "Gift", "Investment", "Other",
@@ -43,7 +49,6 @@ interface IntakeFormProps {
     property_category: string;
     mortgage_status: string;
   };
-  /** Override user_id for public/anonymous usage (client-facing link) */
   userId?: string;
   onComplete: () => void;
 }
@@ -69,6 +74,7 @@ type FormData = {
   lender_name: string;
   mortgage_broker: string;
   source_of_funds: string;
+  source_of_wealth: string;
   source_funds_file: File | null;
   first_time_buyer: boolean;
   buying_with_another: boolean;
@@ -79,6 +85,20 @@ type FormData = {
   property_vacant: boolean;
   lease_years_remaining: string;
   ground_rent: string;
+  // TA6
+  ta6_disputes: string;
+  ta6_planning_works: string;
+  ta6_guarantees: string;
+  ta6_boundaries: string;
+  ta6_rights_of_way: string;
+  ta6_notices: string;
+  ta6_services: string;
+  // TA10
+  ta10_included_items: string;
+  ta10_excluded_items: string;
+  ta10_additional_items: string;
+  // Extra
+  special_instructions: string;
   declaration_confirmed: boolean;
 };
 
@@ -110,6 +130,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
     lender_name: "",
     mortgage_broker: "",
     source_of_funds: "",
+    source_of_wealth: "",
     source_funds_file: null,
     first_time_buyer: false,
     buying_with_another: false,
@@ -120,10 +141,20 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
     property_vacant: false,
     lease_years_remaining: "",
     ground_rent: "",
+    ta6_disputes: "",
+    ta6_planning_works: "",
+    ta6_guarantees: "",
+    ta6_boundaries: "",
+    ta6_rights_of_way: "",
+    ta6_notices: "",
+    ta6_services: "",
+    ta10_included_items: "",
+    ta10_excluded_items: "",
+    ta10_additional_items: "",
+    special_instructions: "",
     declaration_confirmed: false,
   });
 
-  // Load existing intake if any
   useEffect(() => {
     if (!effectiveUserId) return;
     (supabase as any)
@@ -134,7 +165,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
       .then(({ data }: any) => {
         if (data) {
           setExistingId(data.id);
-          setStep(data.current_step || 1);
+          setStep(Math.min(data.current_step || 1, TOTAL_STEPS));
           setForm((prev) => ({
             ...prev,
             full_name: data.full_name || prev.full_name,
@@ -155,6 +186,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
             lender_name: data.lender_name || "",
             mortgage_broker: data.mortgage_broker || "",
             source_of_funds: data.source_of_funds || "",
+            source_of_wealth: data.source_of_wealth || "",
             first_time_buyer: data.first_time_buyer ?? false,
             buying_with_another: data.buying_with_another ?? false,
             second_buyer_name: data.second_buyer_name || "",
@@ -164,6 +196,17 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
             property_vacant: data.property_vacant ?? false,
             lease_years_remaining: data.lease_years_remaining ? String(data.lease_years_remaining) : "",
             ground_rent: data.ground_rent || "",
+            ta6_disputes: data.ta6_disputes || "",
+            ta6_planning_works: data.ta6_planning_works || "",
+            ta6_guarantees: data.ta6_guarantees || "",
+            ta6_boundaries: data.ta6_boundaries || "",
+            ta6_rights_of_way: data.ta6_rights_of_way || "",
+            ta6_notices: data.ta6_notices || "",
+            ta6_services: data.ta6_services || "",
+            ta10_included_items: data.ta10_included_items || "",
+            ta10_excluded_items: data.ta10_excluded_items || "",
+            ta10_additional_items: data.ta10_additional_items || "",
+            special_instructions: data.special_instructions || "",
             declaration_confirmed: data.declaration_confirmed ?? false,
           }));
         }
@@ -176,7 +219,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
     if (step === 1) return form.full_name.trim() && form.email.trim();
     if (step === 3) return form.property_address.trim();
     if (step === 4) return Number(form.transaction_price) > 0;
-    if (step === 5) return form.declaration_confirmed;
+    if (step === TOTAL_STEPS) return form.declaration_confirmed;
     return true;
   };
 
@@ -194,7 +237,6 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
     if (!effectiveUserId) return;
     setSaving(true);
     try {
-      // Upload files if present
       let id_document_path: string | null = null;
       let proof_of_address_path: string | null = null;
       let source_of_funds_document_path: string | null = null;
@@ -224,6 +266,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
         lender_name: form.lender_name,
         mortgage_broker: form.mortgage_broker,
         source_of_funds: form.source_of_funds,
+        source_of_wealth: form.source_of_wealth,
         first_time_buyer: form.first_time_buyer,
         buying_with_another: form.buying_with_another,
         second_buyer_name: form.second_buyer_name,
@@ -233,9 +276,20 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
         property_vacant: form.property_vacant,
         lease_years_remaining: form.lease_years_remaining ? Number(form.lease_years_remaining) : null,
         ground_rent: form.ground_rent,
+        ta6_disputes: form.ta6_disputes,
+        ta6_planning_works: form.ta6_planning_works,
+        ta6_guarantees: form.ta6_guarantees,
+        ta6_boundaries: form.ta6_boundaries,
+        ta6_rights_of_way: form.ta6_rights_of_way,
+        ta6_notices: form.ta6_notices,
+        ta6_services: form.ta6_services,
+        ta10_included_items: form.ta10_included_items,
+        ta10_excluded_items: form.ta10_excluded_items,
+        ta10_additional_items: form.ta10_additional_items,
+        special_instructions: form.special_instructions,
         declaration_confirmed: form.declaration_confirmed,
         intake_complete: complete,
-        current_step: complete ? 5 : step,
+        current_step: complete ? TOTAL_STEPS : step,
         submitted_at: complete ? new Date().toISOString() : null,
       };
 
@@ -268,7 +322,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
   };
 
   const nextStep = () => {
-    if (step < 5) {
+    if (step < TOTAL_STEPS) {
       saveIntake(false);
       setStep(step + 1);
     }
@@ -286,8 +340,9 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
     saveIntake(true);
   };
 
-  const progressPct = ((step - 1) / 4) * 100;
+  const progressPct = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
   const isBuyer = form.client_role === "buyer";
+  const isSeller = form.client_role === "seller";
 
   return (
     <div className="space-y-4">
@@ -301,7 +356,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
             <button
               key={s.num}
               onClick={() => s.num <= step && setStep(s.num)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors ${
                 active
                   ? "bg-primary text-primary-foreground"
                   : done
@@ -309,7 +364,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
                   : "bg-muted text-muted-foreground"
               }`}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-3 w-3" />
               {s.label}
             </button>
           );
@@ -373,13 +428,11 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Upload ID Document</Label>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors w-full">
-                <Upload className="h-4 w-4" />
-                {form.id_file ? form.id_file.name : "Choose file (PDF, JPG, PNG)"}
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => set("id_file", e.target.files?.[0] || null)} />
-              </label>
-            </div>
+            <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors w-full">
+              <Upload className="h-4 w-4" />
+              {form.id_file ? form.id_file.name : "Choose file (PDF, JPG, PNG)"}
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => set("id_file", e.target.files?.[0] || null)} />
+            </label>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Upload Proof of Address</Label>
@@ -508,6 +561,11 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
             </Select>
           </div>
           <div className="space-y-1">
+            <Label className="text-xs">Source of Wealth</Label>
+            <p className="text-[11px] text-muted-foreground">How has the client accumulated their overall wealth?</p>
+            <Input value={form.source_of_wealth} onChange={(e) => set("source_of_wealth", e.target.value)} placeholder="e.g. Employment income over 15 years, property sale proceeds" />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Supporting Document</Label>
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors w-full">
               <Upload className="h-4 w-4" />
@@ -550,7 +608,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
             </div>
           )}
 
-          {!isBuyer && (
+          {isSeller && (
             <div className="border-t border-border pt-3 space-y-3">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Seller Info</h4>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -586,10 +644,91 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
         </div>
       )}
 
-      {/* Step 5: Final */}
+      {/* Step 5: TA6 — Property Information Form */}
       {step === 5 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">TA6 — Property Information Form</h3>
+          <p className="text-[11px] text-muted-foreground">Please provide details about the property. Leave blank if not applicable.</p>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Disputes, complaints or claims</Label>
+            <p className="text-[11px] text-muted-foreground">Any disputes with neighbours, boundary issues, or complaints?</p>
+            <Textarea value={form.ta6_disputes} onChange={(e) => set("ta6_disputes", e.target.value)} placeholder="e.g. No disputes. / Neighbour dispute about fence line resolved in 2022." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Planning, building & other works</Label>
+            <p className="text-[11px] text-muted-foreground">Any extensions, conversions, or structural work done?</p>
+            <Textarea value={form.ta6_planning_works} onChange={(e) => set("ta6_planning_works", e.target.value)} placeholder="e.g. Loft conversion completed 2020, building regs certificate obtained." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Guarantees & warranties</Label>
+            <p className="text-[11px] text-muted-foreground">NHBC, damp-proofing, double glazing, roofing guarantees?</p>
+            <Textarea value={form.ta6_guarantees} onChange={(e) => set("ta6_guarantees", e.target.value)} placeholder="e.g. 10-year NHBC warranty (expires 2028). Double glazing guarantee from XYZ Ltd." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Boundaries</Label>
+            <p className="text-[11px] text-muted-foreground">Which boundaries are you responsible for maintaining?</p>
+            <Textarea value={form.ta6_boundaries} onChange={(e) => set("ta6_boundaries", e.target.value)} placeholder="e.g. Left-side fence (facing property from road) is our responsibility." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Rights of way & access</Label>
+            <p className="text-[11px] text-muted-foreground">Any shared access, rights of way, or easements?</p>
+            <Textarea value={form.ta6_rights_of_way} onChange={(e) => set("ta6_rights_of_way", e.target.value)} placeholder="e.g. Shared driveway with No. 14. Right of way over rear garden for utility access." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Notices</Label>
+            <p className="text-[11px] text-muted-foreground">Any notices received from local authority, building control, or neighbours?</p>
+            <Textarea value={form.ta6_notices} onChange={(e) => set("ta6_notices", e.target.value)} placeholder="e.g. None received. / Tree preservation order on oak tree in rear garden." rows={2} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Services</Label>
+            <p className="text-[11px] text-muted-foreground">Mains gas, electricity, water, drainage, broadband?</p>
+            <Textarea value={form.ta6_services} onChange={(e) => set("ta6_services", e.target.value)} placeholder="e.g. Mains gas, electric, water. Private drainage (septic tank). Fibre broadband available." rows={2} className="text-xs" />
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: TA10 — Fixtures & Contents */}
+      {step === 6 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">TA10 — Fixtures & Contents</h3>
+          <p className="text-[11px] text-muted-foreground">Specify what is included and excluded from the sale.</p>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Items included in the sale</Label>
+            <p className="text-[11px] text-muted-foreground">Curtains, blinds, carpets, light fittings, white goods, garden items, etc.</p>
+            <Textarea value={form.ta10_included_items} onChange={(e) => set("ta10_included_items", e.target.value)} placeholder="e.g. All fitted carpets, curtain poles, integrated kitchen appliances (oven, hob, dishwasher), garden shed." rows={3} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Items excluded from the sale</Label>
+            <p className="text-[11px] text-muted-foreground">Items the seller will be taking.</p>
+            <Textarea value={form.ta10_excluded_items} onChange={(e) => set("ta10_excluded_items", e.target.value)} placeholder="e.g. Free-standing fridge-freezer, living room curtains, bedroom lampshades." rows={3} className="text-xs" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Additional items (available by separate negotiation)</Label>
+            <Textarea value={form.ta10_additional_items} onChange={(e) => set("ta10_additional_items", e.target.value)} placeholder="e.g. Washing machine (£150), garden furniture set (£200)." rows={2} className="text-xs" />
+          </div>
+        </div>
+      )}
+
+      {/* Step 7: Final */}
+      {step === TOTAL_STEPS && (
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-foreground">Declaration & Submit</h3>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Special Instructions (optional)</Label>
+            <Textarea value={form.special_instructions} onChange={(e) => set("special_instructions", e.target.value)} placeholder="Any additional instructions or notes for your solicitor…" rows={3} className="text-xs" />
+          </div>
+
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
             <p className="text-xs text-muted-foreground">Please review your details before submitting.</p>
             <div className="grid gap-1.5 text-xs">
@@ -600,6 +739,8 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
               <p><span className="font-medium text-foreground">Price:</span> £{Number(form.transaction_price).toLocaleString()}</p>
               <p><span className="font-medium text-foreground">Mortgage:</span> {form.has_mortgage ? "Yes" : "No"}</p>
               <p><span className="font-medium text-foreground">Source of Funds:</span> {form.source_of_funds || "Not provided"}</p>
+              {form.ta6_disputes && <p><span className="font-medium text-foreground">TA6 Disputes:</span> {form.ta6_disputes.substring(0, 60)}…</p>}
+              {form.ta10_included_items && <p><span className="font-medium text-foreground">TA10 Included:</span> {form.ta10_included_items.substring(0, 60)}…</p>}
             </div>
           </div>
           <div className="flex items-start gap-2">
@@ -620,8 +761,8 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
         <Button variant="outline" size="sm" onClick={prevStep} disabled={step === 1 || saving}>
           <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back
         </Button>
-        <span className="text-xs text-muted-foreground">Step {step} of 5</span>
-        {step < 5 ? (
+        <span className="text-xs text-muted-foreground">Step {step} of {TOTAL_STEPS}</span>
+        {step < TOTAL_STEPS ? (
           <Button size="sm" onClick={nextStep} disabled={!canProceed() || saving}>
             {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
             Next <ArrowRight className="h-3.5 w-3.5 ml-1" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, Loader2,
   Send, FileText, Sparkles, Home, LinkIcon, ClipboardList, BarChart3,
-  RefreshCw, ShieldAlert, ChevronDown, ChevronUp,
+  RefreshCw, ShieldAlert, ChevronDown, ChevronUp, Upload, Eye, Download,
 } from "lucide-react";
 import { ConveyancingIntakeForm } from "@/components/app/ConveyancingIntakeForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,14 @@ interface CaseData {
   referral_source: string;
 }
 
+interface CaseDoc {
+  id: string;
+  name: string;
+  file_type: string;
+  storage_path: string | null;
+  created_at: string;
+}
+
 interface AISection {
   title: string;
   content: string;
@@ -71,6 +79,21 @@ const statusIcon = (s: string) => {
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 };
 
+const DOC_CATEGORIES = ["ID", "Proof of Address", "Bank Statement", "Contract", "Title", "TA6", "TA10", "Mortgage Offer", "Other"];
+
+function classifyDocument(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("passport") || lower.includes("license") || lower.includes("id")) return "ID";
+  if (lower.includes("utility") || lower.includes("proof") || lower.includes("council")) return "Proof of Address";
+  if (lower.includes("bank") || lower.includes("statement")) return "Bank Statement";
+  if (lower.includes("contract")) return "Contract";
+  if (lower.includes("title") || lower.includes("register")) return "Title";
+  if (lower.includes("ta6")) return "TA6";
+  if (lower.includes("ta10")) return "TA10";
+  if (lower.includes("mortgage") || lower.includes("offer")) return "Mortgage Offer";
+  return "Other";
+}
+
 /* ── Render structured AI output sections ── */
 function AISectionsDisplay({ data }: { data: any }) {
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
@@ -81,6 +104,7 @@ function AISectionsDisplay({ data }: { data: any }) {
   const riskLevel = data.riskLevel || data.overallRisk;
   const nextAction = data.nextAction;
   const validationFailed = data.validationFailed;
+  const assumptions = data.assumptions || [];
 
   if (sections.length === 0) return null;
 
@@ -88,9 +112,9 @@ function AISectionsDisplay({ data }: { data: any }) {
 
   return (
     <div className="space-y-3">
-      {/* Risk badge + validation warning */}
+      {/* Risk badge */}
       {riskLevel && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {validationFailed ? (
             <Badge variant="destructive" className="gap-1 text-xs">
               <ShieldAlert className="h-3 w-3" /> Missing Data
@@ -105,6 +129,9 @@ function AISectionsDisplay({ data }: { data: any }) {
           )}
           {data.fallback && (
             <Badge variant="secondary" className="text-xs text-yellow-600">Fallback response</Badge>
+          )}
+          {assumptions.length > 0 && (
+            <Badge variant="secondary" className="text-xs text-yellow-600">{assumptions.length} assumption(s)</Badge>
           )}
         </div>
       )}
@@ -184,29 +211,48 @@ export default function ConveyancingCaseDetail() {
   const [aiResult, setAiResult] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
+  const [caseDocs, setCaseDocs] = useState<CaseDoc[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
+  const loadCase = useCallback(async () => {
     if (!user || !id) return;
-    const load = async () => {
-      setLoading(true);
-      const [caseRes, stepsRes] = await Promise.all([
-        supabase.from("conveyancing_cases" as any).select("*").eq("id", id).single(),
-        supabase.from("conveyancing_steps" as any).select("*").eq("case_id", id).order("created_at", { ascending: true }),
-      ]);
-      if (caseRes.error) {
-        toast({ title: "Case not found", variant: "destructive" });
-        navigate("/conveyancing");
-        return;
-      }
-      setCaseData(caseRes.data as any);
-      setSteps((stepsRes.data as any[]) || []);
-      setActiveStep((caseRes.data as any).current_step || "client_intake");
-      setLoading(false);
-    };
-    load();
+    setLoading(true);
+    const [caseRes, stepsRes] = await Promise.all([
+      supabase.from("conveyancing_cases" as any).select("*").eq("id", id).single(),
+      supabase.from("conveyancing_steps" as any).select("*").eq("case_id", id).order("created_at", { ascending: true }),
+    ]);
+    if (caseRes.error) {
+      toast({ title: "Case not found", variant: "destructive" });
+      navigate("/conveyancing");
+      return;
+    }
+    setCaseData(caseRes.data as any);
+    setSteps((stepsRes.data as any[]) || []);
+    setActiveStep((caseRes.data as any).current_step || "client_intake");
+    setLoading(false);
   }, [user, id]);
 
-  // When active step changes, load existing AI output
+  useEffect(() => { loadCase(); }, [loadCase]);
+
+  // Load documents
+  useEffect(() => {
+    if (!user || !id) return;
+    (supabase as any)
+      .from("conveyancing_client_intake")
+      .select("id_document_path, proof_of_address_path, source_of_funds_document_path")
+      .eq("case_id", id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (!data) return;
+        const docs: CaseDoc[] = [];
+        if (data.id_document_path) docs.push({ id: "id_doc", name: "ID Document", file_type: "ID", storage_path: data.id_document_path, created_at: "" });
+        if (data.proof_of_address_path) docs.push({ id: "proof_doc", name: "Proof of Address", file_type: "Proof of Address", storage_path: data.proof_of_address_path, created_at: "" });
+        if (data.source_of_funds_document_path) docs.push({ id: "funds_doc", name: "Source of Funds", file_type: "Bank Statement", storage_path: data.source_of_funds_document_path, created_at: "" });
+        setCaseDocs(docs);
+      });
+  }, [user, id]);
+
+  // Load AI output for active step
   useEffect(() => {
     const stepData = steps.find(s => s.step_key === activeStep);
     if (stepData?.ai_output && typeof stepData.ai_output === "object" && Object.keys(stepData.ai_output).length > 0) {
@@ -256,7 +302,6 @@ export default function ConveyancingCaseDetail() {
 
       setAiResult(result);
 
-      // If validation failed, don't mark step as done
       if (result.validationFailed) {
         toast({ title: "Missing information", description: `Please add: ${result.missingFields?.join(", ")}`, variant: "destructive" });
         return;
@@ -295,6 +340,37 @@ export default function ConveyancingCaseDetail() {
       toast({ title: "AI Error", description: errMsg, variant: "destructive" });
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !user || !id) return;
+    setUploading(true);
+
+    try {
+      for (const file of Array.from(files)) {
+        const path = `conveyancing/${id}/docs_${Date.now()}_${file.name}`;
+        const { error: uploadErr } = await supabase.storage.from("documents").upload(path, file);
+        if (uploadErr) {
+          toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
+          continue;
+        }
+        const category = classifyDocument(file.name);
+        setCaseDocs(prev => [...prev, {
+          id: `doc_${Date.now()}_${file.name}`,
+          name: file.name,
+          file_type: category,
+          storage_path: path,
+          created_at: new Date().toISOString(),
+        }]);
+      }
+      toast({ title: "Documents uploaded" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -460,6 +536,7 @@ export default function ConveyancingCaseDetail() {
                     mortgage_status: caseData.mortgage_status,
                   }}
                   onComplete={async () => {
+                    // Mark step done
                     if (currentStepData) {
                       await supabase
                         .from("conveyancing_steps" as any)
@@ -479,6 +556,39 @@ export default function ConveyancingCaseDetail() {
                       .order("created_at", { ascending: true });
                     setSteps((refreshed as any[]) || []);
                     setActiveStep(nextStep);
+
+                    // Auto-trigger AI intake analysis after submission
+                    toast({ title: "Intake complete — running AI analysis…" });
+                    try {
+                      const { data: aiData } = await supabase.functions.invoke("conveyancing-ai", {
+                        body: {
+                          step: "client_intake",
+                          caseId: id,
+                          propertyAddress: caseData.property_address,
+                          postcode: caseData.postcode,
+                          clientName: caseData.client_name,
+                          clientType: caseData.client_type,
+                          transactionType: caseData.transaction_type,
+                          price: caseData.price,
+                          tenure: caseData.tenure,
+                          propertyCategory: caseData.property_category,
+                          mortgageStatus: caseData.mortgage_status,
+                        },
+                      });
+                      if (aiData?.data) {
+                        // Save AI output to intake step
+                        const intakeStep = refreshed?.find((s: any) => s.step_key === "client_intake");
+                        if (intakeStep) {
+                          await supabase
+                            .from("conveyancing_steps" as any)
+                            .update({ ai_output: aiData.data } as any)
+                            .eq("id", (intakeStep as any).id);
+                        }
+                        toast({ title: "AI intake analysis complete" });
+                      }
+                    } catch {
+                      // Non-blocking — intake is already saved
+                    }
                   }}
                 />
               ) : (
@@ -495,24 +605,13 @@ export default function ConveyancingCaseDetail() {
                     </div>
                   )}
 
-                  {/* AI Result — structured sections */}
+                  {/* AI Result */}
                   {aiResult && <AISectionsDisplay data={aiResult} />}
 
-                  {/* AI output from saved step data (when no live result) */}
+                  {/* Saved AI output */}
                   {!aiResult && currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && 
                    Object.keys(currentStepData.ai_output).length > 0 && currentStepData.ai_output.sections && (
                     <AISectionsDisplay data={currentStepData.ai_output} />
-                  )}
-
-                  {/* Legacy AI output (pre-upgrade data) */}
-                  {!aiResult && currentStepData?.ai_output && typeof currentStepData.ai_output === "object" && 
-                   Object.keys(currentStepData.ai_output).length > 0 && !currentStepData.ai_output.sections && (
-                    <div className="rounded-lg border bg-muted/50 p-3 max-h-64 overflow-y-auto">
-                      <p className="text-xs font-semibold text-foreground mb-2">AI Output</p>
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                        {JSON.stringify(currentStepData.ai_output, null, 2)}
-                      </pre>
-                    </div>
                   )}
 
                   {/* AI Action buttons */}
@@ -555,12 +654,35 @@ export default function ConveyancingCaseDetail() {
           <div className="md:col-span-4 space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Documents
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4" /> Documents ({caseDocs.length})</span>
+                  <label className="cursor-pointer">
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
+                      <span>
+                        {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                        Upload
+                      </span>
+                    </Button>
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.doc" multiple className="hidden" onChange={handleDocUpload} />
+                  </label>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">Documents uploaded during each step will appear here.</p>
+              <CardContent className="p-3 pt-0">
+                {caseDocs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">No documents yet. Upload or complete intake to add documents.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {caseDocs.map((doc) => (
+                      <div key={doc.id} className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground truncate">{doc.name}</p>
+                          <Badge variant="secondary" className="text-[9px] mt-0.5">{doc.file_type}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
