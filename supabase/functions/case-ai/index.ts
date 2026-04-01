@@ -360,6 +360,31 @@ Return JSON exactly like:
 }`,
       };
 
+    case "edit-clause":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are editing a specific clause or text selection within a legal document. Apply the requested edit precisely. Return ONLY the revised text — no explanations, no JSON wrapping.\n\n${GUARDRAILS}`,
+        userPrompt: `Edit type: ${body.editType || "rewrite"}
+Case type: ${body.caseType || "general_legal"}
+Jurisdiction: ${body.jurisdiction || "UK"}
+
+Selected text to edit:
+"""
+${body.selectedText || ""}
+"""
+
+Instructions by edit type:
+- rewrite: Rewrite this clause to be clearer and more legally precise.
+- simplify: Simplify the language while preserving legal effect.
+- formal: Make the language more formal and legally authoritative.
+- expand: Expand this clause with additional protective provisions.
+- add_clause: Generate an additional protective clause that complements this text.
+
+Return JSON exactly like:
+{
+  "revisedText": "the edited text ready to insert"
+}`,
+      };
+
     default:
       throw new Error(`Unknown action: ${body.action}`);
   }
