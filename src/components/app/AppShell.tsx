@@ -20,6 +20,7 @@ import {
   Scale,
   FilePen,
   ShieldCheck,
+  Home,
 } from "lucide-react";
 
 const navItems = [

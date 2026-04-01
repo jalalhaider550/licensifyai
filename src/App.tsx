@@ -67,6 +67,9 @@ const App = () => (
             <Route path="/client-request" element={<ClientInfoRequest />} />
             <Route path="/generate-contract" element={<GenerateContract />} />
             <Route path="/generate-nda" element={<GenerateNDA />} />
+            <Route path="/conveyancing" element={<ConveyancingCases />} />
+            <Route path="/conveyancing/new" element={<ConveyancingNewCase />} />
+            <Route path="/conveyancing/:id" element={<ConveyancingCaseDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
