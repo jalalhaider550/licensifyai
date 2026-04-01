@@ -222,7 +222,7 @@ Each clause must be FULL legal text. Tailor to scenario. Do NOT use markdown.`;
 function buildNdaPrompt(body: any) {
   const { disclosingParty, receivingParty, jurisdiction, purpose, duration, ndaType, specialInstructions } = body;
   const typeInstr = ndaType === "mutual" ? "MUTUAL NDA — both parties disclose." : `ONE-WAY NDA — ${disclosingParty} discloses to ${receivingParty}.`;
-  return `You are a senior commercial lawyer. Generate a COMPLETE NDA.
+  return `You are a practising senior commercial solicitor. Generate a COMPLETE NDA with full legal authority. Every clause must be definitive and enforceable.
 ${typeInstr}
 DISCLOSING: ${disclosingParty} | RECEIVING: ${receivingParty}
 JURISDICTION: ${jurisdiction}
