@@ -145,6 +145,16 @@ const CaseDetail = () => {
   const [reminderBusyId, setReminderBusyId] = useState<string | null>(null);
   const [latestRequestLink, setLatestRequestLink] = useState<{ title: string; url: string } | null>(null);
 
+  // Advanced analysis panel state
+  const [dualAnalysis, setDualAnalysis] = useState<any[] | null>(null);
+  const [expandedCaseLaw, setExpandedCaseLaw] = useState<any[] | null>(null);
+  const [appliedLaw, setAppliedLaw] = useState<any[] | null>(null);
+  const [evidenceGaps, setEvidenceGaps] = useState<any[] | null>(null);
+  const [strategyOptions, setStrategyOptions] = useState<any[] | null>(null);
+  const [proceduralSteps, setProceduralSteps] = useState<any[] | null>(null);
+  const [advancedLoading, setAdvancedLoading] = useState<string | null>(null);
+  const [draftAnythingLoading, setDraftAnythingLoading] = useState(false);
+
   const loadCase = async () => {
     if (!id) return;
 
