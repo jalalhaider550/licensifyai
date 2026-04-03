@@ -464,8 +464,7 @@ const CaseDetail = () => {
       setDraftAnythingLoading(false);
     }
   };
-
-
+  const handleSave = async () => {
     if (!caseItem || !user) return;
     setSaving(true);
 
