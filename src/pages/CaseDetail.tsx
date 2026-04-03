@@ -1245,6 +1245,7 @@ const CaseDetail = () => {
             {(caseItem.case_type === "corporate" || caseItem.case_type === "advisory") && (
               <TabsTrigger value="corporate">Corporate</TabsTrigger>
             )}
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
