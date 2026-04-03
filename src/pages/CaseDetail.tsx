@@ -382,7 +382,90 @@ const CaseDetail = () => {
     return updatedCase;
   };
 
-  const handleSave = async () => {
+  const buildAdvancedPayload = () => ({
+    caseType: caseItem?.case_type,
+    caseSummary: summary,
+    keyFacts: normalizeFacts(factsText),
+    documents: documentContext,
+    previousActions,
+    parties: [clientName, opponent].filter(Boolean),
+    jurisdiction,
+  });
+
+  const runAdvancedAnalysis = async (action: string, setter: (data: any) => void, dataKey: string) => {
+    if (!caseItem) return;
+    setAdvancedLoading(action);
+    try {
+      const { data, error } = await supabase.functions.invoke("case-ai", {
+        body: { action, ...buildAdvancedPayload() },
+      });
+      if (error) throw error;
+      const parsed = parseContentJson(data);
+      setter(parsed[dataKey] || []);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || `Failed to run ${action}`);
+    } finally {
+      setAdvancedLoading(null);
+    }
+  };
+
+  const handleDualAnalysis = () => runAdvancedAnalysis("dual-analysis", setDualAnalysis, "positions");
+  const handleExpandedCaseLaw = (depth: string, filters?: any) => {
+    if (!caseItem) return;
+    setAdvancedLoading("expanded-case-law");
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("case-ai", {
+          body: { action: "expanded-case-law", depth, filters, ...buildAdvancedPayload() },
+        });
+        if (error) throw error;
+        const parsed = parseContentJson(data);
+        setExpandedCaseLaw(parsed.cases || []);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(err.message || "Failed to search case law");
+      } finally {
+        setAdvancedLoading(null);
+      }
+    })();
+  };
+  const handleAppliedLaw = () => runAdvancedAnalysis("applied-law", setAppliedLaw, "laws");
+  const handleEvidenceGaps = () => runAdvancedAnalysis("evidence-gaps", setEvidenceGaps, "gaps");
+  const handleStrategyOptions = () => runAdvancedAnalysis("strategy-options", setStrategyOptions, "strategies");
+  const handleProceduralIntelligence = () => runAdvancedAnalysis("procedural-intelligence", setProceduralSteps, "steps");
+
+  const handleDraftAnything = async (request: string, options: any) => {
+    if (!caseItem || !user) return;
+    setDraftAnythingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("case-ai", {
+        body: {
+          action: "draft-anything",
+          draftRequest: request,
+          draftOptions: options,
+          ...buildAdvancedPayload(),
+        },
+      });
+      if (error) throw error;
+      const parsed = parseContentJson(data);
+      const product = parseLegalWorkProduct(parsed.content || "");
+      const content = renderLegalWorkProductText(product);
+      setActionWorkspaceTitle(parsed.title || request);
+      setActionWorkspaceContent(content);
+      setWorkspaceProduct(product);
+      setWorkspaceActionType("draft_document");
+      setActionWorkspaceOpen(true);
+      toast.success("Document drafted");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to draft document");
+    } finally {
+      setDraftAnythingLoading(false);
+    }
+  };
+
+
     if (!caseItem || !user) return;
     setSaving(true);
 
