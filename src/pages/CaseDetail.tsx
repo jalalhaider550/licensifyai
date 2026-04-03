@@ -78,6 +78,15 @@ import {
 } from "@/lib/caseInfoRequests";
 import type { CaseRisk, CaseDeadline, LitigationData, CorporateData } from "@/lib/cases";
 import { RiskPanel, DeadlinePanel, LitigationPanel, CorporatePanel } from "@/components/app/MatterSpecificPanels";
+import {
+  DualAnalysisPanel,
+  ExpandedCaseLawPanel,
+  AppliedLawPanel,
+  EvidenceGapPanel,
+  StrategyOptionsPanel,
+  ProceduralIntelligencePanel,
+  DraftAnythingPanel,
+} from "@/components/app/AdvancedCasePanels";
 import { RichDocumentEditor } from "@/components/app/RichDocumentEditor";
 
 const parseContentJson = (payload: any) => {
@@ -135,6 +144,16 @@ const CaseDetail = () => {
   const [requestSaving, setRequestSaving] = useState(false);
   const [reminderBusyId, setReminderBusyId] = useState<string | null>(null);
   const [latestRequestLink, setLatestRequestLink] = useState<{ title: string; url: string } | null>(null);
+
+  // Advanced analysis panel state
+  const [dualAnalysis, setDualAnalysis] = useState<any[] | null>(null);
+  const [expandedCaseLaw, setExpandedCaseLaw] = useState<any[] | null>(null);
+  const [appliedLaw, setAppliedLaw] = useState<any[] | null>(null);
+  const [evidenceGaps, setEvidenceGaps] = useState<any[] | null>(null);
+  const [strategyOptions, setStrategyOptions] = useState<any[] | null>(null);
+  const [proceduralSteps, setProceduralSteps] = useState<any[] | null>(null);
+  const [advancedLoading, setAdvancedLoading] = useState<string | null>(null);
+  const [draftAnythingLoading, setDraftAnythingLoading] = useState(false);
 
   const loadCase = async () => {
     if (!id) return;
@@ -363,6 +382,88 @@ const CaseDetail = () => {
     return updatedCase;
   };
 
+  const buildAdvancedPayload = () => ({
+    caseType: caseItem?.case_type,
+    caseSummary: summary,
+    keyFacts: normalizeFacts(factsText),
+    documents: documentContext,
+    previousActions,
+    parties: [clientName, opponent].filter(Boolean),
+    jurisdiction,
+  });
+
+  const runAdvancedAnalysis = async (action: string, setter: (data: any) => void, dataKey: string) => {
+    if (!caseItem) return;
+    setAdvancedLoading(action);
+    try {
+      const { data, error } = await supabase.functions.invoke("case-ai", {
+        body: { action, ...buildAdvancedPayload() },
+      });
+      if (error) throw error;
+      const parsed = parseContentJson(data);
+      setter(parsed[dataKey] || []);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || `Failed to run ${action}`);
+    } finally {
+      setAdvancedLoading(null);
+    }
+  };
+
+  const handleDualAnalysis = () => runAdvancedAnalysis("dual-analysis", setDualAnalysis, "positions");
+  const handleExpandedCaseLaw = (depth: string, filters?: any) => {
+    if (!caseItem) return;
+    setAdvancedLoading("expanded-case-law");
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("case-ai", {
+          body: { action: "expanded-case-law", depth, filters, ...buildAdvancedPayload() },
+        });
+        if (error) throw error;
+        const parsed = parseContentJson(data);
+        setExpandedCaseLaw(parsed.cases || []);
+      } catch (err: any) {
+        console.error(err);
+        toast.error(err.message || "Failed to search case law");
+      } finally {
+        setAdvancedLoading(null);
+      }
+    })();
+  };
+  const handleAppliedLaw = () => runAdvancedAnalysis("applied-law", setAppliedLaw, "laws");
+  const handleEvidenceGaps = () => runAdvancedAnalysis("evidence-gaps", setEvidenceGaps, "gaps");
+  const handleStrategyOptions = () => runAdvancedAnalysis("strategy-options", setStrategyOptions, "strategies");
+  const handleProceduralIntelligence = () => runAdvancedAnalysis("procedural-intelligence", setProceduralSteps, "steps");
+
+  const handleDraftAnything = async (request: string, options: any) => {
+    if (!caseItem || !user) return;
+    setDraftAnythingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("case-ai", {
+        body: {
+          action: "draft-anything",
+          draftRequest: request,
+          draftOptions: options,
+          ...buildAdvancedPayload(),
+        },
+      });
+      if (error) throw error;
+      const parsed = parseContentJson(data);
+      const product = parseLegalWorkProduct(parsed.content || "");
+      const content = renderLegalWorkProductText(product);
+      setActionWorkspaceTitle(parsed.title || request);
+      setActionWorkspaceContent(content);
+      setWorkspaceProduct(product);
+      setWorkspaceActionType("draft_document");
+      setActionWorkspaceOpen(true);
+      toast.success("Document drafted");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to draft document");
+    } finally {
+      setDraftAnythingLoading(false);
+    }
+  };
   const handleSave = async () => {
     if (!caseItem || !user) return;
     setSaving(true);
@@ -1144,6 +1245,7 @@ const CaseDetail = () => {
             {(caseItem.case_type === "corporate" || caseItem.case_type === "advisory") && (
               <TabsTrigger value="corporate">Corporate</TabsTrigger>
             )}
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
@@ -1476,6 +1578,60 @@ const CaseDetail = () => {
               />
             </TabsContent>
           )}
+
+          {/* Advanced Analysis Tab */}
+          <TabsContent value="analysis">
+            <div className="space-y-4">
+              <DraftAnythingPanel
+                loading={draftAnythingLoading}
+                onDraft={handleDraftAnything}
+              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <DualAnalysisPanel
+                  data={dualAnalysis}
+                  loading={advancedLoading === "dual-analysis"}
+                  onGenerate={handleDualAnalysis}
+                />
+                <StrategyOptionsPanel
+                  data={strategyOptions}
+                  loading={advancedLoading === "strategy-options"}
+                  onGenerate={handleStrategyOptions}
+                />
+              </div>
+              <ExpandedCaseLawPanel
+                data={expandedCaseLaw}
+                loading={advancedLoading === "expanded-case-law"}
+                onGenerate={handleExpandedCaseLaw}
+                onInsertIntoDocument={(entry) => {
+                  const citation = `${entry.caseName} (${entry.year}): ${entry.principle}`;
+                  setActionWorkspaceContent(prev => prev ? `${prev}\n\n${citation}` : citation);
+                  toast.success("Case law inserted into document workspace");
+                }}
+                onAddToArgument={(entry) => {
+                  const citation = `${entry.caseName} (${entry.year}): ${entry.principle}. Application: ${entry.application}`;
+                  setActionWorkspaceContent(prev => prev ? `${prev}\n\n${citation}` : citation);
+                  toast.success("Case law added to argument");
+                }}
+              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <AppliedLawPanel
+                  data={appliedLaw}
+                  loading={advancedLoading === "applied-law"}
+                  onGenerate={handleAppliedLaw}
+                />
+                <EvidenceGapPanel
+                  data={evidenceGaps}
+                  loading={advancedLoading === "evidence-gaps"}
+                  onGenerate={handleEvidenceGaps}
+                />
+              </div>
+              <ProceduralIntelligencePanel
+                data={proceduralSteps}
+                loading={advancedLoading === "procedural-intelligence"}
+                onGenerate={handleProceduralIntelligence}
+              />
+            </div>
+          </TabsContent>
 
           {/* In-Browser Editor Tab */}
           <TabsContent value="editor">

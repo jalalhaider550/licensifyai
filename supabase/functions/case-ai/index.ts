@@ -397,6 +397,198 @@ Return JSON exactly like:
 }`,
       };
 
+    case "dual-analysis":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting a dual-sided legal analysis. For each legal issue, present both claimant and defendant positions with strength indicators, counter-arguments, rebuttals, and your assessment of the likely judicial view.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+Analyse every material legal issue from BOTH sides. For each issue provide:
+- Claimant position with strength (High/Medium/Low)
+- Defendant position with strength (High/Medium/Low)
+- Counter-arguments each side would raise
+- Rebuttals available
+- Your assessment of the likely judicial view
+
+Return JSON exactly like:
+{
+  "positions": [
+    {
+      "issue": "legal issue description",
+      "claimantPosition": "position and legal basis",
+      "claimantStrength": "High",
+      "defendantPosition": "position and legal basis",
+      "defendantStrength": "Medium",
+      "counterArguments": ["counter-argument 1"],
+      "rebuttals": ["rebuttal 1"],
+      "likelyJudicialView": "assessment of how a court would likely rule and why"
+    }
+  ]
+}`,
+      };
+
+    case "expanded-case-law":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting comprehensive case law research. Search for and present relevant authorities organised by category: leading authorities, supporting cases, factually similar cases, and opposing (defence) cases. Each case must include the legal principle, court level, application to this case, and a strength rating.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+Depth requested: ${body.depth || "standard"}
+${body.filters?.jurisdiction && body.filters.jurisdiction !== "all" ? `Filter jurisdiction: ${body.filters.jurisdiction}` : ""}
+${body.filters?.category && body.filters.category !== "all" ? `Filter category: ${body.filters.category}` : ""}
+${body.filters?.findSimilar ? "Focus on finding factually similar cases." : ""}
+
+Provide case law research at the requested depth:
+- quick: 3-5 cases
+- standard: 10-15 cases
+- deep: 25-50 cases
+- full: as many relevant cases as possible
+
+Return JSON exactly like:
+{
+  "cases": [
+    {
+      "caseName": "case name",
+      "year": "year",
+      "principle": "legal principle established",
+      "courtLevel": "Supreme Court / Court of Appeal / High Court / etc",
+      "application": "how this case applies to the current matter",
+      "strengthRating": "High",
+      "category": "leading",
+      "jurisdiction": "England & Wales"
+    }
+  ]
+}`,
+      };
+
+    case "applied-law":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are mapping applicable statutes and regulations to the facts of this case. For each relevant law, break it into its constituent legal elements, map the available facts to each element, and mark whether each element is satisfied, missing, or at risk. Also identify additional legal angles that may apply.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+For each relevant statute or regulation:
+1. Identify the statute and section
+2. Break into legal elements
+3. Map facts to each element
+4. Mark each as satisfied / missing / risk
+5. Detect additional legal angles
+
+Return JSON exactly like:
+{
+  "laws": [
+    {
+      "statute": "statute name",
+      "section": "section reference",
+      "elements": [
+        {
+          "element": "legal element description",
+          "factMapping": "how the facts map to this element",
+          "status": "satisfied"
+        }
+      ],
+      "additionalAngles": ["additional legal angle that may apply"]
+    }
+  ]
+}`,
+      };
+
+    case "evidence-gaps":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting an evidence gap analysis. For each claim or cause of action, identify what must be proven, what evidence currently exists, what is missing, suggest documents needed, and formulate questions to ask the client.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+For each claim or cause of action:
+1. What must be proven (burden of proof elements)
+2. What evidence currently exists in the case documents
+3. What evidence is missing
+4. Suggest required documents
+5. Questions to ask the client
+
+Return JSON exactly like:
+{
+  "gaps": [
+    {
+      "claim": "claim or cause of action",
+      "mustProve": ["element that must be proven"],
+      "existingEvidence": ["evidence currently available"],
+      "missingEvidence": ["evidence that is missing"],
+      "suggestedDocuments": ["document that should be obtained"],
+      "clientQuestions": ["question to ask the client"]
+    }
+  ]
+}`,
+      };
+
+    case "strategy-options":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are preparing a comparative strategy assessment. Present multiple strategy options (litigation, settlement, hybrid) with realistic probability of success, risk level, estimated time, estimated cost, and pros/cons for each.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+Provide at least 3 strategy options:
+1. Full litigation
+2. Settlement / negotiation
+3. Hybrid approach
+
+For each, provide realistic assessments based on the facts available.
+
+Return JSON exactly like:
+{
+  "strategies": [
+    {
+      "type": "litigation",
+      "description": "detailed description of the approach",
+      "probabilityOfSuccess": "65-75%",
+      "riskLevel": "Medium",
+      "estimatedTime": "12-18 months",
+      "estimatedCost": "£15,000-£30,000",
+      "pros": ["advantage 1"],
+      "cons": ["disadvantage 1"]
+    }
+  ]
+}`,
+      };
+
+    case "procedural-intelligence":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are generating a jurisdiction-aware procedural timeline. Include all relevant procedural steps, deadlines, and conditional logic (e.g. if defence filed, if settlement offered). Consider CPR rules, Practice Directions, Pre-Action Protocols, and limitation periods.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+Generate a procedural timeline specific to this jurisdiction and case type.
+Include conditional logic for branching scenarios.
+
+Return JSON exactly like:
+{
+  "steps": [
+    {
+      "step": "procedural step description",
+      "deadline": "specific deadline or timeframe",
+      "status": "pending",
+      "conditionalLogic": "e.g. If defence filed within 14 days, proceed to allocation. If no response, apply for default judgment."
+    }
+  ]
+}`,
+      };
+
+    case "draft-anything":
+      return {
+        systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\n${GUARDRAILS}`,
+        userPrompt: `${contextBlock}
+
+DOCUMENT REQUEST: ${body.draftRequest || "legal document"}
+
+DOCUMENT CONTROLS:
+- Side: ${body.draftOptions?.side || "neutral"}
+- Tone: ${body.draftOptions?.tone || "professional"}
+- Detail level: ${body.draftOptions?.detailLevel || "standard"}
+- Include case law: ${body.draftOptions?.includeCaseLaw ? "YES — cite relevant authorities" : "NO"}
+- Include statutes: ${body.draftOptions?.includeStatutes ? "YES — reference applicable legislation" : "NO"}
+- Include reasoning: ${body.draftOptions?.includeReasoning ? "YES — include legal reasoning" : "NO"}
+
+Generate the complete document now. Return JSON exactly like:
+{
+  "title": "document title",
+  "content": "the complete document text"
+}`,
+      };
+
     default:
       throw new Error(`Unknown action: ${body.action}`);
   }
