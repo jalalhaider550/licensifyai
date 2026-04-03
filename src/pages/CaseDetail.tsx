@@ -1579,6 +1579,60 @@ const CaseDetail = () => {
             </TabsContent>
           )}
 
+          {/* Advanced Analysis Tab */}
+          <TabsContent value="analysis">
+            <div className="space-y-4">
+              <DraftAnythingPanel
+                loading={draftAnythingLoading}
+                onDraft={handleDraftAnything}
+              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <DualAnalysisPanel
+                  data={dualAnalysis}
+                  loading={advancedLoading === "dual-analysis"}
+                  onGenerate={handleDualAnalysis}
+                />
+                <StrategyOptionsPanel
+                  data={strategyOptions}
+                  loading={advancedLoading === "strategy-options"}
+                  onGenerate={handleStrategyOptions}
+                />
+              </div>
+              <ExpandedCaseLawPanel
+                data={expandedCaseLaw}
+                loading={advancedLoading === "expanded-case-law"}
+                onGenerate={handleExpandedCaseLaw}
+                onInsertIntoDocument={(entry) => {
+                  const citation = `${entry.caseName} (${entry.year}): ${entry.principle}`;
+                  setActionWorkspaceContent(prev => prev ? `${prev}\n\n${citation}` : citation);
+                  toast.success("Case law inserted into document workspace");
+                }}
+                onAddToArgument={(entry) => {
+                  const citation = `${entry.caseName} (${entry.year}): ${entry.principle}. Application: ${entry.application}`;
+                  setActionWorkspaceContent(prev => prev ? `${prev}\n\n${citation}` : citation);
+                  toast.success("Case law added to argument");
+                }}
+              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <AppliedLawPanel
+                  data={appliedLaw}
+                  loading={advancedLoading === "applied-law"}
+                  onGenerate={handleAppliedLaw}
+                />
+                <EvidenceGapPanel
+                  data={evidenceGaps}
+                  loading={advancedLoading === "evidence-gaps"}
+                  onGenerate={handleEvidenceGaps}
+                />
+              </div>
+              <ProceduralIntelligencePanel
+                data={proceduralSteps}
+                loading={advancedLoading === "procedural-intelligence"}
+                onGenerate={handleProceduralIntelligence}
+              />
+            </div>
+          </TabsContent>
+
           {/* In-Browser Editor Tab */}
           <TabsContent value="editor">
             <RichDocumentEditor
