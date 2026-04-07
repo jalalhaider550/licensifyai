@@ -567,41 +567,12 @@ Return JSON exactly like:
 }`,
       };
 
-    case "draft-anything": {
-      const detectedType = body.draftOptions?.detectedDocType;
-      const docTypeInstruction = detectedType ? `
-DETECTED DOCUMENT TYPE: ${detectedType.type} (${detectedType.label})
-JURISDICTION FORMAT: ${detectedType.jurisdictionFormat}
-
-${detectedType.jurisdictionFormat === "UK" ? `FORMAT THIS AS A UK LEGAL DOCUMENT. Follow these rules:
-- UK SKELETON ARGUMENT FORMAT (if skeleton_argument):
-  Header: Claim number, Court name, Parties (Claimant v Respondent), Title: SKELETON ARGUMENT ON BEHALF OF [CLAIMANT/RESPONDENT]
-  Sections: 1. Introduction, 2. Issues, 3. Background, 4. Legal Framework, 5. Submissions (with sub-sections A. Claimant submissions, B. Respondent submissions, C. Rebuttal per issue), 6. Remedy/Relief, 7. Conclusion
-  Use numbered paragraphs, short structured paragraphs, formal tone, UK citation style (e.g. [2020] UKSC 5)
-  Use UK terminology: Claimant (not Plaintiff), Defence (not Defense), Licence (not License)
-- UK DEFENCE FORMAT (if defence): Statement of Defence format with numbered responses to each paragraph of the Particulars of Claim
-- UK PARTICULARS OF CLAIM (if particulars_of_claim): Formal pleading format with numbered paragraphs, material facts, causes of action, and prayer for relief
-- UK WITNESS STATEMENT (if witness_statement): Formal witness statement with statement of truth, numbered paragraphs, exhibiting documents as [Initials/Number]
-- UK APPLICATION NOTICE (if application_notice): Application notice format with grounds, evidence relied upon, and order sought` :
-
-`FORMAT THIS AS A US LEGAL DOCUMENT. Follow these rules:
-- US TRIAL BRIEF FORMAT (if trial_brief):
-  Header: Court name, Case caption (Plaintiff v Defendant), Case number, Title: PLAINTIFFS/DEFENDANTS TRIAL BRIEF
-  Sections: 1. Introduction, 2. Statement of Facts, 3. Issues Presented, 4. Argument (with Legal standard, Application, Supporting authorities per issue), 5. Relief Requested, 6. Conclusion
-  Use persuasive tone, structured headings, US citation style (e.g. 523 U.S. 296 (1998))
-  Use US terminology: Plaintiff (not Claimant), Defense (not Defence), License (not Licence)
-- US MOTION FORMAT (if motion): Caption, Introduction, Statement of Facts, Legal Standard, Argument, Conclusion, Certificate of Service
-- US COMPLAINT FORMAT (if complaint): Caption, Jurisdiction and Venue, Parties, Facts, Causes of Action (Count I, II, etc.), Prayer for Relief
-- US DECLARATION FORMAT (if witness_declaration): Declaration under penalty of perjury with numbered paragraphs`}
-
-CRITICAL: Always prioritize the jurisdiction format above over the users wording. If user says skeleton but jurisdiction is US, produce a Trial Brief. If user says brief but jurisdiction is UK, produce a Skeleton Argument.` : "";
-
+    case "draft-anything":
       return {
         systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\n${GUARDRAILS}`,
         userPrompt: `${contextBlock}
 
 DOCUMENT REQUEST: ${body.draftRequest || "legal document"}
-${docTypeInstruction}
 
 DOCUMENT CONTROLS:
 - Side: ${body.draftOptions?.side || "neutral"}
@@ -617,7 +588,6 @@ Generate the complete document now. Return JSON exactly like:
   "content": "the complete document text"
 }`,
       };
-    }
 
     default:
       throw new Error(`Unknown action: ${body.action}`);
