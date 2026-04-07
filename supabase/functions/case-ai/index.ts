@@ -567,90 +567,12 @@ Return JSON exactly like:
 }`,
       };
 
-    case "draft-anything": {
-      const detectedDocType = body.detectedDocType || "";
-      const jurisdictionFormat = body.jurisdictionFormat || (jurisdiction.toLowerCase().includes("us") ? "US" : "UK");
-
-      let formatInstructions = "";
-      if (detectedDocType === "skeleton_argument" || (!detectedDocType && jurisdictionFormat === "UK" && /skeleton|brief|court\s*submission/i.test(body.draftRequest || ""))) {
-        formatInstructions = `
-FORMAT: UK SKELETON ARGUMENT
-Structure the document exactly as follows:
-- Header: Claim number, Court name, Parties (Claimant v Respondent), Title: SKELETON ARGUMENT ON BEHALF OF [CLAIMANT / RESPONDENT]
-- Sections:
-  1. Introduction
-  2. Issues
-  3. Background
-  4. Legal Framework
-  5. Submissions (for each issue: A. Claimant submissions, B. Respondent submissions, C. Rebuttal)
-  6. Remedy / Relief
-  7. Conclusion
-- Use numbered paragraphs, short structured paragraphs, formal tone, UK citation style.
-- Use Claimant (not Plaintiff), Defence (not Defense), Licence (not License).`;
-      } else if (detectedDocType === "trial_brief" || detectedDocType === "legal_brief" || (!detectedDocType && jurisdictionFormat === "US" && /brief|trial|motion|court\s*submission/i.test(body.draftRequest || ""))) {
-        formatInstructions = `
-FORMAT: US TRIAL BRIEF / LEGAL BRIEF
-Structure the document exactly as follows:
-- Header: Court name, Case caption (Plaintiff v Defendant), Case number, Title: PLAINTIFF'S TRIAL BRIEF or DEFENDANT'S TRIAL BRIEF
-- Sections:
-  1. Introduction
-  2. Statement of Facts
-  3. Issues Presented
-  4. Argument (Legal standard, Application, Supporting authorities)
-  5. Relief Requested
-  6. Conclusion
-- Use persuasive tone, structured headings, US citation style (Bluebook).
-- Use Plaintiff (not Claimant), Complaint (not Particulars of Claim), Attorney (not Solicitor).
-- Do NOT use UK terminology.`;
-      } else if (detectedDocType === "motion") {
-        formatInstructions = `
-FORMAT: US MOTION
-Structure as a formal court motion with: Caption, Title (MOTION FOR...), Introduction, Statement of Facts, Legal Standard, Argument, Relief Requested, Conclusion. Use US citation style.`;
-      } else if (detectedDocType === "application_notice") {
-        formatInstructions = `
-FORMAT: UK APPLICATION NOTICE
-Structure as a formal application to the court under CPR. Include: Heading with court and claim details, Notice of Application, Grounds, Evidence in Support, Draft Order. Use UK citation style.`;
-      } else if (detectedDocType === "witness_statement") {
-        formatInstructions = `
-FORMAT: UK WITNESS STATEMENT
-Include: Court heading, Statement of Truth, numbered paragraphs, first person narrative. Follow CPR PD 32 requirements.`;
-      } else if (detectedDocType === "affidavit") {
-        formatInstructions = `
-FORMAT: US AFFIDAVIT
-Include: Caption, Affiant identification, numbered paragraphs under oath, notary block. Follow applicable state or federal requirements.`;
-      } else if (detectedDocType === "particulars_of_claim") {
-        formatInstructions = `
-FORMAT: UK PARTICULARS OF CLAIM
-Structure: Court heading, parties, concise statement of facts, legal basis, relief sought, statement of truth. Follow CPR Part 16 requirements.`;
-      } else if (detectedDocType === "complaint") {
-        formatInstructions = `
-FORMAT: US COMPLAINT
-Structure: Caption, Parties, Jurisdiction and Venue, Statement of Facts, Causes of Action (numbered counts), Prayer for Relief. Follow FRCP Rule 8 or applicable state rules.`;
-      } else if (detectedDocType === "defence") {
-        formatInstructions = `
-FORMAT: UK DEFENCE
-Structure: Court heading, paragraph-by-paragraph response to Particulars of Claim (admitted/denied/not admitted), positive case, counterclaim if applicable. Follow CPR Part 15/16.`;
-      } else if (detectedDocType === "answer") {
-        formatInstructions = `
-FORMAT: US ANSWER
-Structure: Caption, paragraph-by-paragraph response to Complaint (admitted/denied/insufficient knowledge), Affirmative Defenses, Counterclaims if applicable. Follow FRCP Rule 8/12.`;
-      } else if (detectedDocType === "letter_before_claim") {
-        formatInstructions = `
-FORMAT: UK LETTER BEFORE CLAIM (PRE-ACTION PROTOCOL)
-Structure: Without prejudice heading, client identification, factual summary, legal basis, demand, deadline for response, proposed ADR. Follow relevant Pre-Action Protocol.`;
-      } else if (detectedDocType === "demand_letter") {
-        formatInstructions = `
-FORMAT: US DEMAND LETTER
-Structure: Client identification, factual background, legal basis, specific demand, deadline, consequences of non-compliance. Use firm letterhead format.`;
-      }
-
+    case "draft-anything":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\nJURISDICTION: ${jurisdiction}. All legal references, terminology, citation style, and procedural rules MUST align with this jurisdiction. Do NOT mix jurisdictions.\n\n${formatInstructions}\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\n${GUARDRAILS}`,
         userPrompt: `${contextBlock}
 
 DOCUMENT REQUEST: ${body.draftRequest || "legal document"}
-DETECTED DOCUMENT TYPE: ${detectedDocType || "auto-detect from request"}
-JURISDICTION FORMAT: ${jurisdictionFormat}
 
 DOCUMENT CONTROLS:
 - Side: ${body.draftOptions?.side || "neutral"}
@@ -666,7 +588,6 @@ Generate the complete document now. Return JSON exactly like:
   "content": "the complete document text"
 }`,
       };
-    }
 
     default:
       throw new Error(`Unknown action: ${body.action}`);

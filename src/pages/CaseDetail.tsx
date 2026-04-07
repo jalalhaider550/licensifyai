@@ -446,8 +446,6 @@ const CaseDetail = () => {
           action: "draft-anything",
           draftRequest: request,
           draftOptions: options,
-          detectedDocType: options.detectedDocType || undefined,
-          jurisdictionFormat: options.jurisdictionFormat || undefined,
           ...buildAdvancedPayload(),
         },
       });
@@ -1639,7 +1637,6 @@ const CaseDetail = () => {
             <div className="space-y-4">
               <DraftAnythingPanel
                 loading={draftAnythingLoading}
-                jurisdiction={jurisdiction}
                 onDraft={handleDraftAnything}
               />
               <div className="grid gap-4 lg:grid-cols-2">

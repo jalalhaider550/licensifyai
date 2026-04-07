@@ -561,40 +561,9 @@ export function ProceduralIntelligencePanel({ data, loading, onGenerate }: {
    7. DRAFT ANYTHING PANEL
    ═══════════════════════════════════════════ */
 
-interface DocTypeDetection {
-  detectedType: string;
-  displayLabel: string;
-  jurisdictionFormat: string;
-}
-
-const DOC_TYPE_PATTERNS: { patterns: RegExp; ukType: string; ukLabel: string; usType: string; usLabel: string }[] = [
-  { patterns: /skeleton\s*argument|skeleton/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "trial_brief", usLabel: "Trial Brief (US)" },
-  { patterns: /trial\s*brief/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "trial_brief", usLabel: "Trial Brief (US)" },
-  { patterns: /legal\s*brief|brief/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "legal_brief", usLabel: "Legal Brief (US)" },
-  { patterns: /motion/i, ukType: "application_notice", ukLabel: "Application Notice (UK)", usType: "motion", usLabel: "Motion (US)" },
-  { patterns: /court\s*submission/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "trial_brief", usLabel: "Trial Brief (US)" },
-  { patterns: /witness\s*statement/i, ukType: "witness_statement", ukLabel: "Witness Statement (UK)", usType: "affidavit", usLabel: "Affidavit (US)" },
-  { patterns: /particulars\s*of\s*claim|claim\s*form/i, ukType: "particulars_of_claim", ukLabel: "Particulars of Claim (UK)", usType: "complaint", usLabel: "Complaint (US)" },
-  { patterns: /defence|defense/i, ukType: "defence", ukLabel: "Defence (UK)", usType: "answer", usLabel: "Answer (US)" },
-  { patterns: /letter\s*before\s*claim|lbc|pre-action/i, ukType: "letter_before_claim", ukLabel: "Letter Before Claim (UK)", usType: "demand_letter", usLabel: "Demand Letter (US)" },
-];
-
-function detectDocumentType(request: string, jurisdiction: string): DocTypeDetection | null {
-  const isUS = /us|united\s*states|american|federal/i.test(jurisdiction);
-  for (const pattern of DOC_TYPE_PATTERNS) {
-    if (pattern.patterns.test(request)) {
-      return isUS
-        ? { detectedType: pattern.usType, displayLabel: pattern.usLabel, jurisdictionFormat: "US" }
-        : { detectedType: pattern.ukType, displayLabel: pattern.ukLabel, jurisdictionFormat: "UK" };
-    }
-  }
-  return null;
-}
-
-export function DraftAnythingPanel({ loading, jurisdiction, onDraft }: {
+export function DraftAnythingPanel({ loading, onDraft }: {
   loading: boolean;
-  jurisdiction?: string;
-  onDraft: (request: string, options: { side: string; tone: string; detailLevel: string; includeCaseLaw: boolean; includeStatutes: boolean; includeReasoning: boolean; detectedDocType?: string; jurisdictionFormat?: string }) => void;
+  onDraft: (request: string, options: { side: string; tone: string; detailLevel: string; includeCaseLaw: boolean; includeStatutes: boolean; includeReasoning: boolean }) => void;
 }) {
   const [request, setRequest] = useState("");
   const [side, setSide] = useState("neutral");
@@ -603,27 +572,6 @@ export function DraftAnythingPanel({ loading, jurisdiction, onDraft }: {
   const [includeCaseLaw, setIncludeCaseLaw] = useState(false);
   const [includeStatutes, setIncludeStatutes] = useState(false);
   const [includeReasoning, setIncludeReasoning] = useState(false);
-  const [overrideDocType, setOverrideDocType] = useState("");
-
-  const detected = request.trim() ? detectDocumentType(request, jurisdiction || "UK") : null;
-  const activeDocType = overrideDocType || detected?.detectedType || "";
-  const activeLabel = overrideDocType
-    ? DOC_TYPE_PATTERNS.flatMap(p => {
-        const isUS = /us|united\s*states|american|federal/i.test(jurisdiction || "");
-        return isUS
-          ? [{ value: p.usType, label: p.usLabel }]
-          : [{ value: p.ukType, label: p.ukLabel }];
-      }).find(t => t.value === overrideDocType)?.label || overrideDocType
-    : detected?.displayLabel || "";
-
-  const handleDraft = () => {
-    if (!request.trim()) return;
-    onDraft(request, {
-      side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning,
-      detectedDocType: activeDocType || undefined,
-      jurisdictionFormat: detected?.jurisdictionFormat || undefined,
-    });
-  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -635,52 +583,22 @@ export function DraftAnythingPanel({ loading, jurisdiction, onDraft }: {
         <Input
           placeholder="Type any document request — LBC, defence, NDA, skeleton argument, witness statement..."
           value={request}
-          onChange={e => { setRequest(e.target.value); setOverrideDocType(""); }}
+          onChange={e => setRequest(e.target.value)}
           onKeyDown={e => {
             if (e.key === "Enter" && request.trim()) {
               e.preventDefault();
-              handleDraft();
+              onDraft(request, { side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning });
             }
           }}
         />
-        <Button onClick={handleDraft} disabled={loading || !request.trim()}>
+        <Button
+          onClick={() => onDraft(request, { side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning })}
+          disabled={loading || !request.trim()}
+        >
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {loading ? "Drafting..." : "Draft"}
         </Button>
       </div>
-
-      {/* Detected document type indicator */}
-      {activeLabel && (
-        <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-          <FileText className="h-4 w-4 text-primary shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-foreground">
-              Document type: <span className="text-primary">{activeLabel}</span>
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              Jurisdiction-specific formatting will be applied automatically
-            </p>
-          </div>
-          <Select value={overrideDocType} onValueChange={setOverrideDocType}>
-            <SelectTrigger className="h-7 w-[140px] text-[10px]">
-              <SelectValue placeholder="Override" />
-            </SelectTrigger>
-            <SelectContent>
-              {(() => {
-                const isUS = /us|united\s*states|american|federal/i.test(jurisdiction || "");
-                const types = DOC_TYPE_PATTERNS.map(p => isUS
-                  ? { value: p.usType, label: p.usLabel }
-                  : { value: p.ukType, label: p.ukLabel }
-                );
-                const unique = types.filter((t, i, arr) => arr.findIndex(a => a.value === t.value) === i);
-                return unique.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ));
-              })()}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       {/* Document Controls */}
       <Collapsible>
