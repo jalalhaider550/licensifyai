@@ -1139,9 +1139,60 @@ const CaseDetail = () => {
                 {getCaseTypeLabel(caseItem.case_type)}
               </span>
               <span className="text-xs text-muted-foreground">{normalizeCaseStatus(caseItem.status)}</span>
+              <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent-foreground">
+                {jurisdiction}
+              </span>
             </div>
             <h1 className="font-display text-2xl font-bold text-foreground">{title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Client: {clientName}{opponent ? ` · Opponent: ${opponent}` : ""}{jurisdiction ? ` · Jurisdiction: ${jurisdiction}` : ""}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>Client: {clientName}{opponent ? ` · Opponent: ${opponent}` : ""}</span>
+              <button
+                onClick={() => setShowJurisdictionChange(!showJurisdictionChange)}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Change Jurisdiction
+              </button>
+            </div>
+            {showJurisdictionChange && (
+              <div className="mt-2 flex items-center gap-2">
+                <Select
+                  value=""
+                  onValueChange={async (val) => {
+                    if (!caseItem) return;
+                    const newJurisdiction = val;
+                    const updatedMeta = { ...(caseItem.case_metadata || {}), jurisdiction: newJurisdiction };
+                    const updatedIntake = { ...(caseItem.intake_data || {}), jurisdiction: newJurisdiction };
+                    const { error } = await db
+                      .from("cases")
+                      .update({ case_metadata: updatedMeta, intake_data: updatedIntake })
+                      .eq("id", caseItem.id);
+                    if (error) {
+                      toast.error("Failed to update jurisdiction");
+                    } else {
+                      setCaseItem({ ...caseItem, case_metadata: updatedMeta, intake_data: updatedIntake });
+                      setShowJurisdictionChange(false);
+                      toast.success(`Jurisdiction changed to ${newJurisdiction}`);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[220px] h-8 text-xs">
+                    <SelectValue placeholder="Select new jurisdiction" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UK (England & Wales)">UK (England & Wales)</SelectItem>
+                    <SelectItem value="UK (Scotland)">UK (Scotland)</SelectItem>
+                    <SelectItem value="UK (Northern Ireland)">UK (Northern Ireland)</SelectItem>
+                    <SelectItem value="US (Federal)">US (Federal)</SelectItem>
+                    <SelectItem value="US (State)">US (State)</SelectItem>
+                    <SelectItem value="European Union">European Union</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="ghost" size="sm" onClick={() => setShowJurisdictionChange(false)} className="text-xs">
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">
