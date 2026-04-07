@@ -228,43 +228,26 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
         jurisdiction: jurisdictionLabel,
       };
 
-      const { data: summaryData, error: summaryError } = await supabase.functions.invoke("case-ai", {
-        body: {
-          action: "summarize-case",
-          caseType,
-          caseData: summaryPayload,
-          documents: [],
-          previousActions: [],
-          jurisdiction: jurisdictionLabel,
-        },
-      });
-
-      if (summaryError) throw summaryError;
-      const summaryParsed = parseContentJson(summaryData);
-      const title =
-        summaryParsed.title ||
-        `${getCaseTypeLabel(caseType)} — ${summaryPayload.client_name}`;
-
+      // Create case immediately with placeholder — no blocking on AI
       const { data: createdCase, error: caseError } = await db
         .from("cases")
         .insert({
           user_id: user.id,
           client_id: linkedClientId !== "none" ? linkedClientId : null,
-          title,
+          title: `${getCaseTypeLabel(caseType)} — ${summaryPayload.client_name}`,
           case_type: caseType,
           client_name: summaryPayload.client_name,
           opponent: summaryPayload.opponent || null,
-          case_summary: summaryParsed.summary || summaryPayload.case_summary || "",
-          key_facts: normalizeFacts(summaryParsed.keyFacts || summaryPayload.key_facts),
+          case_summary: "",
+          key_facts: normalizeFacts(summaryPayload.key_facts),
           intake_data: summaryPayload,
-          case_metadata: { jurisdiction: jurisdictionLabel },
+          case_metadata: { jurisdiction: jurisdictionLabel, summaryPending: true },
           ai_context: {
-            missingItems: summaryParsed.missingItems || [],
-            lastSummaryAt: new Date().toISOString(),
+            missingItems: [],
             source: "chat_intake",
           },
           status: "Draft",
-          progress_percentage: summaryParsed.progressPercentage || 20,
+          progress_percentage: 10,
         })
         .select("id")
         .single();
@@ -280,9 +263,67 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
         metadata: { case_type: caseType },
       });
 
-      toast.success("Case created");
+      toast.success("Case created — generating summary…");
       onOpenChange(false);
       onCreated?.(createdCase.id);
+
+      // Fire-and-forget: generate AI summary in background with retry
+      const generateSummary = async (attempt: number) => {
+        try {
+          const { data: summaryData, error: summaryError } = await supabase.functions.invoke("case-ai", {
+            body: {
+              action: "summarize-case",
+              caseType,
+              caseData: summaryPayload,
+              documents: [],
+              previousActions: [],
+              jurisdiction: jurisdictionLabel,
+            },
+          });
+
+          if (summaryError) throw summaryError;
+          const summaryParsed = parseContentJson(summaryData);
+
+          const generatedTitle =
+            summaryParsed.title ||
+            `${getCaseTypeLabel(caseType)} — ${summaryPayload.client_name}`;
+
+          await db
+            .from("cases")
+            .update({
+              title: generatedTitle,
+              case_summary: summaryParsed.summary || summaryPayload.case_summary || "",
+              key_facts: normalizeFacts(summaryParsed.keyFacts || summaryPayload.key_facts),
+              ai_context: {
+                missingItems: summaryParsed.missingItems || [],
+                lastSummaryAt: new Date().toISOString(),
+                source: "chat_intake",
+              },
+              case_metadata: { jurisdiction: jurisdictionLabel },
+              progress_percentage: summaryParsed.progressPercentage || 20,
+            })
+            .eq("id", createdCase.id);
+        } catch (err) {
+          console.error(`Summary generation attempt ${attempt} failed:`, err);
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 3000));
+            return generateSummary(attempt + 1);
+          }
+          // Final fallback: set a minimal summary from available data
+          const fallbackSummary = summaryPayload.case_summary
+            || `Matter involving ${summaryPayload.client_name}${summaryPayload.opponent ? ` and ${summaryPayload.opponent}` : ""} under ${jurisdictionLabel} jurisdiction.`;
+          await db
+            .from("cases")
+            .update({
+              case_summary: fallbackSummary,
+              case_metadata: { jurisdiction: jurisdictionLabel },
+              progress_percentage: 15,
+            })
+            .eq("id", createdCase.id);
+        }
+      };
+
+      generateSummary(0);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to create case");
