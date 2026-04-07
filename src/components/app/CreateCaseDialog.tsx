@@ -221,9 +221,11 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
     setCreating(true);
 
     try {
+      const jurisdictionLabel = getJurisdictionLabel(jurisdiction);
       const summaryPayload: Record<string, any> = {
         ...intakeData,
         client_name: intakeData.client_name || linkedClient?.company_name || "New client",
+        jurisdiction: jurisdictionLabel,
       };
 
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke("case-ai", {
@@ -233,6 +235,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           caseData: summaryPayload,
           documents: [],
           previousActions: [],
+          jurisdiction: jurisdictionLabel,
         },
       });
 
@@ -254,6 +257,17 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           case_summary: summaryParsed.summary || summaryPayload.case_summary || "",
           key_facts: normalizeFacts(summaryParsed.keyFacts || summaryPayload.key_facts),
           intake_data: summaryPayload,
+          case_metadata: { jurisdiction: jurisdictionLabel },
+          ai_context: {
+            missingItems: summaryParsed.missingItems || [],
+            lastSummaryAt: new Date().toISOString(),
+            source: "chat_intake",
+          },
+          status: "Draft",
+          progress_percentage: summaryParsed.progressPercentage || 20,
+        })
+        .select("id")
+        .single();
           ai_context: {
             missingItems: summaryParsed.missingItems || [],
             lastSummaryAt: new Date().toISOString(),
