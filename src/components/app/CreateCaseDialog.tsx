@@ -51,10 +51,24 @@ const parseContentJson = (payload: any) => {
   }
 };
 
+const JURISDICTIONS = [
+  { value: "uk_england_wales", label: "UK (England & Wales)" },
+  { value: "us_federal", label: "US (Federal)" },
+  { value: "us_state", label: "US (State)" },
+  { value: "scotland", label: "UK (Scotland)" },
+  { value: "northern_ireland", label: "UK (Northern Ireland)" },
+  { value: "eu", label: "European Union" },
+  { value: "other", label: "Other" },
+] as const;
+
+export const getJurisdictionLabel = (value: string) =>
+  JURISDICTIONS.find((j) => j.value === value)?.label || value;
+
 export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDialogProps) => {
   const { user } = useAuth();
   const db = supabase as any;
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [jurisdiction, setJurisdiction] = useState("");
   const [caseType, setCaseType] = useState<CaseTypeValue | "">("");
   const [linkedClientId, setLinkedClientId] = useState<string>("none");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -67,11 +81,10 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
   const footerRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Allow creation as soon as we have at least a client_name or case_summary from AI
   const hasMinimumData = Boolean(
     intakeData.client_name || intakeData.case_summary || normalizeFacts(intakeData.key_facts).length > 0
   );
-  const canCreate = Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
+  const canCreate = Boolean(jurisdiction) && Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
 
   const linkedClient = useMemo(
     () => clients.find((client) => client.id === linkedClientId),
@@ -96,6 +109,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
 
   useEffect(() => {
     if (!open) {
+      setJurisdiction("");
       setCaseType("");
       setLinkedClientId("none");
       setMessages([]);
@@ -181,8 +195,14 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       toast.error("Select a case type first");
       return;
     }
+    if (!jurisdiction) {
+      toast.error("Select a jurisdiction first");
+      return;
+    }
 
-    const seededData = linkedClient?.company_name ? { client_name: linkedClient.company_name } : {};
+    const seededData = linkedClient?.company_name
+      ? { client_name: linkedClient.company_name, jurisdiction: getJurisdictionLabel(jurisdiction) }
+      : { jurisdiction: getJurisdictionLabel(jurisdiction) };
     await runIntake([], seededData);
   };
 
@@ -201,9 +221,11 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
     setCreating(true);
 
     try {
+      const jurisdictionLabel = getJurisdictionLabel(jurisdiction);
       const summaryPayload: Record<string, any> = {
         ...intakeData,
         client_name: intakeData.client_name || linkedClient?.company_name || "New client",
+        jurisdiction: jurisdictionLabel,
       };
 
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke("case-ai", {
@@ -213,6 +235,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           caseData: summaryPayload,
           documents: [],
           previousActions: [],
+          jurisdiction: jurisdictionLabel,
         },
       });
 
@@ -234,6 +257,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           case_summary: summaryParsed.summary || summaryPayload.case_summary || "",
           key_facts: normalizeFacts(summaryParsed.keyFacts || summaryPayload.key_facts),
           intake_data: summaryPayload,
+          case_metadata: { jurisdiction: jurisdictionLabel },
           ai_context: {
             missingItems: summaryParsed.missingItems || [],
             lastSummaryAt: new Date().toISOString(),
@@ -279,9 +303,30 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            Select Jurisdiction <span className="text-destructive">*</span>
+          </Label>
+          <Select value={jurisdiction} onValueChange={setJurisdiction}>
+            <SelectTrigger className={!jurisdiction ? "border-destructive/50" : ""}>
+              <SelectValue placeholder="Select jurisdiction" />
+            </SelectTrigger>
+            <SelectContent>
+              {JURISDICTIONS.map((j) => (
+                <SelectItem key={j.value} value={j.value}>
+                  {j.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!jurisdiction && (
+            <p className="text-xs text-destructive">Jurisdiction is required before proceeding</p>
+          )}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Case type</Label>
+            <Label>Case type <span className="text-destructive">*</span></Label>
             <Select value={caseType} onValueChange={(value) => setCaseType(value as CaseTypeValue)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select case type" />
@@ -327,7 +372,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
                 </p>
               </div>
             </div>
-            <Button onClick={startIntake} className="mt-4" disabled={!caseType || loadingPrompt}>
+            <Button onClick={startIntake} className="mt-4" disabled={!jurisdiction || !caseType || loadingPrompt}>
               {loadingPrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
               Start AI Intake
             </Button>
