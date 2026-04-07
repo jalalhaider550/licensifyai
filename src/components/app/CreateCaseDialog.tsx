@@ -372,7 +372,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
                 </p>
               </div>
             </div>
-            <Button onClick={startIntake} className="mt-4" disabled={!caseType || loadingPrompt}>
+            <Button onClick={startIntake} className="mt-4" disabled={!jurisdiction || !caseType || loadingPrompt}>
               {loadingPrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
               Start AI Intake
             </Button>
