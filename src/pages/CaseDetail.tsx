@@ -1638,6 +1638,7 @@ const CaseDetail = () => {
               <DraftAnythingPanel
                 loading={draftAnythingLoading}
                 onDraft={handleDraftAnything}
+                jurisdiction={jurisdiction}
               />
               <div className="grid gap-4 lg:grid-cols-2">
                 <DualAnalysisPanel
