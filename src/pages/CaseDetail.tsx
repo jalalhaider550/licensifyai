@@ -446,6 +446,8 @@ const CaseDetail = () => {
           action: "draft-anything",
           draftRequest: request,
           draftOptions: options,
+          detectedDocType: options.detectedDocType || undefined,
+          jurisdictionFormat: options.jurisdictionFormat || undefined,
           ...buildAdvancedPayload(),
         },
       });
