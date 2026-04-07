@@ -561,9 +561,45 @@ export function ProceduralIntelligencePanel({ data, loading, onGenerate }: {
    7. DRAFT ANYTHING PANEL
    ═══════════════════════════════════════════ */
 
-export function DraftAnythingPanel({ loading, onDraft }: {
+/* ─── Document Type Detection ─── */
+
+interface DetectedDocType {
+  type: string;
+  label: string;
+  jurisdictionFormat: string;
+}
+
+const DOC_TYPE_PATTERNS: { patterns: RegExp; ukType: string; ukLabel: string; usType: string; usLabel: string }[] = [
+  { patterns: /skeleton\s*argument|skeleton/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "trial_brief", usLabel: "Trial Brief (US)" },
+  { patterns: /trial\s*brief/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "trial_brief", usLabel: "Trial Brief (US)" },
+  { patterns: /legal\s*brief/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "legal_brief", usLabel: "Legal Brief (US)" },
+  { patterns: /motion/i, ukType: "application_notice", ukLabel: "Application Notice (UK)", usType: "motion", usLabel: "Motion (US)" },
+  { patterns: /court\s*submission/i, ukType: "skeleton_argument", ukLabel: "Skeleton Argument (UK)", usType: "court_submission", usLabel: "Court Submission (US)" },
+  { patterns: /witness\s*statement/i, ukType: "witness_statement", ukLabel: "Witness Statement (UK)", usType: "witness_declaration", usLabel: "Declaration (US)" },
+  { patterns: /defence|defense/i, ukType: "defence", ukLabel: "Defence (UK)", usType: "answer", usLabel: "Answer (US)" },
+  { patterns: /particulars\s*of\s*claim/i, ukType: "particulars_of_claim", ukLabel: "Particulars of Claim (UK)", usType: "complaint", usLabel: "Complaint (US)" },
+  { patterns: /claim\s*form/i, ukType: "claim_form", ukLabel: "Claim Form (UK)", usType: "complaint", usLabel: "Complaint (US)" },
+  { patterns: /complaint/i, ukType: "particulars_of_claim", ukLabel: "Particulars of Claim (UK)", usType: "complaint", usLabel: "Complaint (US)" },
+];
+
+const detectDocType = (input: string, jurisdiction: string): DetectedDocType | null => {
+  const isUK = jurisdiction.toLowerCase().includes("uk") || jurisdiction.toLowerCase().includes("england");
+  for (const entry of DOC_TYPE_PATTERNS) {
+    if (entry.patterns.test(input)) {
+      return {
+        type: isUK ? entry.ukType : entry.usType,
+        label: isUK ? entry.ukLabel : entry.usLabel,
+        jurisdictionFormat: isUK ? "UK" : "US",
+      };
+    }
+  }
+  return null;
+};
+
+export function DraftAnythingPanel({ loading, onDraft, jurisdiction }: {
   loading: boolean;
-  onDraft: (request: string, options: { side: string; tone: string; detailLevel: string; includeCaseLaw: boolean; includeStatutes: boolean; includeReasoning: boolean }) => void;
+  jurisdiction: string;
+  onDraft: (request: string, options: { side: string; tone: string; detailLevel: string; includeCaseLaw: boolean; includeStatutes: boolean; includeReasoning: boolean; detectedDocType?: DetectedDocType | null }) => void;
 }) {
   const [request, setRequest] = useState("");
   const [side, setSide] = useState("neutral");
@@ -572,6 +608,14 @@ export function DraftAnythingPanel({ loading, onDraft }: {
   const [includeCaseLaw, setIncludeCaseLaw] = useState(false);
   const [includeStatutes, setIncludeStatutes] = useState(false);
   const [includeReasoning, setIncludeReasoning] = useState(false);
+  const [overrideDocType, setOverrideDocType] = useState<string | null>(null);
+
+  const detected = request.trim() ? detectDocType(request, jurisdiction) : null;
+  const activeDocType = overrideDocType
+    ? { type: overrideDocType, label: overrideDocType === "skeleton_argument" ? "Skeleton Argument (UK)" : overrideDocType === "trial_brief" ? "Trial Brief (US)" : overrideDocType, jurisdictionFormat: overrideDocType.includes("uk") || ["skeleton_argument", "defence", "particulars_of_claim", "claim_form", "witness_statement", "application_notice"].includes(overrideDocType) ? "UK" : "US" } as DetectedDocType
+    : detected;
+
+  const draftOptions = { side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning, detectedDocType: activeDocType };
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -583,22 +627,53 @@ export function DraftAnythingPanel({ loading, onDraft }: {
         <Input
           placeholder="Type any document request — LBC, defence, NDA, skeleton argument, witness statement..."
           value={request}
-          onChange={e => setRequest(e.target.value)}
+          onChange={e => { setRequest(e.target.value); setOverrideDocType(null); }}
           onKeyDown={e => {
             if (e.key === "Enter" && request.trim()) {
               e.preventDefault();
-              onDraft(request, { side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning });
+              onDraft(request, draftOptions);
             }
           }}
         />
         <Button
-          onClick={() => onDraft(request, { side, tone, detailLevel, includeCaseLaw, includeStatutes, includeReasoning })}
+          onClick={() => onDraft(request, draftOptions)}
           disabled={loading || !request.trim()}
         >
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {loading ? "Drafting..." : "Draft"}
         </Button>
       </div>
+
+      {/* Detected Document Type Badge */}
+      {detected && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary">
+            <FileText className="mr-1 h-3 w-3" />
+            Document type: {activeDocType?.label || detected.label}
+          </Badge>
+          {!overrideDocType && (
+            <span className="text-[10px] text-muted-foreground">Auto-detected from request and jurisdiction ({jurisdiction})</span>
+          )}
+          <Select value={overrideDocType || ""} onValueChange={(val) => setOverrideDocType(val || null)}>
+            <SelectTrigger className="h-6 w-auto text-[10px] border-dashed gap-1 px-2">
+              <SelectValue placeholder="Override format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="skeleton_argument">Skeleton Argument (UK)</SelectItem>
+              <SelectItem value="trial_brief">Trial Brief (US)</SelectItem>
+              <SelectItem value="legal_brief">Legal Brief (US)</SelectItem>
+              <SelectItem value="motion">Motion (US)</SelectItem>
+              <SelectItem value="application_notice">Application Notice (UK)</SelectItem>
+              <SelectItem value="defence">Defence (UK)</SelectItem>
+              <SelectItem value="answer">Answer (US)</SelectItem>
+              <SelectItem value="particulars_of_claim">Particulars of Claim (UK)</SelectItem>
+              <SelectItem value="complaint">Complaint (US)</SelectItem>
+              <SelectItem value="witness_statement">Witness Statement (UK)</SelectItem>
+              <SelectItem value="witness_declaration">Declaration (US)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Document Controls */}
       <Collapsible>
