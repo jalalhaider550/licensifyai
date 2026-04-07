@@ -195,8 +195,14 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
       toast.error("Select a case type first");
       return;
     }
+    if (!jurisdiction) {
+      toast.error("Select a jurisdiction first");
+      return;
+    }
 
-    const seededData = linkedClient?.company_name ? { client_name: linkedClient.company_name } : {};
+    const seededData = linkedClient?.company_name
+      ? { client_name: linkedClient.company_name, jurisdiction: getJurisdictionLabel(jurisdiction) }
+      : { jurisdiction: getJurisdictionLabel(jurisdiction) };
     await runIntake([], seededData);
   };
 
