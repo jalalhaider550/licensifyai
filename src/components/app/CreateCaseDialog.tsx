@@ -268,16 +268,6 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
         })
         .select("id")
         .single();
-          ai_context: {
-            missingItems: summaryParsed.missingItems || [],
-            lastSummaryAt: new Date().toISOString(),
-            source: "chat_intake",
-          },
-          status: "Draft",
-          progress_percentage: summaryParsed.progressPercentage || 20,
-        })
-        .select("id")
-        .single();
 
       if (caseError) throw caseError;
 
