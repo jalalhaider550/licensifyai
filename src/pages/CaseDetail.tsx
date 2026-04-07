@@ -245,8 +245,10 @@ const CaseDetail = () => {
     [documents],
   );
 
+  const [showJurisdictionChange, setShowJurisdictionChange] = useState(false);
+
   const jurisdiction = useMemo(
-    () => linkedClient?.jurisdiction || caseItem?.intake_data?.jurisdiction || "UK",
+    () => caseItem?.case_metadata?.jurisdiction || caseItem?.intake_data?.jurisdiction || linkedClient?.jurisdiction || "UK",
     [caseItem, linkedClient],
   );
 
