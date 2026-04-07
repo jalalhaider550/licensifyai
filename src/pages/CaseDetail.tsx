@@ -1639,6 +1639,7 @@ const CaseDetail = () => {
             <div className="space-y-4">
               <DraftAnythingPanel
                 loading={draftAnythingLoading}
+                jurisdiction={jurisdiction}
                 onDraft={handleDraftAnything}
               />
               <div className="grid gap-4 lg:grid-cols-2">
