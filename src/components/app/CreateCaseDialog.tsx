@@ -303,9 +303,30 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            Select Jurisdiction <span className="text-destructive">*</span>
+          </Label>
+          <Select value={jurisdiction} onValueChange={setJurisdiction}>
+            <SelectTrigger className={!jurisdiction ? "border-destructive/50" : ""}>
+              <SelectValue placeholder="Select jurisdiction" />
+            </SelectTrigger>
+            <SelectContent>
+              {JURISDICTIONS.map((j) => (
+                <SelectItem key={j.value} value={j.value}>
+                  {j.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!jurisdiction && (
+            <p className="text-xs text-destructive">Jurisdiction is required before proceeding</p>
+          )}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Case type</Label>
+            <Label>Case type <span className="text-destructive">*</span></Label>
             <Select value={caseType} onValueChange={(value) => setCaseType(value as CaseTypeValue)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select case type" />
