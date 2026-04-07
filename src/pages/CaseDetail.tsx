@@ -203,6 +203,26 @@ const CaseDetail = () => {
     if (user && id) loadCase();
   }, [id, user]);
 
+  // Poll for AI-generated summary when it's pending
+  useEffect(() => {
+    if (!id || !user || !caseItem) return;
+    const summaryPending = caseItem.case_metadata?.summaryPending === true;
+    if (!summaryPending) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await db.from("cases").select("case_summary, case_metadata, title, key_facts, progress_percentage, ai_context").eq("id", id).single();
+      if (data && data.case_metadata?.summaryPending !== true) {
+        setCaseItem((prev: any) => ({ ...prev, ...data }));
+        setTitle(data.title || "");
+        setSummary(data.case_summary || "");
+        setFactsText((data.key_facts || []).join("\n"));
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [id, user, caseItem?.case_metadata?.summaryPending]);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "documents" || tab === "timeline" || tab === "overview") {
