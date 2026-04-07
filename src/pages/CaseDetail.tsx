@@ -203,6 +203,26 @@ const CaseDetail = () => {
     if (user && id) loadCase();
   }, [id, user]);
 
+  // Poll for AI-generated summary when it's pending
+  useEffect(() => {
+    if (!id || !user || !caseItem) return;
+    const summaryPending = caseItem.case_metadata?.summaryPending === true;
+    if (!summaryPending) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await db.from("cases").select("case_summary, case_metadata, title, key_facts, progress_percentage, ai_context").eq("id", id).single();
+      if (data && data.case_metadata?.summaryPending !== true) {
+        setCaseItem((prev: any) => ({ ...prev, ...data }));
+        setTitle(data.title || "");
+        setSummary(data.case_summary || "");
+        setFactsText((data.key_facts || []).join("\n"));
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [id, user, caseItem?.case_metadata?.summaryPending]);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "documents" || tab === "timeline" || tab === "overview") {
@@ -1321,7 +1341,13 @@ const CaseDetail = () => {
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Case summary</Label>
-                    <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} />
+                    {caseItem?.case_metadata?.summaryPending && !summary ? (
+                      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Generating summary…
+                      </div>
+                    ) : (
+                      <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} />
+                    )}
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Key facts</Label>

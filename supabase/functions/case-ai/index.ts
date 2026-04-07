@@ -626,17 +626,33 @@ const buildFallbackResponse = (action: string) => {
         caveats: ["This is a fallback response — retry for full AI analysis"],
         confidence: "LOW",
       };
-    case "summarize-case":
+    case "summarize-case": {
+      const cd = body?.caseData || {};
+      const clientName = cd.client_name || "the client";
+      const opponent = cd.opponent || "";
+      const caseSummary = cd.case_summary || "";
+      const facts = cd.key_facts || [];
+      const jurisdiction = cd.jurisdiction || body?.jurisdiction || "the applicable jurisdiction";
+      const summaryParts = [];
+      if (caseSummary) summaryParts.push(caseSummary);
+      else {
+        summaryParts.push(`This matter involves ${clientName}${opponent ? ` and ${opponent}` : ""} under ${jurisdiction} jurisdiction.`);
+        if (facts.length) summaryParts.push(`Key facts: ${facts.join("; ")}.`);
+        summaryParts.push("Further details are required to complete the case analysis.");
+      }
       return {
-        title: "Case Summary",
-        summary: "AI analysis is temporarily unavailable. Please retry to generate a full case summary.",
-        keyFacts: [],
+        title: cd.case_summary
+          ? `${(body?.caseType || "Legal").replace(/_/g, " ")} — ${clientName}`
+          : `New Matter — ${clientName}`,
+        summary: summaryParts.join(" "),
+        keyFacts: facts.length ? facts : [`Matter opened for ${clientName}`],
         missingItems: [],
-        progressPercentage: 0,
-        status: "In Progress",
+        progressPercentage: Math.min(facts.length * 10 + (caseSummary ? 30 : 10) + (opponent ? 10 : 0), 60),
+        status: "Draft",
         confidence: "LOW",
-        caveats: ["Fallback response — retry for full analysis"],
+        caveats: ["Generated from available data — full AI analysis pending"],
       };
+    }
     default:
       return { error: "AI analysis temporarily unavailable. Please retry." };
   }
@@ -660,8 +676,10 @@ serve(async (req) => {
     }
 
     // Validate inputs — if case has no meaningful data, return safe fallback
-    const hasAnyData = body.caseSummary || body.keyFacts?.length || body.documents?.length || body.messages?.length || body.documentText;
-    if (!hasAnyData && body.action !== "chat-intake") {
+    const caseDataObj = body.caseData || {};
+    const hasAnyData = body.caseSummary || body.keyFacts?.length || body.documents?.length || body.messages?.length || body.documentText
+      || caseDataObj.case_summary || caseDataObj.client_name || caseDataObj.key_facts?.length;
+    if (!hasAnyData && body.action !== "chat-intake" && body.action !== "summarize-case") {
       console.log("case-ai: insufficient data, returning guidance response");
       return new Response(JSON.stringify({
         success: true,
