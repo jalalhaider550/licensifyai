@@ -51,10 +51,24 @@ const parseContentJson = (payload: any) => {
   }
 };
 
+const JURISDICTIONS = [
+  { value: "uk_england_wales", label: "UK (England & Wales)" },
+  { value: "us_federal", label: "US (Federal)" },
+  { value: "us_state", label: "US (State)" },
+  { value: "scotland", label: "UK (Scotland)" },
+  { value: "northern_ireland", label: "UK (Northern Ireland)" },
+  { value: "eu", label: "European Union" },
+  { value: "other", label: "Other" },
+] as const;
+
+export const getJurisdictionLabel = (value: string) =>
+  JURISDICTIONS.find((j) => j.value === value)?.label || value;
+
 export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDialogProps) => {
   const { user } = useAuth();
   const db = supabase as any;
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [jurisdiction, setJurisdiction] = useState("");
   const [caseType, setCaseType] = useState<CaseTypeValue | "">("");
   const [linkedClientId, setLinkedClientId] = useState<string>("none");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -67,11 +81,10 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
   const footerRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Allow creation as soon as we have at least a client_name or case_summary from AI
   const hasMinimumData = Boolean(
     intakeData.client_name || intakeData.case_summary || normalizeFacts(intakeData.key_facts).length > 0
   );
-  const canCreate = Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
+  const canCreate = Boolean(jurisdiction) && Boolean(caseType) && messages.length > 0 && hasMinimumData && !loadingPrompt && !creating;
 
   const linkedClient = useMemo(
     () => clients.find((client) => client.id === linkedClientId),
@@ -96,6 +109,7 @@ export const CreateCaseDialog = ({ open, onOpenChange, onCreated }: CreateCaseDi
 
   useEffect(() => {
     if (!open) {
+      setJurisdiction("");
       setCaseType("");
       setLinkedClientId("none");
       setMessages([]);
