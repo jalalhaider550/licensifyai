@@ -1341,7 +1341,13 @@ const CaseDetail = () => {
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Case summary</Label>
-                    <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} />
+                    {caseItem?.case_metadata?.summaryPending && !summary ? (
+                      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Generating summary…
+                      </div>
+                    ) : (
+                      <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} />
+                    )}
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Key facts</Label>
