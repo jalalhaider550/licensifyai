@@ -44,9 +44,43 @@ MANDATORY RULES — FOLLOW THESE WITHOUT EXCEPTION:
 9. NO DISCLAIMERS: Never add generic disclaimers. The output IS the qualified legal work product.
 10. STRUCTURED OUTPUT: Return ONLY valid JSON. No markdown, no code fences, no commentary outside the JSON.`;
 
+/* ────────────────────────────────────────────
+   US JURISDICTION ADDENDUM (additive layer)
+   Applies ONLY when jurisdiction indicates United States.
+   Does NOT override or remove any existing rules.
+   ──────────────────────────────────────────── */
+const US_JURISDICTION_RULES = `
+US JURISDICTION OVERRIDES — APPLY WHEN JURISDICTION IS UNITED STATES:
+A. EXCLUSIVITY: Operate strictly under United States law. Do NOT reference UK, EU, or any non-US legal system, statutes, or case law in the analysis or output.
+B. FEDERAL vs STATE: Clearly distinguish between (i) US federal law and (ii) state-specific law (e.g., Delaware corporate law, New York contract law, California consumer law). Label each authority as "Federal" or "State (<state name>)".
+C. TERMINOLOGY: Use US legal terminology — plaintiff (not claimant), defendant, motion, complaint, summary judgment, discovery, attorney, license (not licence).
+D. CITATION INTEGRITY (ZERO TOLERANCE FOR HALLUCINATION):
+   - Every cited case must be REAL, VERIFIABLE, and from a recognized US court (US Supreme Court, US Courts of Appeals, US District Courts, state supreme/appellate courts).
+   - Use proper Bluebook-style citations where possible (e.g., Erie R.R. v. Tompkins, 304 U.S. 64 (1938)).
+   - If a case cannot be verified with high confidence, DO NOT include it.
+   - If no verified applicable case law exists for a point, explicitly state: "No verified applicable case law found." in the relevance/principle field — do not invent one.
+   - If a citation is plausible but you are not certain, label it: "Unverified / Needs review."
+E. CONFIDENCE SCORING: For every legal output (analysis, strategy, case law, statute mapping), include a confidence indicator:
+   - High (80–100%): clear governing statute + binding precedent in the relevant circuit/state.
+   - Medium (50–79%): analogous cases, persuasive authority, or partial controlling law.
+   - Low (<50%): limited authority, split circuits, or unclear jurisdiction.
+   Where the response schema includes a "confidence" or similar field, populate it numerically (0–100). Where it does not, append a brief "Confidence: <level> (<score>%)" note inside the relevant section text.
+F. LEGAL STANDARDS: Analysis must address, where relevant, US procedural fundamentals — standing (Article III where federal), subject-matter and personal jurisdiction, venue, burden of proof (preponderance / clear and convincing / beyond reasonable doubt), and procedural posture.
+G. STATE CLARIFICATION: If the matter clearly turns on state law and the governing US state is not specified in the inputs, surface a clarifying question in the appropriate field: "Which U.S. state governs this matter?" and proceed using federal law and general common-law principles for the rest of the analysis.
+H. NEVER conflate US federal and state law. Never apply UK precedents to a US matter.`;
+
+const isUSJurisdiction = (j: string | undefined | null) => {
+  if (!j) return false;
+  const s = String(j).toLowerCase();
+  return s.includes("us") || s.includes("u.s") || s.includes("united states") || s.includes("america") || s.includes("federal") || /\b(delaware|california|new york|texas|florida)\b/.test(s);
+};
+
+const jurisdictionAddendum = (j: string | undefined | null) => isUSJurisdiction(j) ? `\n\n${US_JURISDICTION_RULES}` : "";
+
 const buildPrompt = (body: any) => {
   const caseType = body.caseType || "general_legal";
   const jurisdiction = body.jurisdiction || body.caseData?.jurisdiction || "UK";
+  const usAddendum = jurisdictionAddendum(jurisdiction);
 
   // Build rich context block from all available data
   const existingMissingItems = body.existingMissingItems || [];
