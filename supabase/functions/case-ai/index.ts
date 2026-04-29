@@ -103,7 +103,7 @@ const buildPrompt = (body: any) => {
 
 You are conducting a structured legal intake interview to open a new matter file. Your goal is to collect sufficient information to create a professionally structured case record.
 
-${GUARDRAILS}
+${GUARDRAILS}${usAddendum}
 
 INTAKE RULES:
 - Ask ONE question at a time. Keep questions short, specific, and legally relevant.
@@ -142,7 +142,7 @@ Return JSON with this exact shape:
 
 You are preparing a comprehensive matter summary for a senior partner's review. The summary must be legally precise, commercially aware, and actionable. Missing information must be converted into specific, executable collection tasks with clear legal reasoning for why each item is needed.
 
-${GUARDRAILS}
+${GUARDRAILS}${usAddendum}
 
 SUMMARY RULES:
 - The summary must read like a professional matter note — not a chatbot response.
@@ -211,7 +211,7 @@ Return JSON exactly like:
 
 You are conducting a forensic review of a legal document to extract structured case data. Your extraction must be legally precise — identify parties by their legal capacity, extract material dates, identify operative clauses, and flag missing evidentiary items.
 
-${GUARDRAILS}
+${GUARDRAILS}${usAddendum}
 
 EXTRACTION RULES:
 - Parties must be identified by legal name and capacity (e.g., "ABC Ltd (Claimant)", "John Smith (Director)").
@@ -262,7 +262,7 @@ Return JSON exactly like:
 
 You are advising the instructing solicitor on the next strategic moves for this matter. Your output must function as a complete legal execution brief — not generic advice. Every output must follow the STRICT 9-SECTION RESPONSE STRUCTURE below.
 
-${GUARDRAILS}
+${GUARDRAILS}${usAddendum}
 
 NEXT STEPS RULES:
 - Generate 3-5 actions, strictly prioritised by legal urgency and strategic importance.
@@ -408,7 +408,7 @@ Return JSON exactly like:
 
     case "edit-clause":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are editing a specific clause or text selection within a legal document. Apply the requested edit precisely. Return ONLY the revised text — no explanations, no JSON wrapping.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are editing a specific clause or text selection within a legal document. Apply the requested edit precisely. Return ONLY the revised text — no explanations, no JSON wrapping.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `Edit type: ${body.editType || "rewrite"}
 Case type: ${body.caseType || "general_legal"}
 Jurisdiction: ${body.jurisdiction || "UK"}
@@ -433,7 +433,7 @@ Return JSON exactly like:
 
     case "dual-analysis":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting a dual-sided legal analysis. For each legal issue, present both claimant and defendant positions with strength indicators, counter-arguments, rebuttals, and your assessment of the likely judicial view.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting a dual-sided legal analysis. For each legal issue, present both claimant and defendant positions with strength indicators, counter-arguments, rebuttals, and your assessment of the likely judicial view.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 Analyse every material legal issue from BOTH sides. For each issue provide:
@@ -462,7 +462,7 @@ Return JSON exactly like:
 
     case "expanded-case-law":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting comprehensive case law research. Search for and present relevant authorities organised by category: leading authorities, supporting cases, factually similar cases, and opposing (defence) cases. Each case must include the legal principle, court level, application to this case, and a strength rating.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting comprehensive case law research. Search for and present relevant authorities organised by category: leading authorities, supporting cases, factually similar cases, and opposing (defence) cases. Each case must include the legal principle, court level, application to this case, and a strength rating.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 Depth requested: ${body.depth || "standard"}
@@ -495,7 +495,7 @@ Return JSON exactly like:
 
     case "applied-law":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are mapping applicable statutes and regulations to the facts of this case. For each relevant law, break it into its constituent legal elements, map the available facts to each element, and mark whether each element is satisfied, missing, or at risk. Also identify additional legal angles that may apply.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are mapping applicable statutes and regulations to the facts of this case. For each relevant law, break it into its constituent legal elements, map the available facts to each element, and mark whether each element is satisfied, missing, or at risk. Also identify additional legal angles that may apply.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 For each relevant statute or regulation:
@@ -526,7 +526,7 @@ Return JSON exactly like:
 
     case "evidence-gaps":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting an evidence gap analysis. For each claim or cause of action, identify what must be proven, what evidence currently exists, what is missing, suggest documents needed, and formulate questions to ask the client.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are conducting an evidence gap analysis. For each claim or cause of action, identify what must be proven, what evidence currently exists, what is missing, suggest documents needed, and formulate questions to ask the client.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 For each claim or cause of action:
@@ -553,7 +553,7 @@ Return JSON exactly like:
 
     case "strategy-options":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are preparing a comparative strategy assessment. Present multiple strategy options (litigation, settlement, hybrid) with realistic probability of success, risk level, estimated time, estimated cost, and pros/cons for each.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are preparing a comparative strategy assessment. Present multiple strategy options (litigation, settlement, hybrid) with realistic probability of success, risk level, estimated time, estimated cost, and pros/cons for each.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 Provide at least 3 strategy options:
@@ -582,7 +582,7 @@ Return JSON exactly like:
 
     case "procedural-intelligence":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\nYou are generating a jurisdiction-aware procedural timeline. Include all relevant procedural steps, deadlines, and conditional logic (e.g. if defence filed, if settlement offered). Consider CPR rules, Practice Directions, Pre-Action Protocols, and limitation periods.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\nYou are generating a jurisdiction-aware procedural timeline. Include all relevant procedural steps, deadlines, and conditional logic (e.g. if defence filed, if settlement offered). Consider CPR rules, Practice Directions, Pre-Action Protocols, and limitation periods.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 Generate a procedural timeline specific to this jurisdiction and case type.
@@ -603,7 +603,7 @@ Return JSON exactly like:
 
     case "draft-anything":
       return {
-        systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\n${GUARDRAILS}`,
+        systemPrompt: `${LEGAL_PERSONA}\n\n${DOCUMENT_OUTPUT_RULES}\n\nYou are drafting a legal document as requested by the instructing solicitor. The document must be complete, professional, and ready to send. Apply the specified side, tone, and detail level.\n\n${GUARDRAILS}${usAddendum}`,
         userPrompt: `${contextBlock}
 
 DOCUMENT REQUEST: ${body.draftRequest || "legal document"}
