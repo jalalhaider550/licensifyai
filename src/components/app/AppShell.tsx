@@ -25,6 +25,7 @@ import {
   Workflow,
   Table,
   Sparkles,
+  Mic,
 } from "lucide-react";
 
 const navItems = [
@@ -38,6 +39,7 @@ const navItems = [
   { to: "/bulk-review", icon: Table, label: "Bulk Review" },
   { to: "/assistant", icon: Sparkles, label: "AI Assistant" },
   { to: "/models", icon: Sparkles, label: "Multi-Model" },
+  { to: "/meetings", icon: Mic, label: "Meetings" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
   { to: "/conveyancing", icon: Home, label: "Conveyancing" },
