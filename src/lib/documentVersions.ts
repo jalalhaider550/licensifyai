@@ -43,19 +43,21 @@ export async function saveDocumentVersion(input: SaveVersionInput): Promise<Docu
 
   const nextVersion = (latest?.version_number ?? 0) + 1;
 
+  const insertRow = {
+    user_id: userId,
+    document_type: input.documentType,
+    document_id: input.documentId,
+    version_number: nextVersion,
+    title: input.title,
+    content: input.content,
+    change_summary: input.changeSummary ?? "",
+    author_type: input.authorType ?? "user",
+    metadata: (input.metadata ?? {}) as Record<string, unknown>,
+  };
+
   const { data, error } = await supabase
     .from("document_versions")
-    .insert({
-      user_id: userId,
-      document_type: input.documentType,
-      document_id: input.documentId,
-      version_number: nextVersion,
-      title: input.title,
-      content: input.content,
-      change_summary: input.changeSummary ?? "",
-      author_type: input.authorType ?? "user",
-      metadata: input.metadata ?? {},
-    })
+    .insert(insertRow as never)
     .select()
     .single();
 
