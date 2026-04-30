@@ -37,6 +37,7 @@ import ProjectVault from "./pages/ProjectVault";
 import Workflows from "./pages/Workflows";
 import BulkReview from "./pages/BulkReview";
 import Assistant from "./pages/Assistant";
+import MultiModelPlayground from "./pages/MultiModelPlayground";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="/bulk-review" element={<BulkReview />} />
             <Route path="/bulk-review/:id" element={<BulkReview />} />
             <Route path="/assistant" element={<Assistant />} />
+            <Route path="/models" element={<MultiModelPlayground />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -37,6 +37,7 @@ const navItems = [
   { to: "/workflows", icon: Workflow, label: "Workflows" },
   { to: "/bulk-review", icon: Table, label: "Bulk Review" },
   { to: "/assistant", icon: Sparkles, label: "AI Assistant" },
+  { to: "/models", icon: Sparkles, label: "Multi-Model" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
   { to: "/conveyancing", icon: Home, label: "Conveyancing" },
