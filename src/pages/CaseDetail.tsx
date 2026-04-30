@@ -36,6 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { CaseVaultTab } from "@/components/app/CaseVaultTab";
+import { VersionHistoryPanel } from "@/components/app/VersionHistoryPanel";
 import { extractTextFromFile } from "@/lib/documentParser";
 import {
   CASE_DOCUMENT_CATEGORIES,
