@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      bulk_reviews: {
+        Row: {
+          case_id: string | null
+          columns: Json
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          name: string
+          rows: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          columns?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          name: string
+          rows?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          columns?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          rows?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       case_actions: {
         Row: {
           action_type: string
@@ -1240,6 +1282,93 @@ export type Database = {
           id?: string
           metadata?: Json
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workflow_runs: {
+        Row: {
+          case_id: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          final_output: string
+          id: string
+          input_context: string
+          model_used: string | null
+          status: string
+          step_results: Json
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          final_output?: string
+          id?: string
+          input_context?: string
+          model_used?: string | null
+          status?: string
+          step_results?: Json
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          final_output?: string
+          id?: string
+          input_context?: string
+          model_used?: string | null
+          status?: string
+          step_results?: Json
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: []
+      }
+      workflows: {
+        Row: {
+          category: string
+          created_at: string
+          default_model: string
+          description: string
+          id: string
+          is_favorite: boolean
+          metadata: Json
+          name: string
+          steps: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          default_model?: string
+          description?: string
+          id?: string
+          is_favorite?: boolean
+          metadata?: Json
+          name: string
+          steps?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_model?: string
+          description?: string
+          id?: string
+          is_favorite?: boolean
+          metadata?: Json
+          name?: string
+          steps?: Json
           updated_at?: string
           user_id?: string
         }
