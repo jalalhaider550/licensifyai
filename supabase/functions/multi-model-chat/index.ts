@@ -148,8 +148,6 @@ serve(async (req) => {
         code,
         message: friendly,
         provider: body.provider,
-        fallback: body.provider !== "lovable",
-        fallback_model: body.provider !== "lovable" ? "google/gemini-3-flash-preview" : null,
         upstream_status: result.status,
       }), {
         status: 200,
@@ -167,8 +165,6 @@ serve(async (req) => {
       ok: false,
       code: isConfig ? "AUTH_FAILED" : "FUNCTION_ERROR",
       message: isConfig ? "The selected provider is not configured correctly. Switch to another model or update the provider key." : "The model gateway could not complete the request. Please switch models or retry shortly.",
-      fallback: true,
-      fallback_model: "google/gemini-3-flash-preview",
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
