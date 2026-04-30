@@ -898,6 +898,48 @@ export type Database = {
           },
         ]
       }
+      document_versions: {
+        Row: {
+          author_type: string
+          change_summary: string
+          content: string
+          created_at: string
+          document_id: string
+          document_type: string
+          id: string
+          metadata: Json
+          title: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          author_type?: string
+          change_summary?: string
+          content?: string
+          created_at?: string
+          document_id: string
+          document_type: string
+          id?: string
+          metadata?: Json
+          title?: string
+          user_id: string
+          version_number?: number
+        }
+        Update: {
+          author_type?: string
+          change_summary?: string
+          content?: string
+          created_at?: string
+          document_id?: string
+          document_type?: string
+          id?: string
+          metadata?: Json
+          title?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           ai_status: string | null
@@ -1121,6 +1163,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vault_files: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          mime_type: string | null
+          name: string
+          project_id: string
+          size_bytes: number
+          storage_path: string | null
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          name: string
+          project_id: string
+          size_bytes?: number
+          storage_path?: string | null
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          name?: string
+          project_id?: string
+          size_bytes?: number
+          storage_path?: string | null
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_projects: {
+        Row: {
+          case_id: string | null
+          color: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

@@ -36,6 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { CaseVaultTab } from "@/components/app/CaseVaultTab";
+import { VersionHistoryPanel } from "@/components/app/VersionHistoryPanel";
 import { extractTextFromFile } from "@/lib/documentParser";
 import {
   CASE_DOCUMENT_CATEGORIES,
@@ -1321,6 +1323,8 @@ const CaseDetail = () => {
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="vault">Vault</TabsTrigger>
+            <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -1802,6 +1806,19 @@ const CaseDetail = () => {
 
               {linkedClient ? <PortalMessages clientId={linkedClient.id} caseId={caseItem.id} /> : null}
             </div>
+          </TabsContent>
+
+          <TabsContent value="vault">
+            <CaseVaultTab caseId={caseItem.id} caseTitle={caseItem.title} />
+          </TabsContent>
+
+          <TabsContent value="versions">
+            <VersionHistoryPanel
+              documentType="case"
+              documentId={caseItem.id}
+              currentTitle={caseItem.title}
+              currentContent={caseItem.case_summary || ""}
+            />
           </TabsContent>
         </Tabs>
       </div>
