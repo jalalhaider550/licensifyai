@@ -19,6 +19,21 @@ interface Body {
   max_tokens?: number;
 }
 
+type JsonRecord = Record<string, unknown>;
+type AnthropicContentBlock = { text?: string };
+type GeminiPart = { text?: string };
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getProviderMessage(parsed: unknown, fallback: string) {
+  if (!isRecord(parsed)) return fallback;
+  if (isRecord(parsed.error) && typeof parsed.error.message === "string") return parsed.error.message;
+  if (typeof parsed.message === "string") return parsed.message;
+  return fallback;
+}
+
 async function callLovable(body: Body) {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) throw new Error("LOVABLE_API_KEY not configured");
@@ -60,8 +75,8 @@ async function callAnthropic(body: Body) {
     const t = await r.text();
     return { ok: false, status: r.status, error: t };
   }
-  const data = await r.json();
-  const content = (data.content ?? []).map((b: any) => b.text ?? "").join("");
+  const data = await r.json() as { content?: AnthropicContentBlock[] };
+  const content = (data.content ?? []).map((b) => b.text ?? "").join("");
   return { ok: true, content, raw: data };
 }
 
@@ -73,7 +88,7 @@ async function callGemini(body: Body) {
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const payload: any = { contents };
+  const payload: { contents: typeof contents; systemInstruction?: { parts: { text: string }[] }; generationConfig?: { temperature: number } } = { contents };
   if (body.system) payload.systemInstruction = { parts: [{ text: body.system }] };
   if (body.temperature != null) payload.generationConfig = { temperature: body.temperature };
   const r = await fetch(url, {
@@ -85,8 +100,8 @@ async function callGemini(body: Body) {
     const t = await r.text();
     return { ok: false, status: r.status, error: t };
   }
-  const data = await r.json();
-  const content = (data.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
+  const data = await r.json() as { candidates?: { content?: { parts?: GeminiPart[] } }[] };
+  const content = (data.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
   return { ok: true, content, raw: data };
 }
 
@@ -108,9 +123,9 @@ serve(async (req) => {
 
     if (!result.ok) {
       const raw = String(result.error ?? "");
-      let parsed: any = null;
+      let parsed: unknown = null;
       try { parsed = JSON.parse(raw); } catch { /* not JSON */ }
-      const upstreamMsg: string = parsed?.error?.message ?? parsed?.message ?? raw;
+      const upstreamMsg = getProviderMessage(parsed, raw);
 
       const isCredits = /credit balance is too low|insufficient.*(credit|balance|quota)|billing/i.test(upstreamMsg);
       const isRate = result.status === 429;
@@ -133,6 +148,8 @@ serve(async (req) => {
         code,
         message: friendly,
         provider: body.provider,
+        fallback: body.provider !== "lovable",
+        fallback_model: body.provider !== "lovable" ? "google/gemini-3-flash-preview" : null,
         upstream_status: result.status,
       }), {
         status: 200,
@@ -144,8 +161,16 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("multi-model-chat error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+    const message = e instanceof Error ? e.message : "Unknown error";
+    const isConfig = /API_KEY not configured|invalid|unauthorised|unauthorized/i.test(message);
+    return new Response(JSON.stringify({
+      ok: false,
+      code: isConfig ? "AUTH_FAILED" : "FUNCTION_ERROR",
+      message: isConfig ? "The selected provider is not configured correctly. Switch to another model or update the provider key." : "The model gateway could not complete the request. Please switch models or retry shortly.",
+      fallback: true,
+      fallback_model: "google/gemini-3-flash-preview",
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
