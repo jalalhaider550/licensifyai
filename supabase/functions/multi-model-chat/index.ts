@@ -133,6 +133,8 @@ serve(async (req) => {
         code,
         message: friendly,
         provider: body.provider,
+        fallback: body.provider !== "lovable",
+        fallback_model: body.provider !== "lovable" ? "google/gemini-3-flash-preview" : null,
         upstream_status: result.status,
       }), {
         status: 200,
@@ -144,8 +146,16 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("multi-model-chat error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+    const message = e instanceof Error ? e.message : "Unknown error";
+    const isConfig = /API_KEY not configured|invalid|unauthorised|unauthorized/i.test(message);
+    return new Response(JSON.stringify({
+      ok: false,
+      code: isConfig ? "AUTH_FAILED" : "FUNCTION_ERROR",
+      message: isConfig ? "The selected provider is not configured correctly. Switch to another model or update the provider key." : "The model gateway could not complete the request. Please switch models or retry shortly.",
+      fallback: true,
+      fallback_model: "google/gemini-3-flash-preview",
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
