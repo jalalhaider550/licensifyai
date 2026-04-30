@@ -57,6 +57,7 @@ export async function runMultiModel(req: MultiModelRequest): Promise<{ content: 
   });
 
   if (error) throw new Error(error.message || "Multi-model call failed");
+  if (data && data.ok === false) throw new Error(data.message || "Provider error");
   if (!data?.content) throw new Error("Empty response from model");
   return { content: data.content, provider: data.provider, model: data.model };
 }
