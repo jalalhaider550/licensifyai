@@ -21,6 +21,7 @@ import {
   FilePen,
   ShieldCheck,
   Home,
+  FolderKanban,
 } from "lucide-react";
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
   { to: "/clients", icon: Users, label: "Clients" },
   { to: "/licenses", icon: PackageCheck, label: "Licensing" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
+  { to: "/vault", icon: FolderKanban, label: "Project Vault" },
   { to: "/compliance", icon: FileCheck, label: "Compliance Documents" },
   { to: "/licensing-requirements", icon: Scale, label: "Licensing Requirements" },
   { to: "/conveyancing", icon: Home, label: "Conveyancing" },

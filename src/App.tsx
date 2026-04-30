@@ -33,6 +33,7 @@ import ConveyancingCases from "./pages/ConveyancingCases";
 import ConveyancingNewCase from "./pages/ConveyancingNewCase";
 import ConveyancingCaseDetail from "./pages/ConveyancingCaseDetail";
 import ConveyancingClientIntake from "./pages/ConveyancingClientIntake";
+import ProjectVault from "./pages/ProjectVault";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/conveyancing/new" element={<ConveyancingNewCase />} />
             <Route path="/conveyancing/:id" element={<ConveyancingCaseDetail />} />
             <Route path="/conveyancing-intake" element={<ConveyancingClientIntake />} />
+            <Route path="/vault" element={<ProjectVault />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
