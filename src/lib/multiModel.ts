@@ -45,20 +45,6 @@ export async function runMultiModel(req: MultiModelRequest): Promise<{ content: 
   const opt = AVAILABLE_MODELS.find((m) => m.id === req.modelId);
   if (!opt) throw new Error(`Unknown model: ${req.modelId}`);
 
-  const invokeModel = async (provider: ModelProvider, model: string) => {
-    return supabase.functions.invoke("multi-model-chat", {
-      body: {
-        provider,
-        model,
-        messages: req.messages,
-        system: req.system,
-        temperature: req.temperature,
-        max_tokens: req.max_tokens,
-      },
-    });
-  };
-
-  const fallbackModel = AVAILABLE_MODELS.find((m) => m.id === "lovable-gemini-3-flash")!;
   const { data, error } = await supabase.functions.invoke("multi-model-chat", {
     body: {
       provider: opt.provider,
@@ -72,12 +58,6 @@ export async function runMultiModel(req: MultiModelRequest): Promise<{ content: 
 
   if (error) throw new Error(error.message || "Multi-model call failed");
   if (data && data.ok === false) {
-    if (data.fallback && opt.provider !== "lovable") {
-      const fallback = await invokeModel(fallbackModel.provider, fallbackModel.model);
-      if (fallback.error) throw new Error(data.message || fallback.error.message || "Provider error");
-      if (fallback.data?.ok === false) throw new Error(data.message || fallback.data.message || "Provider error");
-      if (fallback.data?.content) return { content: fallback.data.content, provider: fallback.data.provider, model: fallback.data.model };
-    }
     throw new Error(data.message || "Provider error");
   }
   if (!data?.content) throw new Error("Empty response from model");
