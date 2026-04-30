@@ -107,8 +107,35 @@ serve(async (req) => {
     else result = await callLovable(body);
 
     if (!result.ok) {
-      return new Response(JSON.stringify({ error: result.error, status: result.status }), {
-        status: result.status === 429 || result.status === 402 ? result.status : 500,
+      const raw = String(result.error ?? "");
+      let parsed: any = null;
+      try { parsed = JSON.parse(raw); } catch { /* not JSON */ }
+      const upstreamMsg: string = parsed?.error?.message ?? parsed?.message ?? raw;
+
+      const isCredits = /credit balance is too low|insufficient.*(credit|balance|quota)|billing/i.test(upstreamMsg);
+      const isRate = result.status === 429;
+      const isAuth = result.status === 401 || result.status === 403;
+
+      const code = isCredits ? "INSUFFICIENT_CREDITS"
+        : isRate ? "RATE_LIMITED"
+        : isAuth ? "AUTH_FAILED"
+        : "PROVIDER_ERROR";
+
+      const friendly = isCredits
+        ? `${body.provider === "anthropic" ? "Anthropic" : body.provider === "gemini" ? "Google Gemini" : "Provider"} API key has no credits. Top up the provider account or switch to another model.`
+        : isRate ? "Rate limit reached. Please retry shortly."
+        : isAuth ? `${body.provider} API key is invalid or unauthorised.`
+        : `Provider error: ${upstreamMsg.slice(0, 240)}`;
+
+      // Always 200 so the client can render the friendly message instead of crashing.
+      return new Response(JSON.stringify({
+        ok: false,
+        code,
+        message: friendly,
+        provider: body.provider,
+        upstream_status: result.status,
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
