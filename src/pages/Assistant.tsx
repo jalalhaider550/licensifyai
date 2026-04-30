@@ -125,11 +125,11 @@ export default function Assistant() {
     if (!activeFile) return;
     try {
       await saveDocumentVersion({
-        document_id: activeFile.id,
-        document_type: "vault_file",
+        documentId: activeFile.id,
+        documentType: "vault_file",
         title: activeFile.name,
         content: editorContent,
-        change_summary: "Edited via Assistant workspace",
+        changeSummary: "Edited via Assistant workspace",
       });
       setEditorOriginal(editorContent);
       toast.success("Version saved");
