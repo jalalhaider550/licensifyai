@@ -1096,6 +1096,131 @@ export type Database = {
           },
         ]
       }
+      meeting_segments: {
+        Row: {
+          created_at: string
+          end_seconds: number
+          id: string
+          meeting_id: string
+          speaker: string | null
+          start_seconds: number
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_seconds?: number
+          id?: string
+          meeting_id: string
+          speaker?: string | null
+          start_seconds?: number
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_seconds?: number
+          id?: string
+          meeting_id?: string
+          speaker?: string | null
+          start_seconds?: number
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_segments_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          action_items: Json
+          case_id: string | null
+          case_type: string | null
+          client_id: string | null
+          created_at: string
+          deadlines: Json
+          detailed_summary: string | null
+          duration_seconds: number
+          id: string
+          important_facts: Json
+          jurisdiction: string | null
+          key_points: Json
+          lawyer_brief: string | null
+          legal_issues: Json
+          legal_risks: Json
+          metadata: Json
+          parties: Json
+          recorded_at: string
+          source: string
+          status: string
+          title: string
+          tldr: string | null
+          transcript: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json
+          case_id?: string | null
+          case_type?: string | null
+          client_id?: string | null
+          created_at?: string
+          deadlines?: Json
+          detailed_summary?: string | null
+          duration_seconds?: number
+          id?: string
+          important_facts?: Json
+          jurisdiction?: string | null
+          key_points?: Json
+          lawyer_brief?: string | null
+          legal_issues?: Json
+          legal_risks?: Json
+          metadata?: Json
+          parties?: Json
+          recorded_at?: string
+          source?: string
+          status?: string
+          title?: string
+          tldr?: string | null
+          transcript?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json
+          case_id?: string | null
+          case_type?: string | null
+          client_id?: string | null
+          created_at?: string
+          deadlines?: Json
+          detailed_summary?: string | null
+          duration_seconds?: number
+          id?: string
+          important_facts?: Json
+          jurisdiction?: string | null
+          key_points?: Json
+          lawyer_brief?: string | null
+          legal_issues?: Json
+          legal_risks?: Json
+          metadata?: Json
+          parties?: Json
+          recorded_at?: string
+          source?: string
+          status?: string
+          title?: string
+          tldr?: string | null
+          transcript?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portal_messages: {
         Row: {
           attachments: Json
