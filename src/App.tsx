@@ -34,6 +34,8 @@ import ConveyancingNewCase from "./pages/ConveyancingNewCase";
 import ConveyancingCaseDetail from "./pages/ConveyancingCaseDetail";
 import ConveyancingClientIntake from "./pages/ConveyancingClientIntake";
 import ProjectVault from "./pages/ProjectVault";
+import Workflows from "./pages/Workflows";
+import BulkReview from "./pages/BulkReview";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -74,6 +76,9 @@ const App = () => (
             <Route path="/conveyancing/:id" element={<ConveyancingCaseDetail />} />
             <Route path="/conveyancing-intake" element={<ConveyancingClientIntake />} />
             <Route path="/vault" element={<ProjectVault />} />
+            <Route path="/workflows" element={<Workflows />} />
+            <Route path="/bulk-review" element={<BulkReview />} />
+            <Route path="/bulk-review/:id" element={<BulkReview />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
