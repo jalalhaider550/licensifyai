@@ -36,6 +36,7 @@ import ConveyancingClientIntake from "./pages/ConveyancingClientIntake";
 import ProjectVault from "./pages/ProjectVault";
 import Workflows from "./pages/Workflows";
 import BulkReview from "./pages/BulkReview";
+import Assistant from "./pages/Assistant";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/bulk-review" element={<BulkReview />} />
             <Route path="/bulk-review/:id" element={<BulkReview />} />
+            <Route path="/assistant" element={<Assistant />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
