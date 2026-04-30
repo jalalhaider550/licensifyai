@@ -1805,6 +1805,19 @@ const CaseDetail = () => {
               {linkedClient ? <PortalMessages clientId={linkedClient.id} caseId={caseItem.id} /> : null}
             </div>
           </TabsContent>
+
+          <TabsContent value="vault">
+            <CaseVaultTab caseId={caseItem.id} caseTitle={caseItem.title} />
+          </TabsContent>
+
+          <TabsContent value="versions">
+            <VersionHistoryPanel
+              documentType="case"
+              documentId={caseItem.id}
+              currentTitle={caseItem.title}
+              currentContent={caseItem.case_summary || ""}
+            />
+          </TabsContent>
         </Tabs>
       </div>
 
