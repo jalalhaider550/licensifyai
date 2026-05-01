@@ -908,6 +908,66 @@ export type Database = {
           },
         ]
       }
+      court_filings: {
+        Row: {
+          case_id: string | null
+          case_number: string
+          client_id: string | null
+          content: string
+          court: string
+          created_at: string
+          facts: string
+          filing_type: string
+          format_metadata: Json
+          id: string
+          jurisdiction: string
+          parties: Json
+          relief: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          case_number?: string
+          client_id?: string | null
+          content?: string
+          court?: string
+          created_at?: string
+          facts?: string
+          filing_type: string
+          format_metadata?: Json
+          id?: string
+          jurisdiction?: string
+          parties?: Json
+          relief?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          case_number?: string
+          client_id?: string | null
+          content?: string
+          court?: string
+          created_at?: string
+          facts?: string
+          filing_type?: string
+          format_metadata?: Json
+          id?: string
+          jurisdiction?: string
+          parties?: Json
+          relief?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       directors: {
         Row: {
           client_id: string
@@ -1038,6 +1098,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_memory: {
+        Row: {
+          case_id: string | null
+          client_id: string | null
+          created_at: string
+          decision: string
+          id: string
+          jurisdiction: string | null
+          lessons: string
+          memory_type: string
+          metadata: Json
+          outcome: string
+          summary: string
+          tags: string[]
+          title: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          decision?: string
+          id?: string
+          jurisdiction?: string | null
+          lessons?: string
+          memory_type?: string
+          metadata?: Json
+          outcome?: string
+          summary?: string
+          tags?: string[]
+          title: string
+          topic?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          decision?: string
+          id?: string
+          jurisdiction?: string | null
+          lessons?: string
+          memory_type?: string
+          metadata?: Json
+          outcome?: string
+          summary?: string
+          tags?: string[]
+          title?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       license_applications: {
         Row: {
