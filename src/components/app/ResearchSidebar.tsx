@@ -45,11 +45,21 @@ export function ResearchSidebar() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
 
+  const closePanel = () => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent("research:closed"));
+  };
+
   // Listen for external open requests, e.g. window.dispatchEvent(new CustomEvent("research:open"))
   useEffect(() => {
-    const handler = () => setOpen(true);
-    window.addEventListener("research:open", handler as EventListener);
-    return () => window.removeEventListener("research:open", handler as EventListener);
+    const openHandler = () => setOpen(true);
+    const closeHandler = () => setOpen(false);
+    window.addEventListener("research:open", openHandler as EventListener);
+    window.addEventListener("research:close", closeHandler as EventListener);
+    return () => {
+      window.removeEventListener("research:open", openHandler as EventListener);
+      window.removeEventListener("research:close", closeHandler as EventListener);
+    };
   }, []);
 
   // Keyboard toggle: Ctrl/Cmd + Shift + R
@@ -127,7 +137,7 @@ export function ResearchSidebar() {
       {/* Backdrop — clicking it closes the panel so users always have an escape */}
       {open && (
         <div
-          onClick={() => setOpen(false)}
+          onClick={closePanel}
           className="fixed inset-0 z-30 bg-foreground/10 backdrop-blur-[1px]"
           aria-hidden
         />
@@ -143,7 +153,7 @@ export function ResearchSidebar() {
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-3">
           <button
-            onClick={() => setOpen(false)}
+            onClick={closePanel}
             className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium hover:bg-muted transition"
             aria-label="Back"
           >
@@ -155,7 +165,7 @@ export function ResearchSidebar() {
             <span className="font-display text-sm font-semibold">Research</span>
           </div>
           <button
-            onClick={() => setOpen(false)}
+            onClick={closePanel}
             aria-label="Close research sidebar"
             className="rounded-md p-1.5 hover:bg-muted transition"
           >
