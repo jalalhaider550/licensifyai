@@ -28,6 +28,7 @@ import {
   Sparkles,
   Mic,
   Gavel,
+  BookOpen,
 } from "lucide-react";
 
 const navItems = [
