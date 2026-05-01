@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SupplementaryCase {
-  source: "CourtListener" | "BAILII";
+  source: "CourtListener" | "BAILII" | "Lovable AI";
   jurisdiction: "US" | "UK";
   title: string;
   citation?: string;
