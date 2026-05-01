@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ResearchSidebar } from "@/components/app/ResearchSidebar";
 import {
   Shield,
   LayoutDashboard,
@@ -214,6 +215,9 @@ export const AppShell = ({ children }: AppShellProps) => {
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
         {children}
       </main>
+
+      {/* Independent lawyer research panel — additive only */}
+      <ResearchSidebar />
     </div>
   );
 };
