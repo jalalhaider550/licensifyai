@@ -124,29 +124,35 @@ export function ResearchSidebar() {
 
   return (
     <>
-      {/* Floating toggle button */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Open research sidebar"
-        className="fixed right-4 bottom-6 z-30 flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-primary-foreground shadow-lg hover:opacity-90 transition"
-      >
-        <BookOpen className="h-4 w-4" />
-        <span className="text-xs font-semibold">Research</span>
-      </button>
+      {/* Backdrop — clicking it closes the panel so users always have an escape */}
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-30 bg-foreground/10 backdrop-blur-[1px]"
+          aria-hidden
+        />
+      )}
 
-      {/* Sidebar (does not overlap or replace main workspace; sits as overlay panel) */}
+      {/* Sidebar overlay panel */}
       <div
         className={`fixed inset-y-0 right-0 z-40 w-full max-w-md transform border-l border-border bg-card shadow-2xl transition-transform duration-200 ${
-          open ? "translate-x-0" : "translate-x-full"
+          open ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
         role="complementary"
         aria-label="Research panel"
       >
-        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+        <div className="flex h-14 items-center justify-between border-b border-border px-3">
+          <button
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium hover:bg-muted transition"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-primary" />
             <span className="font-display text-sm font-semibold">Research</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Lawyer workspace</span>
           </div>
           <button
             onClick={() => setOpen(false)}
