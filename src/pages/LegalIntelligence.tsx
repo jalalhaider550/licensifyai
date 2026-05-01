@@ -17,7 +17,8 @@ import {
 import {
   LegalMemoryEntry, deleteLegalMemory, listLegalMemory, saveLegalMemory,
 } from "@/lib/legalMemory";
-import { Download, FileText, Loader2, Plus, Save, Sparkles, Trash2, Brain, Search } from "lucide-react";
+import { Download, FileText, Loader2, Plus, Save, Sparkles, Trash2, Brain, Search, BookOpen } from "lucide-react";
+import { SupplementaryCaseLawPanel } from "@/components/app/SupplementaryCaseLawPanel";
 
 const CourtFilingsTab = () => {
   const { toast } = useToast();
