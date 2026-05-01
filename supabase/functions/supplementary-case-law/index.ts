@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface SupplementaryCase {
-  source: "CourtListener" | "BAILII";
+  source: "CourtListener" | "BAILII" | "Lovable AI";
   jurisdiction: "US" | "UK";
   title: string;
   citation?: string;
@@ -15,6 +15,42 @@ interface SupplementaryCase {
   date?: string;
   url: string;
   snippet?: string;
+}
+
+async function aiCaseLaw(query: string, jurisdiction: "UK" | "US", limit: number): Promise<SupplementaryCase[]> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) return [];
+  const sys = `You are a senior commercial solicitor with 15+ years PQE. Return only REAL, verifiable ${jurisdiction === "UK" ? "United Kingdom (England & Wales, Scotland, Northern Ireland)" : "United States (federal & state)"} case law authorities responsive to the user's query. Never invent citations. If unsure of a citation, omit it. Output strict JSON only.`;
+  const user = `Query: ${query}\n\nReturn up to ${limit} authoritative cases as JSON: {"cases":[{"title":"","citation":"","court":"","year":"YYYY","summary":"one sentence ratio"}]}`;
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!resp.ok) { console.error("AI case law gateway", resp.status, await resp.text().catch(() => "")); return []; }
+    const data = await resp.json();
+    const raw = data?.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(raw);
+    const arr: any[] = Array.isArray(parsed?.cases) ? parsed.cases : [];
+    return arr.slice(0, limit).map((c: any): SupplementaryCase => ({
+      source: "Lovable AI",
+      jurisdiction,
+      title: String(c.title || "Untitled").slice(0, 240),
+      citation: c.citation ? String(c.citation) : undefined,
+      court: c.court ? String(c.court) : undefined,
+      date: c.year ? String(c.year) : undefined,
+      url: `https://www.google.com/search?q=${encodeURIComponent(`${c.title || ""} ${c.citation || ""}`)}`,
+      snippet: c.summary ? String(c.summary).slice(0, 400) : undefined,
+    }));
+  } catch (e) {
+    console.error("aiCaseLaw error", e);
+    return [];
+  }
 }
 
 async function searchCourtListener(query: string, limit: number): Promise<SupplementaryCase[]> {
@@ -86,12 +122,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tasks: Promise<SupplementaryCase[]>[] = [];
-    if (jurisdiction === "US" || jurisdiction === "BOTH") tasks.push(searchCourtListener(query, limit));
-    if (jurisdiction === "UK" || jurisdiction === "BOTH") tasks.push(searchBAILII(query, limit));
+    const wantUK = jurisdiction === "UK" || jurisdiction === "BOTH";
+    const wantUS = jurisdiction === "US" || jurisdiction === "BOTH";
 
-    const settled = await Promise.all(tasks);
-    const results = settled.flat();
+    const [usExt, ukExt] = await Promise.all([
+      wantUS ? searchCourtListener(query, limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUK ? searchBAILII(query, limit) : Promise.resolve([] as SupplementaryCase[]),
+    ]);
+
+    // AI fallback per-jurisdiction when external sources return nothing
+    const [usAi, ukAi] = await Promise.all([
+      wantUS && usExt.length === 0 ? aiCaseLaw(query, "US", limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUK && ukExt.length === 0 ? aiCaseLaw(query, "UK", limit) : Promise.resolve([] as SupplementaryCase[]),
+    ]);
+
+    const results = [...usExt, ...ukExt, ...usAi, ...ukAi];
 
     return new Response(JSON.stringify({ query, jurisdiction, results, supplementary: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
