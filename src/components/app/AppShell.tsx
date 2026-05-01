@@ -71,6 +71,18 @@ export const AppShell = ({ children }: AppShellProps) => {
   const { user, loading, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const closeResearch = () => window.dispatchEvent(new CustomEvent("research:close"));
+
+  const openResearch = () => {
+    setMobileOpen(false);
+    window.dispatchEvent(new CustomEvent("research:open"));
+  };
+
+  const toggleMobileNav = () => {
+    closeResearch();
+    setMobileOpen((v) => !v);
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
@@ -79,6 +91,7 @@ export const AppShell = ({ children }: AppShellProps) => {
 
   useEffect(() => {
     setMobileOpen(false);
+    closeResearch();
   }, [location.pathname]);
 
   if (loading) {
@@ -132,7 +145,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         })}
 
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent("research:open"))}
+          onClick={openResearch}
           className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150"
         >
           <BookOpen className="h-4 w-4 shrink-0" />
@@ -201,7 +214,7 @@ export const AppShell = ({ children }: AppShellProps) => {
           <Shield className="h-5 w-5 text-primary" />
           <span className="font-display text-sm font-bold">Licensify AI</span>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-1 rounded-lg hover:bg-muted transition-colors">
+        <button onClick={toggleMobileNav} className="p-1 rounded-lg hover:bg-muted transition-colors">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
