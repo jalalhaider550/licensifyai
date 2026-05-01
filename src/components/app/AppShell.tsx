@@ -214,6 +214,9 @@ export const AppShell = ({ children }: AppShellProps) => {
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
         {children}
       </main>
+
+      {/* Independent lawyer research panel — additive only */}
+      <ResearchSidebar />
     </div>
   );
 };
