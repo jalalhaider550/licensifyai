@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ResearchSidebar } from "@/components/app/ResearchSidebar";
 import {
   Shield,
   LayoutDashboard,
