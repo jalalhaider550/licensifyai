@@ -122,12 +122,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tasks: Promise<SupplementaryCase[]>[] = [];
-    if (jurisdiction === "US" || jurisdiction === "BOTH") tasks.push(searchCourtListener(query, limit));
-    if (jurisdiction === "UK" || jurisdiction === "BOTH") tasks.push(searchBAILII(query, limit));
+    const wantUK = jurisdiction === "UK" || jurisdiction === "BOTH";
+    const wantUS = jurisdiction === "US" || jurisdiction === "BOTH";
 
-    const settled = await Promise.all(tasks);
-    const results = settled.flat();
+    const [usExt, ukExt] = await Promise.all([
+      wantUS ? searchCourtListener(query, limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUK ? searchBAILII(query, limit) : Promise.resolve([] as SupplementaryCase[]),
+    ]);
+
+    // AI fallback per-jurisdiction when external sources return nothing
+    const [usAi, ukAi] = await Promise.all([
+      wantUS && usExt.length === 0 ? aiCaseLaw(query, "US", limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUK && ukExt.length === 0 ? aiCaseLaw(query, "UK", limit) : Promise.resolve([] as SupplementaryCase[]),
+    ]);
+
+    const results = [...usExt, ...ukExt, ...usAi, ...ukAi];
 
     return new Response(JSON.stringify({ query, jurisdiction, results, supplementary: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
