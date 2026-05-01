@@ -39,6 +39,7 @@ import BulkReview from "./pages/BulkReview";
 import Assistant from "./pages/Assistant";
 import MultiModelPlayground from "./pages/MultiModelPlayground";
 import Meetings from "./pages/Meetings";
+import LegalIntelligence from "./pages/LegalIntelligence";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/assistant" element={<Assistant />} />
             <Route path="/models" element={<MultiModelPlayground />} />
             <Route path="/meetings" element={<Meetings />} />
+            <Route path="/legal-intelligence" element={<LegalIntelligence />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

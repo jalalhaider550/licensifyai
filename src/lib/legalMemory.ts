@@ -48,7 +48,7 @@ export async function saveLegalMemory(entry: LegalMemoryInput & { id?: string })
     outcome: entry.outcome || "",
     lessons: entry.lessons || "",
     tags: entry.tags || [],
-    metadata: entry.metadata || {},
+    metadata: (entry.metadata || {}) as any,
     case_id: entry.case_id || null,
     client_id: entry.client_id || null,
   };
