@@ -28,6 +28,7 @@ import {
   Sparkles,
   Mic,
   Gavel,
+  BookOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -129,6 +130,14 @@ export const AppShell = ({ children }: AppShellProps) => {
             </Link>
           );
         })}
+
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("research:open"))}
+          className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150"
+        >
+          <BookOpen className="h-4 w-4 shrink-0" />
+          Research
+        </button>
 
         <p className="px-3 mt-4 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Legal Documents

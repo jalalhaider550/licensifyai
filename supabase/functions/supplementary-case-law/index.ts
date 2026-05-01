@@ -130,10 +130,11 @@ Deno.serve(async (req) => {
       wantUK ? searchBAILII(query, limit) : Promise.resolve([] as SupplementaryCase[]),
     ]);
 
-    // AI fallback per-jurisdiction when external sources return nothing
+    // AI fallback per-jurisdiction whenever external sources are thin (<3) or empty.
+    const MIN = 3;
     const [usAi, ukAi] = await Promise.all([
-      wantUS && usExt.length === 0 ? aiCaseLaw(query, "US", limit) : Promise.resolve([] as SupplementaryCase[]),
-      wantUK && ukExt.length === 0 ? aiCaseLaw(query, "UK", limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUS && usExt.length < MIN ? aiCaseLaw(query, "US", limit) : Promise.resolve([] as SupplementaryCase[]),
+      wantUK && ukExt.length < MIN ? aiCaseLaw(query, "UK", limit) : Promise.resolve([] as SupplementaryCase[]),
     ]);
 
     const results = [...usExt, ...ukExt, ...usAi, ...ukAi];
