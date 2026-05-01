@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, BookOpen, ChevronDown, ChevronRight, Loader2, Filter, Plus } from "lucide-react";
+import { Search, X, BookOpen, ChevronDown, ChevronRight, Loader2, Filter, Plus, ArrowLeft } from "lucide-react";
 import { fetchSupplementaryCaseLaw, type SupplementaryCase } from "@/lib/supplementaryCaseLaw";
 import { toast } from "sonner";
 
