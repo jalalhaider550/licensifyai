@@ -90,6 +90,7 @@ import {
   DraftAnythingPanel,
 } from "@/components/app/AdvancedCasePanels";
 import { RichDocumentEditor } from "@/components/app/RichDocumentEditor";
+import { CaseCourtFilingPanel } from "@/components/app/CaseCourtFilingPanel";
 
 const parseContentJson = (payload: any) => {
   const content = payload?.content || "{}";
@@ -1325,7 +1326,18 @@ const CaseDetail = () => {
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="vault">Vault</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="court-filing">Court Filing</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="court-filing">
+            <CaseCourtFilingPanel
+              caseId={caseItem.id}
+              clientId={caseItem.client_id}
+              defaultJurisdiction={(caseItem.case_metadata?.jurisdiction === "US" ? "US" : "UK") as "UK" | "US"}
+              defaultTitle={caseItem.title || ""}
+              caseFacts={[summary, factsText].filter(Boolean).join("\n\n")}
+            />
+          </TabsContent>
 
           <TabsContent value="overview">
             <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
