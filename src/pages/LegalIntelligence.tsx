@@ -17,7 +17,8 @@ import {
 import {
   LegalMemoryEntry, deleteLegalMemory, listLegalMemory, saveLegalMemory,
 } from "@/lib/legalMemory";
-import { Download, FileText, Loader2, Plus, Save, Sparkles, Trash2, Brain, Search } from "lucide-react";
+import { Download, FileText, Loader2, Plus, Save, Sparkles, Trash2, Brain, Search, BookOpen } from "lucide-react";
+import { SupplementaryCaseLawPanel } from "@/components/app/SupplementaryCaseLawPanel";
 
 const CourtFilingsTab = () => {
   const { toast } = useToast();
@@ -418,9 +419,11 @@ const LegalIntelligence = () => {
           <TabsList>
             <TabsTrigger value="filings"><FileText className="mr-2 h-4 w-4" /> Court Filings</TabsTrigger>
             <TabsTrigger value="memory"><Brain className="mr-2 h-4 w-4" /> Legal Memory</TabsTrigger>
+            <TabsTrigger value="supplementary"><BookOpen className="mr-2 h-4 w-4" /> Supplementary Research</TabsTrigger>
           </TabsList>
           <TabsContent value="filings"><CourtFilingsTab /></TabsContent>
           <TabsContent value="memory"><LegalMemoryTab /></TabsContent>
+          <TabsContent value="supplementary"><SupplementaryCaseLawPanel /></TabsContent>
         </Tabs>
       </div>
     </AppShell>
