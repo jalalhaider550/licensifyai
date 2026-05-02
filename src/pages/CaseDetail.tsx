@@ -275,6 +275,7 @@ const CaseDetail = () => {
   );
 
   const [showJurisdictionChange, setShowJurisdictionChange] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const jurisdiction = useMemo(
     () => caseItem?.case_metadata?.jurisdiction || caseItem?.intake_data?.jurisdiction || linkedClient?.jurisdiction || "UK",
