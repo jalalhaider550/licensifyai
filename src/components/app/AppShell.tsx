@@ -29,11 +29,16 @@ import {
   Mic,
   Gavel,
   BookOpen,
+  Building2,
+  UsersRound,
 } from "lucide-react";
+import { NotificationsBell } from "@/components/app/NotificationsBell";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/cases", icon: BriefcaseBusiness, label: "Legal Cases" },
+  { to: "/shared", icon: UsersRound, label: "Shared with me" },
+  { to: "/firm", icon: Building2, label: "Firm Workspace" },
   { to: "/clients", icon: Users, label: "Clients" },
   { to: "/licenses", icon: PackageCheck, label: "Licensing" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
@@ -214,9 +219,17 @@ export const AppShell = ({ children }: AppShellProps) => {
           <Shield className="h-5 w-5 text-primary" />
           <span className="font-display text-sm font-bold">Licensify AI</span>
         </div>
-        <button onClick={toggleMobileNav} className="p-1 rounded-lg hover:bg-muted transition-colors">
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationsBell />
+          <button onClick={toggleMobileNav} className="p-1 rounded-lg hover:bg-muted transition-colors">
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop notifications */}
+      <div className="fixed top-3 right-4 z-30 hidden md:block">
+        <NotificationsBell />
       </div>
 
       {/* Mobile sidebar overlay */}
