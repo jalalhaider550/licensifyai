@@ -38,6 +38,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { CaseVaultTab } from "@/components/app/CaseVaultTab";
 import { VersionHistoryPanel } from "@/components/app/VersionHistoryPanel";
+import { ShareCaseDialog } from "@/components/app/ShareCaseDialog";
+import { CasePresenceIndicator } from "@/components/app/CasePresenceIndicator";
+import { CaseActivityFeed } from "@/components/app/CaseActivityFeed";
+import { DocumentCommentsPanel } from "@/components/app/DocumentCommentsPanel";
+import { logActivity } from "@/lib/firmWorkspace";
+import { Share2 } from "lucide-react";
 import { extractTextFromFile } from "@/lib/documentParser";
 import {
   CASE_DOCUMENT_CATEGORIES,
