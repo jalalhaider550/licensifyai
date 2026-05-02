@@ -1337,6 +1337,8 @@ const CaseDetail = () => {
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="vault">Vault</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="court-filing">Court Filing</TabsTrigger>
           </TabsList>
 
