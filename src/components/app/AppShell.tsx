@@ -29,11 +29,16 @@ import {
   Mic,
   Gavel,
   BookOpen,
+  Building2,
+  UsersRound,
 } from "lucide-react";
+import { NotificationsBell } from "@/components/app/NotificationsBell";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/cases", icon: BriefcaseBusiness, label: "Legal Cases" },
+  { to: "/shared", icon: UsersRound, label: "Shared with me" },
+  { to: "/firm", icon: Building2, label: "Firm Workspace" },
   { to: "/clients", icon: Users, label: "Clients" },
   { to: "/licenses", icon: PackageCheck, label: "Licensing" },
   { to: "/documents", icon: FolderOpen, label: "Documents" },
