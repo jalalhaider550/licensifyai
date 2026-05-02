@@ -165,6 +165,45 @@ export type Database = {
           },
         ]
       }
+      case_activity_log: {
+        Row: {
+          action_type: string
+          actor_name: string
+          actor_user_id: string
+          case_id: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action_type: string
+          actor_name?: string
+          actor_user_id: string
+          case_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Update: {
+          action_type?: string
+          actor_name?: string
+          actor_user_id?: string
+          case_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       case_documents: {
         Row: {
           ai_status: string
@@ -435,6 +474,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      case_presence: {
+        Row: {
+          case_id: string
+          color: string
+          display_name: string
+          id: string
+          last_seen_at: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          color?: string
+          display_name?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          color?: string
+          display_name?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      case_shares: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          permission: Database["public"]["Enums"]["case_permission"]
+          shared_by_user_id: string
+          shared_with_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["case_permission"]
+          shared_by_user_id: string
+          shared_with_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          permission?: Database["public"]["Enums"]["case_permission"]
+          shared_by_user_id?: string
+          shared_with_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       cases: {
         Row: {
@@ -1099,6 +1198,54 @@ export type Database = {
           },
         ]
       }
+      document_comments: {
+        Row: {
+          anchor: Json
+          author_name: string
+          author_user_id: string
+          body: string
+          case_id: string
+          created_at: string
+          document_id: string
+          document_type: string
+          id: string
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          anchor?: Json
+          author_name?: string
+          author_user_id: string
+          body: string
+          case_id: string
+          created_at?: string
+          document_id: string
+          document_type: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anchor?: Json
+          author_name?: string
+          author_user_id?: string
+          body?: string
+          case_id?: string
+          created_at?: string
+          document_id?: string
+          document_type?: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_versions: {
         Row: {
           author_type: string
@@ -1197,6 +1344,162 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      firm_cases: {
+        Row: {
+          case_id: string
+          created_at: string
+          designated_by: string
+          firm_id: string
+          id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          designated_by: string
+          firm_id: string
+          id?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          designated_by?: string
+          firm_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_cases_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firm_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          custom_role_label: string
+          email: string
+          expires_at: string
+          firm_id: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["firm_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          custom_role_label?: string
+          email: string
+          expires_at?: string
+          firm_id: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["firm_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          custom_role_label?: string
+          email?: string
+          expires_at?: string
+          firm_id?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["firm_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_invites_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firm_members: {
+        Row: {
+          created_at: string
+          custom_role_label: string
+          display_name: string
+          email: string
+          firm_id: string
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["firm_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_role_label?: string
+          display_name?: string
+          email?: string
+          firm_id: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["firm_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_role_label?: string
+          display_name?: string
+          email?: string
+          firm_id?: string
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["firm_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "firm_members_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      firms: {
+        Row: {
+          account_type: Database["public"]["Enums"]["firm_account_type"]
+          admin_user_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_type?: Database["public"]["Enums"]["firm_account_type"]
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["firm_account_type"]
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       legal_memory: {
         Row: {
@@ -1433,6 +1736,69 @@ export type Database = {
           tldr?: string | null
           transcript?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          default_mode: string
+          id: string
+          per_case: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_mode?: string
+          id?: string
+          per_case?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          default_mode?: string
+          id?: string
+          per_case?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          case_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link_path: string
+          metadata: Json
+          notif_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_path?: string
+          metadata?: Json
+          notif_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_path?: string
+          metadata?: Json
+          notif_type?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
@@ -1720,6 +2086,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_edit_case: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_case_info_request: {
         Args: { _token: string }
         Returns: {
@@ -1737,6 +2107,10 @@ export type Database = {
           title: string
         }[]
       }
+      get_case_permission: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: string
+      }
       get_client_portal_cases: {
         Args: { _token: string }
         Returns: {
@@ -1751,8 +2125,23 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_user_firm_id: { Args: { _user_id: string }; Returns: string }
+      has_case_access: {
+        Args: { _case_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_firm_admin: {
+        Args: { _firm_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_firm_member: {
+        Args: { _firm_id: string; _user_id: string }
+        Returns: boolean
+      }
+      same_firm: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
+      case_permission: "viewer" | "contributor" | "editor" | "co_owner"
       case_type:
         | "licensing"
         | "contract_dispute"
@@ -1763,6 +2152,15 @@ export type Database = {
         | "litigation"
         | "conveyancing"
         | "advisory"
+      firm_account_type: "solo" | "firm"
+      firm_role:
+        | "admin"
+        | "partner"
+        | "associate"
+        | "paralegal"
+        | "assistant"
+        | "custom"
+      invite_status: "pending" | "accepted" | "revoked" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1890,6 +2288,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      case_permission: ["viewer", "contributor", "editor", "co_owner"],
       case_type: [
         "licensing",
         "contract_dispute",
@@ -1901,6 +2300,16 @@ export const Constants = {
         "conveyancing",
         "advisory",
       ],
+      firm_account_type: ["solo", "firm"],
+      firm_role: [
+        "admin",
+        "partner",
+        "associate",
+        "paralegal",
+        "assistant",
+        "custom",
+      ],
+      invite_status: ["pending", "accepted", "revoked", "expired"],
     },
   },
 } as const
