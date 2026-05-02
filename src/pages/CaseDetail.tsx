@@ -1856,6 +1856,14 @@ const CaseDetail = () => {
         </Tabs>
       </div>
 
+      <ShareCaseDialog
+        caseId={caseItem.id}
+        caseOwnerId={caseItem.user_id}
+        caseTitle={caseItem.title}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
+
       <ClientInfoRequestDialog
         open={requestModalOpen}
         saving={requestSaving}
