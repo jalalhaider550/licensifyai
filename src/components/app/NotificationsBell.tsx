@@ -13,28 +13,46 @@ export function NotificationsBell() {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const unread = items.filter((n) => !n.is_read).length;
 
-  const refresh = () => listMyNotifications(50).then(setItems);
+  const refresh = async () => {
+    try {
+      const list = await listMyNotifications(50);
+      setItems(list);
+    } catch (err) {
+      console.warn("[NotificationsBell] failed to load notifications:", err);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
     refresh();
-    const ch = supabase
-      .channel(`notifs:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        refresh,
-      )
-      .subscribe();
+    let ch: any;
+    try {
+      ch = supabase
+        .channel(`notifs:${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          refresh,
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("[NotificationsBell] realtime subscribe failed:", err);
+    }
     return () => {
-      supabase.removeChannel(ch);
+      try {
+        if (ch) supabase.removeChannel(ch);
+      } catch {}
     };
   }, [user?.id]);
 
   const handleClick = async (n: NotificationRow) => {
-    if (!n.is_read) await markNotificationRead(n.id);
-    if (n.link_path) navigate(n.link_path);
-    refresh();
+    try {
+      if (!n.is_read) await markNotificationRead(n.id);
+      if (n.link_path) navigate(n.link_path);
+      refresh();
+    } catch (err) {
+      console.warn("[NotificationsBell] click handler failed:", err);
+    }
   };
 
   return (
