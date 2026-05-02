@@ -1845,6 +1845,14 @@ const CaseDetail = () => {
               currentContent={caseItem.case_summary || ""}
             />
           </TabsContent>
+
+          <TabsContent value="activity">
+            <CaseActivityFeed caseId={caseItem.id} />
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <DocumentCommentsPanel caseId={caseItem.id} documentType="case" documentId={caseItem.id} />
+          </TabsContent>
         </Tabs>
       </div>
 
