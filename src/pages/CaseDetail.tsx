@@ -38,6 +38,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { CaseVaultTab } from "@/components/app/CaseVaultTab";
 import { VersionHistoryPanel } from "@/components/app/VersionHistoryPanel";
+import { ShareCaseDialog } from "@/components/app/ShareCaseDialog";
+import { CasePresenceIndicator } from "@/components/app/CasePresenceIndicator";
+import { CaseActivityFeed } from "@/components/app/CaseActivityFeed";
+import { DocumentCommentsPanel } from "@/components/app/DocumentCommentsPanel";
+import { logActivity } from "@/lib/firmWorkspace";
+import { Share2 } from "lucide-react";
 import { extractTextFromFile } from "@/lib/documentParser";
 import {
   CASE_DOCUMENT_CATEGORIES,
@@ -269,6 +275,7 @@ const CaseDetail = () => {
   );
 
   const [showJurisdictionChange, setShowJurisdictionChange] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const jurisdiction = useMemo(
     () => caseItem?.case_metadata?.jurisdiction || caseItem?.intake_data?.jurisdiction || linkedClient?.jurisdiction || "UK",
@@ -1120,6 +1127,15 @@ const CaseDetail = () => {
         metadata: { status, action_type: workspaceActionType },
       });
 
+      // Collaboration activity log (versioned)
+      await logActivity(
+        caseItem.id,
+        status === "approved" ? "draft_approved" : "draft_saved",
+        `${status === "approved" ? "Approved" : "Saved"} v${version} of "${actionWorkspaceTitle || product.title}"`,
+        { version, status, document_type: workspaceActionType },
+        "case_draft",
+      );
+
       await loadCase();
       toast.success(status === "approved" ? "Draft approved and saved" : "Draft saved");
     } catch (err: any) {
@@ -1218,7 +1234,11 @@ const CaseDetail = () => {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CasePresenceIndicator caseId={caseItem.id} />
+            <Button variant="outline" onClick={() => setShareDialogOpen(true)}>
+              <Share2 className="mr-2 h-4 w-4" /> Share
+            </Button>
             <Button variant="outline" onClick={() => refreshCaseUnderstanding(undefined)}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Refresh AI Context
             </Button>
@@ -1326,6 +1346,8 @@ const CaseDetail = () => {
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="vault">Vault</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="court-filing">Court Filing</TabsTrigger>
           </TabsList>
 
@@ -1832,8 +1854,24 @@ const CaseDetail = () => {
               currentContent={caseItem.case_summary || ""}
             />
           </TabsContent>
+
+          <TabsContent value="activity">
+            <CaseActivityFeed caseId={caseItem.id} />
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <DocumentCommentsPanel caseId={caseItem.id} documentType="case" documentId={caseItem.id} />
+          </TabsContent>
         </Tabs>
       </div>
+
+      <ShareCaseDialog
+        caseId={caseItem.id}
+        caseOwnerId={caseItem.user_id}
+        caseTitle={caseItem.title}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
 
       <ClientInfoRequestDialog
         open={requestModalOpen}

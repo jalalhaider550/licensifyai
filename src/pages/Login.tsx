@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { acceptInviteToken } from "@/lib/firmWorkspace";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite") || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,12 +21,21 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await signIn(email, password);
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
-    } else {
-      navigate("/dashboard");
+      return;
     }
+    if (inviteToken) {
+      try {
+        await acceptInviteToken(inviteToken);
+        toast.success("You've joined the firm workspace.");
+      } catch (err: any) {
+        toast.error(err?.message || "Could not accept invite");
+      }
+    }
+    setLoading(false);
+    navigate("/dashboard");
   };
 
   return (
