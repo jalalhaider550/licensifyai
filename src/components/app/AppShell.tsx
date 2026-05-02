@@ -33,6 +33,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
+import { SafeBoundary } from "@/components/app/SafeBoundary";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -220,7 +221,7 @@ export const AppShell = ({ children }: AppShellProps) => {
           <span className="font-display text-sm font-bold">Licensify AI</span>
         </div>
         <div className="flex items-center gap-1">
-          <NotificationsBell />
+          <SafeBoundary label="NotificationsBell-mobile"><NotificationsBell /></SafeBoundary>
           <button onClick={toggleMobileNav} className="p-1 rounded-lg hover:bg-muted transition-colors">
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -229,7 +230,7 @@ export const AppShell = ({ children }: AppShellProps) => {
 
       {/* Desktop notifications */}
       <div className="fixed top-3 right-4 z-30 hidden md:block">
-        <NotificationsBell />
+        <SafeBoundary label="NotificationsBell-desktop"><NotificationsBell /></SafeBoundary>
       </div>
 
       {/* Mobile sidebar overlay */}
