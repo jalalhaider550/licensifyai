@@ -908,6 +908,105 @@ export type Database = {
           },
         ]
       }
+      court_credentials: {
+        Row: {
+          court_system: string
+          created_at: string
+          extra: Json
+          id: string
+          jurisdiction: string
+          last_verified_at: string | null
+          secret_cipher: string
+          updated_at: string
+          user_id: string
+          username: string
+          verification_status: string
+        }
+        Insert: {
+          court_system: string
+          created_at?: string
+          extra?: Json
+          id?: string
+          jurisdiction: string
+          last_verified_at?: string | null
+          secret_cipher?: string
+          updated_at?: string
+          user_id: string
+          username?: string
+          verification_status?: string
+        }
+        Update: {
+          court_system?: string
+          created_at?: string
+          extra?: Json
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          secret_cipher?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      court_filing_submissions: {
+        Row: {
+          attachments: Json
+          case_id: string | null
+          confirmation_number: string
+          court_system: string
+          created_at: string
+          filing_id: string | null
+          id: string
+          jurisdiction: string
+          last_polled_at: string | null
+          metadata: Json
+          receipt: Json
+          rejection_reason: string
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          case_id?: string | null
+          confirmation_number?: string
+          court_system: string
+          created_at?: string
+          filing_id?: string | null
+          id?: string
+          jurisdiction: string
+          last_polled_at?: string | null
+          metadata?: Json
+          receipt?: Json
+          rejection_reason?: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          case_id?: string | null
+          confirmation_number?: string
+          court_system?: string
+          created_at?: string
+          filing_id?: string | null
+          id?: string
+          jurisdiction?: string
+          last_polled_at?: string | null
+          metadata?: Json
+          receipt?: Json
+          rejection_reason?: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       court_filings: {
         Row: {
           case_id: string | null
