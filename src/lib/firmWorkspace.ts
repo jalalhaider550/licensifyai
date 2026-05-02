@@ -511,3 +511,49 @@ export async function handoffCase(caseId: string, newOwnerId: string) {
     body: "You are now the owner of this case.",
   });
 }
+
+// ---------- Invites ----------
+export async function lookupInviteByToken(token: string): Promise<FirmInvite | null> {
+  const { data } = await db.from("firm_invites").select("*").eq("token", token).maybeSingle();
+  return (data as FirmInvite) || null;
+}
+
+export async function acceptInviteToken(token: string): Promise<{ firm_id: string } | null> {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) throw new Error("Not authenticated");
+  const invite = await lookupInviteByToken(token);
+  if (!invite) throw new Error("Invite not found");
+  if (invite.status !== "pending") throw new Error("Invite no longer valid");
+  if (new Date(invite.expires_at).getTime() < Date.now()) throw new Error("Invite expired");
+
+  // Deactivate the auto-created personal firm membership for this user (if any),
+  // then add them to the inviting firm.
+  await db
+    .from("firm_members")
+    .update({ is_active: false })
+    .eq("user_id", u.user.id);
+
+  const { error: memErr } = await db.from("firm_members").insert({
+    firm_id: invite.firm_id,
+    user_id: u.user.id,
+    role: invite.role,
+    custom_role_label: invite.custom_role_label || "",
+    display_name: u.user.user_metadata?.display_name || u.user.email?.split("@")[0] || "",
+    email: u.user.email || invite.email,
+    is_active: true,
+  });
+  if (memErr && !String(memErr.message).includes("duplicate")) throw memErr;
+
+  await db.from("firm_invites").update({
+    status: "accepted",
+    accepted_at: new Date().toISOString(),
+  }).eq("id", invite.id);
+
+  return { firm_id: invite.firm_id };
+}
+
+export async function setMyFirmAccountType(accountType: "solo" | "firm"): Promise<void> {
+  const { firm } = await getMyFirm();
+  if (!firm) return;
+  await db.from("firms").update({ account_type: accountType }).eq("id", firm.id);
+}
