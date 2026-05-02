@@ -238,8 +238,18 @@ export function CaseCourtFilingPanel({ caseId, clientId, defaultJurisdiction = "
           </div>
         </div>
       )}
+
+      {/* E-filing bridge: attaches at the bottom of the existing completion screen */}
+      <CourtEfilePanel
+        caseId={caseId}
+        filingId={savedId || null}
+        primaryContent={content}
+        primaryTitle={title}
+        defaultJurisdiction={jurisdiction}
+      />
     </div>
   );
 }
 
 export default CaseCourtFilingPanel;
+
