@@ -1225,7 +1225,11 @@ const CaseDetail = () => {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CasePresenceIndicator caseId={caseItem.id} />
+            <Button variant="outline" onClick={() => setShareDialogOpen(true)}>
+              <Share2 className="mr-2 h-4 w-4" /> Share
+            </Button>
             <Button variant="outline" onClick={() => refreshCaseUnderstanding(undefined)}>
               <RefreshCcw className="mr-2 h-4 w-4" /> Refresh AI Context
             </Button>
