@@ -1127,6 +1127,15 @@ const CaseDetail = () => {
         metadata: { status, action_type: workspaceActionType },
       });
 
+      // Collaboration activity log (versioned)
+      await logActivity(
+        caseItem.id,
+        status === "approved" ? "draft_approved" : "draft_saved",
+        `${status === "approved" ? "Approved" : "Saved"} v${version} of "${actionWorkspaceTitle || product.title}"`,
+        { version, status, document_type: workspaceActionType },
+        "case_draft",
+      );
+
       await loadCase();
       toast.success(status === "approved" ? "Draft approved and saved" : "Draft saved");
     } catch (err: any) {
