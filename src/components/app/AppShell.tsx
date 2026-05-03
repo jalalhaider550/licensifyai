@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { ResearchSidebar } from "@/components/app/ResearchSidebar";
 import {
-  Shield,
+  
   LayoutDashboard,
   BriefcaseBusiness,
   Users,
@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
+import { Logo } from "@/components/brand/Logo";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -120,8 +121,8 @@ export const AppShell = ({ children }: AppShellProps) => {
   const NavContent = () => (
     <>
       <div className="flex h-16 items-center gap-3 px-5 border-b border-sidebar-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary/20">
-          <Shield className="h-4 w-4 text-sidebar-primary" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white">
+          <Logo variant="icon" className="h-7 w-7" />
         </div>
         <span className="font-display text-sm font-bold text-sidebar-accent-foreground tracking-tight">
           Licensify AI
@@ -217,7 +218,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       {/* Mobile header */}
       <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card px-4 md:hidden shadow-sm">
         <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
+          <Logo variant="icon" className="h-6 w-6" />
           <span className="font-display text-sm font-bold">Licensify AI</span>
         </div>
         <div className="flex items-center gap-1">
