@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { acceptInviteToken } from "@/lib/firmWorkspace";
@@ -43,7 +43,7 @@ const Login = () => {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Logo variant="icon" className="h-6 w-6" />
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
               Licensify AI
             </span>

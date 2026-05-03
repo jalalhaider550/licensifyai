@@ -1,5 +1,6 @@
-import { Shield, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Logo } from "@/components/brand/Logo";
 
 export const FooterSection = () => {
   return (
@@ -8,7 +9,7 @@ export const FooterSection = () => {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Shield className="h-4 w-4 text-primary" />
+              <Logo variant="icon" className="h-5 w-5" />
               <span className="font-display text-sm font-semibold text-foreground">
                 Licensify AI
               </span>
