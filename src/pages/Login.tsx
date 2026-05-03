@@ -43,7 +43,7 @@ const Login = () => {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Logo variant="icon" className="h-6 w-6" />
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
               Licensify AI
             </span>
