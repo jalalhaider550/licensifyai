@@ -13,7 +13,7 @@ export const HeroSection = () => {
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary animate-fade-in">
             <Sparkles className="h-3.5 w-3.5" />
-            The Operating System for Legal Work
+            Free for 3 Months — No Card Required
           </div>
 
           <h1 className="font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl animate-fade-in-up">
@@ -47,7 +47,7 @@ export const HeroSection = () => {
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center animate-fade-in-up" style={{ animationDelay: "160ms" }}>
             <Button size="lg" className="text-base px-8 py-6 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all" asChild>
               <Link to="/signup">
-                Start Free Trial
+                Start 3 Months Free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
