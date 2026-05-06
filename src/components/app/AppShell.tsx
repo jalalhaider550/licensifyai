@@ -78,6 +78,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { plan, daysLeft } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeResearch = () => window.dispatchEvent(new CustomEvent("research:close"));
