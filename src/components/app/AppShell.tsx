@@ -138,18 +138,25 @@ export const AppShell = ({ children }: AppShellProps) => {
         </p>
         {navItems.map((item) => {
           const active = location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
+          const locked = !isPathAllowed(item.to, plan);
           return (
             <Link
               key={item.to}
-              to={item.to}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+              to={locked ? "/upgrade" : item.to}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
                 active
                   ? "bg-sidebar-primary/15 text-sidebar-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
+              } ${locked ? "opacity-60" : ""}`}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {locked && (
+                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+                  <Lock className="h-3 w-3" />
+                  Pro
+                </span>
+              )}
             </Link>
           );
         })}
