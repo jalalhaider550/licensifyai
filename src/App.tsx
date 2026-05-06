@@ -42,6 +42,7 @@ import Meetings from "./pages/Meetings";
 import LegalIntelligence from "./pages/LegalIntelligence";
 import FirmAdmin from "./pages/FirmAdmin";
 import SharedWithMe from "./pages/SharedWithMe";
+import Upgrade from "./pages/Upgrade";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/legal-intelligence" element={<LegalIntelligence />} />
             <Route path="/firm" element={<FirmAdmin />} />
             <Route path="/shared" element={<SharedWithMe />} />
+            <Route path="/upgrade" element={<Upgrade />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

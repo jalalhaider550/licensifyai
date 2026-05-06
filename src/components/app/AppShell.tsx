@@ -31,10 +31,12 @@ import {
   BookOpen,
   Building2,
   UsersRound,
+  Lock,
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
 import { Logo } from "@/components/brand/Logo";
+import { usePlan, isPathAllowed } from "@/hooks/usePlan";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -76,6 +78,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { plan, daysLeft } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeResearch = () => window.dispatchEvent(new CustomEvent("research:close"));
@@ -95,6 +98,12 @@ export const AppShell = ({ children }: AppShellProps) => {
       navigate("/login");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!loading && user && !isPathAllowed(location.pathname, plan)) {
+      navigate("/upgrade", { replace: true });
+    }
+  }, [location.pathname, plan, user, loading, navigate]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -129,24 +138,41 @@ export const AppShell = ({ children }: AppShellProps) => {
         </span>
       </div>
 
+      {plan === "free_trial" && (
+        <Link
+          to="/upgrade"
+          className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 px-3 py-2 text-[11px] font-semibold text-sidebar-primary hover:bg-sidebar-primary/15 transition-colors"
+        >
+          <span>Free trial · {daysLeft}d left</span>
+          <span className="text-[9px] uppercase tracking-wider">Upgrade</span>
+        </Link>
+      )}
+
       <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Workspace
         </p>
         {navItems.map((item) => {
           const active = location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
+          const locked = !isPathAllowed(item.to, plan);
           return (
             <Link
               key={item.to}
-              to={item.to}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+              to={locked ? "/upgrade" : item.to}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
                 active
                   ? "bg-sidebar-primary/15 text-sidebar-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
+              } ${locked ? "opacity-60" : ""}`}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {locked && (
+                <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+                  <Lock className="h-3 w-3" />
+                  Pro
+                </span>
+              )}
             </Link>
           );
         })}
