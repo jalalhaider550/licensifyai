@@ -26,7 +26,7 @@ const FREE_FEATURES = [
 ];
 
 export default function Upgrade() {
-  const { plan, daysLeft } = usePlan();
+  const { plan } = usePlan();
 
   return (
     <AppShell>
@@ -34,9 +34,7 @@ export default function Upgrade() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold mb-4">
             <Sparkles className="h-3.5 w-3.5" />
-            {plan === "free_trial"
-              ? `Free trial — ${daysLeft} days remaining`
-              : "Upgrade to Pro"}
+            {plan === "free_trial" ? "Free plan — 3 months included" : "Pro plan active"}
           </div>
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Unlock the full Licensify AI suite
