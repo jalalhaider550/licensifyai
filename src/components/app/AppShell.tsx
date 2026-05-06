@@ -31,10 +31,12 @@ import {
   BookOpen,
   Building2,
   UsersRound,
+  Lock,
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
 import { Logo } from "@/components/brand/Logo";
+import { usePlan, isPathAllowed } from "@/hooks/usePlan";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
