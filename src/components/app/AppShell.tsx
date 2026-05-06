@@ -100,6 +100,12 @@ export const AppShell = ({ children }: AppShellProps) => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
+    if (!loading && user && !isPathAllowed(location.pathname, plan)) {
+      navigate("/upgrade", { replace: true });
+    }
+  }, [location.pathname, plan, user, loading, navigate]);
+
+  useEffect(() => {
     setMobileOpen(false);
     closeResearch();
   }, [location.pathname]);
