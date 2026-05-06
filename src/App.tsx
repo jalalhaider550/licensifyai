@@ -42,6 +42,7 @@ import Meetings from "./pages/Meetings";
 import LegalIntelligence from "./pages/LegalIntelligence";
 import FirmAdmin from "./pages/FirmAdmin";
 import SharedWithMe from "./pages/SharedWithMe";
+import Upgrade from "./pages/Upgrade";
 const queryClient = new QueryClient();
 
 const App = () => (
