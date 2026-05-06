@@ -92,6 +92,7 @@ const App = () => (
             <Route path="/legal-intelligence" element={<LegalIntelligence />} />
             <Route path="/firm" element={<FirmAdmin />} />
             <Route path="/shared" element={<SharedWithMe />} />
+            <Route path="/upgrade" element={<Upgrade />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
