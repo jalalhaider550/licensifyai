@@ -143,7 +143,7 @@ export const AppShell = ({ children }: AppShellProps) => {
           to="/upgrade"
           className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 px-3 py-2 text-[11px] font-semibold text-sidebar-primary hover:bg-sidebar-primary/15 transition-colors"
         >
-          <span>Free trial · {daysLeft}d left</span>
+          <span>Free plan</span>
           <span className="text-[9px] uppercase tracking-wider">Upgrade</span>
         </Link>
       )}
