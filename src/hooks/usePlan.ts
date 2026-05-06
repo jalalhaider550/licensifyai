@@ -46,7 +46,6 @@ export const FREE_TRIAL_PATHS = [
   "/meetings",
   "/legal-intelligence",
   "/assistant",
-  "/models",
   "/settings",
   "/help",
   "/upgrade",
