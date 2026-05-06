@@ -138,6 +138,16 @@ export const AppShell = ({ children }: AppShellProps) => {
         </span>
       </div>
 
+      {plan === "free_trial" && (
+        <Link
+          to="/upgrade"
+          className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 px-3 py-2 text-[11px] font-semibold text-sidebar-primary hover:bg-sidebar-primary/15 transition-colors"
+        >
+          <span>Free trial · {daysLeft}d left</span>
+          <span className="text-[9px] uppercase tracking-wider">Upgrade</span>
+        </Link>
+      )}
+
       <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
         <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Workspace
