@@ -1860,6 +1860,7 @@ export type Database = {
           display_name: string | null
           firm_name: string
           id: string
+          plan: string
           updated_at: string
           user_id: string
         }
@@ -1868,6 +1869,7 @@ export type Database = {
           display_name?: string | null
           firm_name?: string
           id?: string
+          plan?: string
           updated_at?: string
           user_id: string
         }
@@ -1876,6 +1878,7 @@ export type Database = {
           display_name?: string | null
           firm_name?: string
           id?: string
+          plan?: string
           updated_at?: string
           user_id?: string
         }

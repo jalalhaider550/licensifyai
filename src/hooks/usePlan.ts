@@ -1,22 +1,40 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-
-const TRIAL_DAYS = 90;
+import { supabase } from "@/integrations/supabase/client";
 
 export type Plan = "free_trial" | "pro";
 
 export function usePlan() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [plan, setPlan] = useState<Plan>("free_trial");
+  const [loading, setLoading] = useState(true);
 
-  if (loading || !user) {
-    return { plan: "free_trial" as Plan, daysLeft: TRIAL_DAYS, loading };
-  }
+  useEffect(() => {
+    let cancelled = false;
+    if (authLoading) return;
+    if (!user) {
+      setPlan("free_trial");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const p = (data as any)?.plan === "pro" ? "pro" : "free_trial";
+        setPlan(p);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading]);
 
-  const createdAt = user.created_at ? new Date(user.created_at).getTime() : Date.now();
-  const elapsedDays = Math.floor((Date.now() - createdAt) / (1000 * 60 * 60 * 24));
-  const daysLeft = Math.max(0, TRIAL_DAYS - elapsedDays);
-  const plan: Plan = daysLeft > 0 ? "free_trial" : "pro";
-
-  return { plan, daysLeft, loading: false };
+  return { plan, loading };
 }
 
 // Routes available on the free 3-month trial. Everything else requires Pro.
