@@ -31,7 +31,7 @@ export const DisclaimerSection = () => {
               </p>
 
               <p>
-                By using Licensify AI during this free period you confirm that you are a qualified legal professional or are working under the supervision of one, and you acknowledge that outputs require independent professional verification before any legal reliance is placed on them.
+                By using Licensify AI you confirm that you are a qualified legal professional or are working under the supervision of one, and you acknowledge that outputs require independent professional verification before any legal reliance is placed on them.
               </p>
 
               <p className="text-foreground font-medium">

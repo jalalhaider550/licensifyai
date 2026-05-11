@@ -15,7 +15,7 @@ const plans = [
       "UK & US regulatory reference",
       "Email support",
     ],
-    cta: "Start 3 Months Free",
+    cta: "Get Started",
     featured: false,
   },
   {
@@ -31,7 +31,7 @@ const plans = [
       "Workflow tracking dashboard",
       "Priority support",
     ],
-    cta: "Start 3 Months Free",
+    cta: "Get Started",
     featured: true,
   },
   {
@@ -62,12 +62,8 @@ export const PricingSection = () => {
             Simple, Transparent Pricing
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Free for 3 months on all plans. No credit card required.
+            Tailored plans for solo practitioners, growing teams, and enterprises.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary">
-            <Star className="h-3.5 w-3.5" />
-            Limited-Time Launch Offer — 3 Months Free
-          </div>
         </div>
 
         <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">

@@ -13,7 +13,7 @@ export const CTASection = () => {
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold text-primary-foreground mb-6">
               <Sparkles className="h-3.5 w-3.5" />
-              3 Months Free — No Credit Card Required
+              The Operating System for Legal Work
             </div>
 
             <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
@@ -26,7 +26,7 @@ export const CTASection = () => {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" variant="secondary" className="text-base px-8 py-6 rounded-xl shadow-lg" asChild>
                 <Link to="/signup">
-                  Start 3 Months Free
+                  Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
