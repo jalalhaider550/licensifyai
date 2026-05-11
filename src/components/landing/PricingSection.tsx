@@ -5,8 +5,8 @@ import { Check, Star } from "lucide-react";
 const plans = [
   {
     name: "Starter",
-    price: "£499",
-    period: "/month",
+    price: "Customised",
+    period: "",
     description: "For solo practitioners and small teams getting started.",
     features: [
       "Up to 5 active clients",
@@ -20,8 +20,8 @@ const plans = [
   },
   {
     name: "Professional",
-    price: "£1,299",
-    period: "/month",
+    price: "Customised",
+    period: "",
     description: "For growing teams handling multiple cases and applications.",
     features: [
       "Up to 25 active clients",
