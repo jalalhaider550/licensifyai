@@ -55,8 +55,8 @@ const platformPlans = [
 const contractPlans = [
   {
     name: "Contract Service",
-    price: "Customised",
-    period: "",
+    price: "£2,000",
+    period: "/month",
     description: "Up to 30 contracts per month, fully managed.",
     features: [
       "Up to 30 contracts/month",
@@ -71,8 +71,8 @@ const contractPlans = [
   },
   {
     name: "Contract Service — Unlimited",
-    price: "Customised",
-    period: "",
+    price: "£4,000",
+    period: "/month",
     description: "Unlimited contracts per month, fully managed.",
     features: [
       "Unlimited contracts/month",
