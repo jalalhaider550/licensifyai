@@ -66,7 +66,8 @@ const contractPlans = [
       "Priority turnaround",
       "Email support",
     ],
-    cta: "Get Started",
+    cta: "Subscribe",
+    href: "/checkout/contract?plan=contract_30_monthly",
     featured: false,
   },
   {
@@ -82,12 +83,24 @@ const contractPlans = [
       "Dedicated account manager",
       "SSO & audit logging",
     ],
-    cta: "Contact Sales",
+    cta: "Subscribe",
+    href: "/checkout/contract?plan=contract_unlimited_monthly",
     featured: false,
   },
 ];
 
-function PlanCard({ plan }: { plan: typeof platformPlans[0] }) {
+type Plan = {
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  featured: boolean;
+  href?: string;
+};
+
+function PlanCard({ plan }: { plan: Plan }) {
   return (
     <div
       className={`relative flex flex-col rounded-2xl border p-7 transition-all duration-300 hover:shadow-lg ${
@@ -123,7 +136,7 @@ function PlanCard({ plan }: { plan: typeof platformPlans[0] }) {
         className={`mt-7 w-full rounded-xl py-5 ${plan.featured ? "shadow-md shadow-primary/20" : ""}`}
         asChild
       >
-        <Link to="/signup">{plan.cta}</Link>
+        <Link to={plan.href ?? "/signup"}>{plan.cta}</Link>
       </Button>
     </div>
   );
