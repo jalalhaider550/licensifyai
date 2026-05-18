@@ -46,6 +46,7 @@ import Upgrade from "./pages/Upgrade";
 import Terms from "./pages/Terms";
 import ContractCheckout from "./pages/ContractCheckout";
 import CheckoutReturn from "./pages/CheckoutReturn";
+import Admin from "./pages/Admin";
 const queryClient = new QueryClient();
 
 const App = () => (
