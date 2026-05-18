@@ -2226,6 +2226,7 @@ export type Database = {
         Returns: {
           created_at: string
           display_name: string
+          email: string
           firm_name: string
           plan: string
           user_id: string
@@ -2236,6 +2237,7 @@ export type Database = {
         Returns: {
           created_at: string
           display_name: string
+          email: string
           firm_name: string
           plan: string
           user_id: string
