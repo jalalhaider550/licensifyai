@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { ResearchSidebar } from "@/components/app/ResearchSidebar";
 import {
   
@@ -32,6 +33,7 @@ import {
   Building2,
   UsersRound,
   Lock,
+  ShieldAlert,
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
@@ -80,6 +82,19 @@ export const AppShell = ({ children }: AppShellProps) => {
   const { user, loading, signOut } = useAuth();
   const { plan } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
+
 
   const closeResearch = () => window.dispatchEvent(new CustomEvent("research:close"));
 
@@ -225,7 +240,21 @@ export const AppShell = ({ children }: AppShellProps) => {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+              location.pathname.startsWith("/admin")
+                ? "bg-sidebar-primary/15 text-sidebar-primary"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+            Admin
+          </Link>
+        )}
       </div>
+
 
       <div className="border-t border-sidebar-border p-3">
         <button
