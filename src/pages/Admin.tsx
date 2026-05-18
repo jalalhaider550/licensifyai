@@ -39,10 +39,7 @@ export default function Admin() {
 
   const loadProfiles = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("user_id, firm_name, display_name, plan, created_at")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.rpc("admin_list_profiles");
     if (error) toast.error(error.message);
     else setProfiles((data ?? []) as Profile[]);
     setLoading(false);
@@ -53,15 +50,16 @@ export default function Admin() {
   const togglePlan = async (p: Profile) => {
     const next = p.plan === "pro" ? "free_trial" : "pro";
     setUpdatingId(p.user_id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ plan: next })
-      .eq("user_id", p.user_id);
+    const { data, error } = await supabase.rpc("admin_set_user_plan", {
+      _user_id: p.user_id,
+      _plan: next,
+    });
     setUpdatingId(null);
     if (error) toast.error(error.message);
     else {
       toast.success(`Set to ${next}`);
-      setProfiles((prev) => prev.map((x) => x.user_id === p.user_id ? { ...x, plan: next } : x));
+      const updated = data?.[0] as Profile | undefined;
+      setProfiles((prev) => prev.map((x) => x.user_id === p.user_id ? { ...x, ...(updated ?? { plan: next }) } : x));
     }
   };
 
