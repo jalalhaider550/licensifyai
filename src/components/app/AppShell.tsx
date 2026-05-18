@@ -82,6 +82,19 @@ export const AppShell = ({ children }: AppShellProps) => {
   const { user, loading, signOut } = useAuth();
   const { plan } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
+
 
   const closeResearch = () => window.dispatchEvent(new CustomEvent("research:close"));
 
