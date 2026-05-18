@@ -46,6 +46,7 @@ import Upgrade from "./pages/Upgrade";
 import Terms from "./pages/Terms";
 import ContractCheckout from "./pages/ContractCheckout";
 import CheckoutReturn from "./pages/CheckoutReturn";
+import Admin from "./pages/Admin";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             <Route path="/checkout/contract" element={<ContractCheckout />} />
             <Route path="/checkout/return" element={<CheckoutReturn />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

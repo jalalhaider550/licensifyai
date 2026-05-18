@@ -2027,6 +2027,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vault_files: {
         Row: {
           created_at: string
@@ -2252,6 +2273,13 @@ export type Database = {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_firm_admin: {
         Args: { _firm_id: string; _user_id: string }
         Returns: boolean
@@ -2280,6 +2308,7 @@ export type Database = {
       same_firm: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "user"
       case_permission: "viewer" | "contributor" | "editor" | "co_owner"
       case_type:
         | "licensing"
@@ -2427,6 +2456,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       case_permission: ["viewer", "contributor", "editor", "co_owner"],
       case_type: [
         "licensing",
