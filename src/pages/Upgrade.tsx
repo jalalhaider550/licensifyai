@@ -92,7 +92,7 @@ export default function Upgrade() {
                 ))}
               </ul>
               <Button className="w-full mt-6" asChild>
-                <a href="mailto:support@licensifyai.com?subject=Upgrade%20to%20Pro">
+                <a href="mailto:licensifyai@gmail.com?subject=Upgrade%20to%20Pro">
                   Contact us to upgrade
                 </a>
               </Button>
