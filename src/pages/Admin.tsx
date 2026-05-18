@@ -11,6 +11,7 @@ import { Loader2, Shield, Search } from "lucide-react";
 
 type Profile = {
   user_id: string;
+  email: string | null;
   firm_name: string | null;
   display_name: string | null;
   plan: string;
@@ -39,10 +40,7 @@ export default function Admin() {
 
   const loadProfiles = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("user_id, firm_name, display_name, plan, created_at")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.rpc("admin_list_profiles");
     if (error) toast.error(error.message);
     else setProfiles((data ?? []) as Profile[]);
     setLoading(false);
@@ -53,15 +51,16 @@ export default function Admin() {
   const togglePlan = async (p: Profile) => {
     const next = p.plan === "pro" ? "free_trial" : "pro";
     setUpdatingId(p.user_id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ plan: next })
-      .eq("user_id", p.user_id);
+    const { data, error } = await supabase.rpc("admin_set_user_plan", {
+      _user_id: p.user_id,
+      _plan: next,
+    });
     setUpdatingId(null);
     if (error) toast.error(error.message);
     else {
       toast.success(`Set to ${next}`);
-      setProfiles((prev) => prev.map((x) => x.user_id === p.user_id ? { ...x, plan: next } : x));
+      const updated = data?.[0] as Profile | undefined;
+      setProfiles((prev) => prev.map((x) => x.user_id === p.user_id ? { ...x, ...(updated ?? { plan: next }) } : x));
     }
   };
 
@@ -70,6 +69,7 @@ export default function Admin() {
     if (!q) return true;
     return (p.firm_name ?? "").toLowerCase().includes(q)
       || (p.display_name ?? "").toLowerCase().includes(q)
+      || (p.email ?? "").toLowerCase().includes(q)
       || p.user_id.toLowerCase().includes(q);
   });
 
@@ -105,7 +105,7 @@ export default function Admin() {
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by firm name, display name, or user id"
+            placeholder="Search by email, firm name, display name, or user id"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -135,6 +135,7 @@ export default function Admin() {
                       <td className="px-4 py-3">
                         <div className="font-medium">{p.firm_name || "—"}</div>
                         {p.display_name && <div className="text-xs text-muted-foreground">{p.display_name}</div>}
+                        {p.email && <div className="text-xs text-muted-foreground">{p.email}</div>}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={p.plan === "pro" ? "default" : "secondary"}>{p.plan}</Badge>

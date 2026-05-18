@@ -2221,6 +2221,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_profiles: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          firm_name: string
+          plan: string
+          user_id: string
+        }[]
+      }
+      admin_set_user_plan: {
+        Args: { _plan: string; _user_id: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          firm_name: string
+          plan: string
+          user_id: string
+        }[]
+      }
       can_edit_case: {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean
