@@ -240,7 +240,21 @@ export const AppShell = ({ children }: AppShellProps) => {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+              location.pathname.startsWith("/admin")
+                ? "bg-sidebar-primary/15 text-sidebar-primary"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+            Admin
+          </Link>
+        )}
       </div>
+
 
       <div className="border-t border-sidebar-border p-3">
         <button
