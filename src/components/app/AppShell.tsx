@@ -33,6 +33,7 @@ import {
   Building2,
   UsersRound,
   Lock,
+  ShieldAlert,
 } from "lucide-react";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
