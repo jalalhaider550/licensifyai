@@ -260,15 +260,7 @@ const GenerateContract = () => {
           generationMode,
         },
       });
-          scopeOfWork,
-          paymentTerms,
-          duration,
-          terminationClause,
-          specialClauses,
-          specialInstructions,
-          generationMode,
-        },
-      });
+
 
       if (error) {
         if (error.message?.includes("402") || data?.errorType === "credits_exhausted") {
