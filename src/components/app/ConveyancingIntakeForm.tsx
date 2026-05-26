@@ -235,7 +235,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, i
   };
 
   const saveIntake = async (complete: boolean) => {
-    if (!effectiveUserId) return;
+    if (!effectiveUserId && !intakeToken) return;
     setSaving(true);
     try {
       let id_document_path: string | null = null;
@@ -248,7 +248,6 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, i
 
       const payload: Record<string, any> = {
         case_id: caseId,
-        user_id: effectiveUserId,
         full_name: form.full_name,
         date_of_birth: form.date_of_birth || null,
         email: form.email,
@@ -299,13 +298,24 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, i
       if (source_of_funds_document_path) payload.source_of_funds_document_path = source_of_funds_document_path;
 
       const db = supabase as any;
-      if (existingId) {
-        const { error } = await db.from("conveyancing_client_intake").update(payload).eq("id", existingId);
+      if (intakeToken) {
+        // Anonymous client flow — go through the token-validated RPC
+        const { data, error } = await db.rpc("upsert_conveyancing_intake_by_token", {
+          _token: intakeToken,
+          _payload: payload,
+        });
         if (error) throw error;
+        if (data) setExistingId(data);
       } else {
-        const { data, error } = await db.from("conveyancing_client_intake").insert(payload).select("id").single();
-        if (error) throw error;
-        setExistingId(data.id);
+        payload.user_id = effectiveUserId;
+        if (existingId) {
+          const { error } = await db.from("conveyancing_client_intake").update(payload).eq("id", existingId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await db.from("conveyancing_client_intake").insert(payload).select("id").single();
+          if (error) throw error;
+          setExistingId(data.id);
+        }
       }
 
       if (complete) {
