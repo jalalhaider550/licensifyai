@@ -48,8 +48,8 @@ export default function Admin() {
 
   useEffect(() => { if (isAdmin) loadProfiles(); }, [isAdmin]);
 
-  const togglePlan = async (p: Profile) => {
-    const next = p.plan === "pro" ? "free_trial" : "pro";
+  const setPlan = async (p: Profile, next: string) => {
+    if (next === p.plan) return;
     setUpdatingId(p.user_id);
     const { data, error } = await supabase.rpc("admin_set_user_plan", {
       _user_id: p.user_id,
@@ -59,10 +59,12 @@ export default function Admin() {
     if (error) toast.error(error.message);
     else {
       toast.success(`Set to ${next}`);
-      const updated = data?.[0] as Profile | undefined;
+      const updated = (data as any)?.[0] as Profile | undefined;
       setProfiles((prev) => prev.map((x) => x.user_id === p.user_id ? { ...x, ...(updated ?? { plan: next }) } : x));
     }
   };
+
+  const PLAN_OPTIONS = ["pending", "starter", "professional", "law_firm"];
 
   const filtered = profiles.filter((p) => {
     const q = search.toLowerCase().trim();
@@ -138,23 +140,26 @@ export default function Admin() {
                         {p.email && <div className="text-xs text-muted-foreground">{p.email}</div>}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={p.plan === "pro" ? "default" : "secondary"}>{p.plan}</Badge>
+                        <Badge variant={p.plan === "law_firm" || p.plan === "professional" ? "default" : "secondary"}>{p.plan}</Badge>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {new Date(p.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{p.user_id}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant={p.plan === "pro" ? "outline" : "default"}
-                          onClick={() => togglePlan(p)}
-                          disabled={updatingId === p.user_id}
-                        >
-                          {updatingId === p.user_id
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : p.plan === "pro" ? "Downgrade" : "Upgrade to Pro"}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <select
+                            value={PLAN_OPTIONS.includes(p.plan) ? p.plan : "pending"}
+                            onChange={(e) => setPlan(p, e.target.value)}
+                            disabled={updatingId === p.user_id}
+                            className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                          >
+                            {PLAN_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                          {updatingId === p.user_id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        </div>
                       </td>
                     </tr>
                   ))}
