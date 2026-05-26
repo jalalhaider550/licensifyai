@@ -2317,6 +2317,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _portal_resolve_token: {
+        Args: { _token: string }
+        Returns: {
+          client_id: string
+          user_id: string
+        }[]
+      }
       accept_firm_invite: { Args: { _token: string }; Returns: string }
       admin_list_profiles: {
         Args: never
@@ -2528,6 +2535,57 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      portal_add_case_document: {
+        Args: {
+          _case_id: string
+          _file_type: string
+          _name: string
+          _raw_text: string
+          _storage_path: string
+          _token: string
+        }
+        Returns: string
+      }
+      portal_add_client_document: {
+        Args: {
+          _file_type: string
+          _name: string
+          _storage_path: string
+          _token: string
+        }
+        Returns: string
+      }
+      portal_add_director: {
+        Args: { _full_name: string; _role: string; _token: string }
+        Returns: string
+      }
+      portal_add_shareholder: {
+        Args: { _name: string; _percentage: number; _token: string }
+        Returns: string
+      }
+      portal_get_bundle: { Args: { _token: string }; Returns: Json }
+      portal_send_message: {
+        Args: {
+          _attachments: Json
+          _case_id: string
+          _message: string
+          _sender_name: string
+          _token: string
+        }
+        Returns: string
+      }
+      portal_update_client: {
+        Args: {
+          _company_name: string
+          _contact_email: string
+          _contact_phone: string
+          _registered_address: string
+          _registration_number: string
+          _services: string[]
+          _token: string
+        }
+        Returns: undefined
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

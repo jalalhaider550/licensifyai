@@ -80,20 +80,25 @@ const ClientPortal = () => {
   };
 
   const loadData = async (cid: string) => {
-    const [{ data: c }, { data: d }, { data: s }, { data: docs }, { data: msgs }, { data: cases }, { data: caseActions }, { data: caseDocs }] = await Promise.all([
-      supabase.from("clients").select("*").eq("id", cid).single(),
-      supabase.from("directors").select("*").eq("client_id", cid),
-      supabase.from("shareholders").select("*").eq("client_id", cid),
-      supabase.from("documents").select("*").eq("client_id", cid).order("created_at", { ascending: false }),
-      supabase.from("portal_messages").select("*").eq("client_id", cid).order("created_at", { ascending: true }),
+    const [{ data: bundle }, { data: cases }] = await Promise.all([
+      (supabase as any).rpc("portal_get_bundle", { _token: token }),
       (supabase as any).rpc("get_client_portal_cases", { _token: token }),
-      supabase.from("case_actions").select("*").order("created_at", { ascending: false }),
-      supabase.from("case_documents").select("*").order("created_at", { ascending: false }),
     ]);
 
+    const b: any = bundle || {};
     const nextCases = cases || [];
-    setData({ client: c, cases: nextCases, caseActions: caseActions || [], caseDocuments: caseDocs || [], directors: d || [], shareholders: s || [], documents: docs || [], messages: msgs || [] });
+    setData({
+      client: b.client || null,
+      cases: nextCases,
+      caseActions: b.case_actions || [],
+      caseDocuments: b.case_documents || [],
+      directors: b.directors || [],
+      shareholders: b.shareholders || [],
+      documents: b.documents || [],
+      messages: b.messages || [],
+    });
     setSelectedCaseId((current) => current || nextCases[0]?.id || "");
+    const c = b.client;
     if (c) {
       setForm({
         company_name: c.company_name || "",
