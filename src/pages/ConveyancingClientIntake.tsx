@@ -90,6 +90,7 @@ export default function ConveyancingClientIntake() {
         <ConveyancingIntakeForm
           caseId={caseData.id}
           userId={caseData.user_id}
+          intakeToken={token!}
           caseData={{
             property_address: caseData.property_address,
             postcode: caseData.postcode,
