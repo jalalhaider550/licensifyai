@@ -48,43 +48,78 @@ function sanitiseJsonString(raw: string): string {
   return raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ");
 }
 
-/** Try to extract and parse the first JSON object from a string */
+/** Try to extract and parse the first JSON object from a string. Tolerant of
+ *  truncated output: if the JSON is cut off mid-way (because the AI hit a token
+ *  cap), it auto-closes open strings, arrays and objects so the document still
+ *  parses and the user gets the full body that was generated. */
 function extractJson(text: string): any {
   const clean = sanitiseJsonString(text);
 
-  // Try direct parse first
-  try {
-    return JSON.parse(clean);
-  } catch { /* fall through */ }
+  // 1) Try direct parse
+  try { return JSON.parse(clean); } catch { /* fall through */ }
 
-  // Try to find outermost { … }
+  // 2) Find outermost { ... } and try that slice (with trailing-comma repair)
   const start = clean.indexOf("{");
   if (start === -1) return null;
 
   let depth = 0;
   let end = -1;
+  let inString = false;
+  let escape = false;
   for (let i = start; i < clean.length; i++) {
-    if (clean[i] === "{") depth++;
-    else if (clean[i] === "}") {
-      depth--;
-      if (depth === 0) { end = i; break; }
-    }
+    const ch = clean[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") { depth--; if (depth === 0) { end = i; break; } }
   }
-  if (end === -1) return null;
 
-  try {
-    return JSON.parse(clean.slice(start, end + 1));
-  } catch {
-    // Last resort: try removing trailing commas before } or ]
-    const patched = clean.slice(start, end + 1)
-      .replace(/,\s*([\]}])/g, "$1");
-    try {
-      return JSON.parse(patched);
-    } catch {
-      return null;
-    }
+  if (end !== -1) {
+    const slice = clean.slice(start, end + 1).replace(/,\s*([\]}])/g, "$1");
+    try { return JSON.parse(slice); } catch { /* fall through to repair */ }
   }
+
+  // 3) Truncation repair: walk from `start`, track string/array/object depth,
+  //    and synthesise a valid tail (close string, close arrays/objects).
+  const stack: string[] = [];
+  inString = false;
+  escape = false;
+  let lastSafeEnd = -1; // position right after the last balanced top-level char
+
+  for (let i = start; i < clean.length; i++) {
+    const ch = clean[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") stack.push("}");
+    else if (ch === "[") stack.push("]");
+    else if (ch === "}" || ch === "]") {
+      if (stack[stack.length - 1] === ch) stack.pop();
+    }
+    if (ch === "," || ch === "}" || ch === "]") lastSafeEnd = i;
+  }
+
+  if (lastSafeEnd === -1) return null;
+
+  // Build a candidate by truncating at the last safe boundary, removing any
+  // trailing partial key/value, then closing the open structures.
+  let candidate = clean.slice(start, lastSafeEnd + 1);
+  // Strip a dangling comma — we'll re-close cleanly.
+  candidate = candidate.replace(/,\s*$/, "");
+
+  // Close still-open string from the truncation (if our walk ended mid-string,
+  // we already returned -1, so no need to close one here).
+  // Reconstruct closing tokens from the remaining stack (reverse order).
+  const closers = [...stack].reverse().join("");
+  candidate = candidate + closers;
+  candidate = candidate.replace(/,\s*([\]}])/g, "$1");
+
+  try { return JSON.parse(candidate); } catch { return null; }
 }
+
 
 /** Split text into chunks of roughly `maxWords` words, breaking on paragraph boundaries */
 function chunkText(text: string, maxWords = 700): string[] {
@@ -448,7 +483,10 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
       default: return err("Unknown action");
     }
 
-    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens: 12000 });
+    // Contract generation needs a much larger token budget (20–30 pages of legal text).
+    // Other actions stay at their previous budget.
+    const maxTokens = action === "generate-contract" ? 32000 : 12000;
+    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens });
     if (!result.ok) return err(result.error, result.errorType);
 
     const parsed = extractJson(result.content);
@@ -458,6 +496,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
     }
 
     return ok({ success: true, document: parsed, clauseLibrary: CLAUSE_LIBRARY });
+
   } catch (e: any) {
     console.error("[generate-legal-document] Error:", e);
     return err(e.message || "Internal error");

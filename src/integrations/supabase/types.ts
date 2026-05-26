@@ -2537,6 +2537,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      refund_contract: { Args: never; Returns: undefined }
       same_firm: { Args: { _a: string; _b: string }; Returns: boolean }
       upsert_conveyancing_intake_by_token: {
         Args: { _payload: Json; _token: string }

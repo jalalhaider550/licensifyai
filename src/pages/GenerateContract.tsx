@@ -215,8 +215,10 @@ const GenerateContract = () => {
     }
 
     setGenerating(true);
+    let usageConsumed = false;
     try {
-      // Pre-flight: consume usage atomically before AI spend.
+      // Pre-flight: consume usage atomically before AI spend. If anything
+      // downstream fails or stops mid-process, we MUST refund.
       const { data: usageData, error: usageErr } = await supabase.rpc("consume_contract", {
         _contract_type: contractType,
         _country: countryName,
@@ -237,67 +239,110 @@ const GenerateContract = () => {
         toast.error("Unable to start generation.");
         return;
       }
+      usageConsumed = true;
 
       const fullJurisdictionLabel = jurisdiction
         ? `${jurisdiction}, ${countryName}`
         : countryName;
 
-      const { data, error } = await supabase.functions.invoke("generate-legal-document", {
-        body: {
-          action: "generate-contract",
-          contractType,
-          partyA: partyA.trim(),
-          partyB: partyB.trim(),
-          jurisdiction: fullJurisdictionLabel,
-          country: countryName,
-          jurisdictionRegion: jurisdiction || null,
-          scopeOfWork,
-          paymentTerms,
-          duration,
-          terminationClause,
-          specialClauses,
-          specialInstructions,
-          generationMode,
-        },
-      });
+      // Use a direct fetch with an extended timeout — `supabase.functions.invoke`
+      // has a short default timeout that cuts off long contract generations
+      // mid-stream, which is one of the root causes of the "stops mid-process"
+      // bug. 4 minutes covers worst-case 20–30 page generations.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 240_000);
 
-      if (error) {
-        if (error.message?.includes("402") || data?.errorType === "credits_exhausted") {
+      let resp: Response;
+      try {
+        resp = await fetch(
+          `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/generate-legal-document`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              action: "generate-contract",
+              contractType,
+              partyA: partyA.trim(),
+              partyB: partyB.trim(),
+              jurisdiction: fullJurisdictionLabel,
+              country: countryName,
+              jurisdictionRegion: jurisdiction || null,
+              scopeOfWork,
+              paymentTerms,
+              duration,
+              terminationClause,
+              specialClauses,
+              specialInstructions,
+              generationMode,
+            }),
+            signal: controller.signal,
+          },
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const data = await resp.json().catch(() => null) as
+        | { success?: boolean; document?: GeneratedDocument; error?: string; errorType?: string }
+        | null;
+
+      if (!resp.ok || !data) {
+        throw new Error(data?.error || `Generation failed (HTTP ${resp.status})`);
+      }
+
+      if (!data.success) {
+        if (data.errorType === "credits_exhausted") {
           toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
           return;
         }
-        if (error.message?.includes("429") || data?.errorType === "rate_limit") {
+        if (data.errorType === "rate_limit") {
           toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
           return;
         }
-        throw error;
-      }
-      if (!data?.success) {
-        if (data?.errorType === "credits_exhausted") {
-          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
-          return;
-        }
-        if (data?.errorType === "rate_limit") {
-          toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
-          return;
-        }
-        throw new Error(data?.error || "Failed to generate contract");
+        throw new Error(data.error || "Failed to generate contract");
       }
 
-      const doc = data.document as GeneratedDocument;
+      const doc = data.document as GeneratedDocument | undefined;
+      // Final sanity check: only count this as a success if a real document
+      // with clauses came back. Anything less is treated as a failure and
+      // the quota is refunded below.
+      if (!doc || !Array.isArray(doc.clauses) || doc.clauses.length === 0) {
+        throw new Error("Generation incomplete. Please try again.");
+      }
+
       setDocument(doc);
       setVersions([doc]);
       setExpandedClauses(new Set());
+      // Mark as fully delivered — do NOT refund.
+      usageConsumed = false;
       toast.success("Contract generated successfully");
       void refetch();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to generate contract");
+      const aborted = err?.name === "AbortError";
+      toast.error(
+        aborted
+          ? "Generation took too long. Your contract slot was not used — please try again."
+          : err.message || "Failed to generate contract",
+      );
     } finally {
+      // Refund the contract slot whenever generation did not deliver a
+      // complete document — failure, timeout, abort, or any thrown error.
+      if (usageConsumed) {
+        try { await supabase.rpc("refund_contract"); } catch { /* best-effort */ }
+        void refetch();
+      }
       setGenerating(false);
     }
   };
+
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!document) return;
