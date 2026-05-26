@@ -28,7 +28,7 @@ export const HeroSection = () => {
           </p>
 
           <p className="mt-3 text-sm text-muted-foreground/80 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
-            AI legal assistant for law firms and in-house teams in the UK and US. Structured analysis, actionable strategy, and submission-ready documents.
+            AI legal assistant for law firms and in-house teams worldwide. Structured analysis, actionable strategy, and submission-ready documents.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground animate-fade-in-up" style={{ animationDelay: "120ms" }}>
