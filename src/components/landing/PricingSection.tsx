@@ -1,93 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Check, Star } from "lucide-react";
-
-const platformPlans = [
-  {
-    name: "Starter",
-    price: "Customised",
-    period: "",
-    description: "For solo practitioners and small teams getting started.",
-    features: [
-      "Up to 5 active clients",
-      "Document upload & AI extraction",
-      "AML policy generation",
-      "UK & US regulatory reference",
-      "Email support",
-    ],
-    cta: "Get Started",
-    featured: false,
-  },
-  {
-    name: "Professional",
-    price: "Customised",
-    period: "",
-    description: "For growing teams handling multiple cases and applications.",
-    features: [
-      "Up to 25 active clients",
-      "All compliance document types",
-      "Business plan generation from uploads",
-      "Application packaging & export",
-      "Workflow tracking dashboard",
-      "Priority support",
-    ],
-    cta: "Get Started",
-    featured: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For large organizations and multi-jurisdiction operations.",
-    features: [
-      "Unlimited clients",
-      "Custom document templates",
-      "Role-based access control",
-      "API access",
-      "Dedicated account manager",
-      "SSO & audit logging",
-    ],
-    cta: "Contact Sales",
-    featured: false,
-  },
-];
-
-const contractPlans = [
-  {
-    name: "Contract Service",
-    price: "£2,000",
-    period: "/month",
-    description: "Up to 30 contracts per month, fully managed.",
-    features: [
-      "Up to 30 contracts/month",
-      "AI-assisted contract drafting",
-      "Review & risk detection",
-      "Export to Word & PDF",
-      "Priority turnaround",
-      "Email support",
-    ],
-    cta: "Subscribe",
-    href: "/checkout/contract?plan=contract_30_monthly",
-    featured: false,
-  },
-  {
-    name: "Contract Service — Unlimited",
-    price: "£4,000",
-    period: "/month",
-    description: "Unlimited contracts per month, fully managed.",
-    features: [
-      "Unlimited contracts/month",
-      "AI-assisted contract drafting",
-      "Review & risk detection",
-      "Export to Word & PDF",
-      "Dedicated account manager",
-      "SSO & audit logging",
-    ],
-    cta: "Subscribe",
-    href: "/checkout/contract?plan=contract_unlimited_monthly",
-    featured: false,
-  },
-];
+import { Check, Star, Building2 } from "lucide-react";
 
 type Plan = {
   name: string;
@@ -97,10 +10,62 @@ type Plan = {
   features: string[];
   cta: string;
   featured: boolean;
-  href?: string;
+  href: string;
 };
 
+const plans: Plan[] = [
+  {
+    name: "Starter",
+    price: "£25",
+    period: "/month",
+    description: "For solo solicitors getting started with AI contract drafting.",
+    features: [
+      "15 AI contracts per month",
+      "Full country & jurisdiction coverage",
+      "20–30 page court-ready output",
+      "Export to Word & PDF",
+      "Email support",
+    ],
+    cta: "Subscribe",
+    featured: false,
+    href: "/signup?plan=starter",
+  },
+  {
+    name: "Professional",
+    price: "£50",
+    period: "/month",
+    description: "For practitioners producing contracts at higher volume.",
+    features: [
+      "30 AI contracts per month",
+      "Full country & jurisdiction coverage",
+      "20–30 page court-ready output",
+      "Top-up: 10 extra contracts for £20",
+      "Priority email support",
+    ],
+    cta: "Subscribe",
+    featured: true,
+    href: "/signup?plan=professional",
+  },
+  {
+    name: "Law Firm",
+    price: "Custom",
+    period: "",
+    description: "For firms with multiple users, custom volumes and bespoke needs.",
+    features: [
+      "Unlimited contracts",
+      "Full platform access",
+      "Multi-seat workspace",
+      "Dedicated onboarding",
+      "Custom SLAs",
+    ],
+    cta: "Contact Us",
+    featured: false,
+    href: "mailto:licensifyai@gmail.com?subject=Law%20Firm%20plan%20enquiry",
+  },
+];
+
 function PlanCard({ plan }: { plan: Plan }) {
+  const isExternal = plan.href.startsWith("mailto:");
   return (
     <div
       className={`relative flex flex-col rounded-2xl border p-7 transition-all duration-300 hover:shadow-lg ${
@@ -115,7 +80,10 @@ function PlanCard({ plan }: { plan: Plan }) {
           Most Popular
         </div>
       )}
-      <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
+      <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+        {plan.name === "Law Firm" && <Building2 className="h-4 w-4 text-primary" />}
+        {plan.name}
+      </h3>
       <div className="mt-3 flex items-baseline gap-1">
         <span className="font-display text-4xl font-bold text-foreground">{plan.price}</span>
         <span className="text-sm text-muted-foreground">{plan.period}</span>
@@ -136,7 +104,7 @@ function PlanCard({ plan }: { plan: Plan }) {
         className={`mt-7 w-full rounded-xl py-5 ${plan.featured ? "shadow-md shadow-primary/20" : ""}`}
         asChild
       >
-        <Link to={plan.href ?? "/signup"}>{plan.cta}</Link>
+        {isExternal ? <a href={plan.href}>{plan.cta}</a> : <Link to={plan.href}>{plan.cta}</Link>}
       </Button>
     </div>
   );
@@ -152,25 +120,12 @@ export const PricingSection = () => {
             Simple, Transparent Pricing
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Tailored plans for solo practitioners, growing teams, and enterprises.
+            Pay as you grow. Top up extra contracts any time for £20 per 10.
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {platformPlans.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} />
-          ))}
-        </div>
-
-        <div className="mt-16 text-center">
-          <h3 className="font-display text-xl font-semibold text-foreground">Contract Service</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Managed contract drafting and review, priced for volume.
-          </p>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 max-w-3xl mx-auto">
-          {contractPlans.map((plan) => (
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+          {plans.map((plan) => (
             <PlanCard key={plan.name} plan={plan} />
           ))}
         </div>
