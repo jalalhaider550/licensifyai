@@ -388,7 +388,7 @@ const LicensingRequirements = () => {
             <div>
               <h1 className="font-display text-2xl lg:text-3xl font-bold text-foreground">Licensing Requirements</h1>
               <p className="text-sm text-muted-foreground">
-                UK &amp; US regulatory reference guide for fintech licensing
+                Regulatory reference guide for fintech licensing across jurisdictions
               </p>
             </div>
           </div>
@@ -400,10 +400,9 @@ const LicensingRequirements = () => {
             <h2 className="font-display text-base font-semibold text-foreground">About This Section</h2>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            This section provides a comprehensive reference for fintech regulatory requirements in the United Kingdom (FCA)
-            and the United States (FinCEN / state regulators). Use it to quickly review documentation, policies, financial
-            requirements, and capital thresholds for each license type. All financial figures are shown in the local currency
-            (£ for UK, $ for US).
+            This section provides a comprehensive reference for fintech regulatory requirements across multiple jurisdictions.
+            Use it to quickly review documentation, policies, financial requirements, and capital thresholds for each license type.
+            All financial figures are shown in the local currency for the relevant jurisdiction.
           </p>
         </div>
 
