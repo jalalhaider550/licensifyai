@@ -165,6 +165,7 @@ const GenerateNDA = () => {
       return;
     }
     setGenerating(true);
+    let usageConsumed = false;
     try {
       const { data: usageData, error: usageErr } = await supabase.rpc("consume_contract", {
         _contract_type: "nda",
@@ -186,52 +187,88 @@ const GenerateNDA = () => {
         toast.error("Unable to start generation.");
         return;
       }
-      const { data, error } = await supabase.functions.invoke("generate-legal-document", {
-        body: {
-          action: "generate-nda",
-          disclosingParty: disclosingParty.trim(),
-          receivingParty: receivingParty.trim(),
-          jurisdiction,
-          purpose,
-          duration,
-          ndaType,
-          specialInstructions,
-        },
-      });
-      if (error) {
-        if (error.message?.includes("402") || data?.errorType === "credits_exhausted") {
+      usageConsumed = true;
+
+      // Direct fetch with extended timeout to avoid the short invoke timeout
+      // that was cutting off long generations mid-stream.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 240_000);
+
+      let resp: Response;
+      try {
+        resp = await fetch(
+          `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/generate-legal-document`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              action: "generate-nda",
+              disclosingParty: disclosingParty.trim(),
+              receivingParty: receivingParty.trim(),
+              jurisdiction,
+              purpose,
+              duration,
+              ndaType,
+              specialInstructions,
+            }),
+            signal: controller.signal,
+          },
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const data = await resp.json().catch(() => null) as
+        | { success?: boolean; document?: GeneratedNDA; error?: string; errorType?: string }
+        | null;
+
+      if (!resp.ok || !data) {
+        throw new Error(data?.error || `Generation failed (HTTP ${resp.status})`);
+      }
+      if (!data.success) {
+        if (data.errorType === "credits_exhausted") {
           toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
           return;
         }
-        if (error.message?.includes("429") || data?.errorType === "rate_limit") {
+        if (data.errorType === "rate_limit") {
           toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
           return;
         }
-        throw error;
+        throw new Error(data.error || "Failed to generate NDA");
       }
-      if (!data?.success) {
-        if (data?.errorType === "credits_exhausted") {
-          toast.error("Your AI balance is used up. Please top up in Settings → Cloud & AI balance.", { duration: 8000 });
-          return;
-        }
-        if (data?.errorType === "rate_limit") {
-          toast.error("AI rate limit reached. Please wait a moment and try again.", { duration: 6000 });
-          return;
-        }
-        throw new Error(data?.error || "Failed to generate NDA");
+      const doc = data.document as GeneratedNDA | undefined;
+      if (!doc || !Array.isArray(doc.clauses) || doc.clauses.length === 0) {
+        throw new Error("Generation incomplete. Please try again.");
       }
-      const doc = data.document as GeneratedNDA;
       setDocument(doc);
       setVersions([doc]);
       setExpandedClauses(new Set());
+      usageConsumed = false;
       toast.success("NDA generated successfully");
+      void refetchPlan();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to generate NDA");
+      const aborted = err?.name === "AbortError";
+      toast.error(
+        aborted
+          ? "Generation took too long. Your NDA slot was not used — please try again."
+          : err.message || "Failed to generate NDA",
+      );
     } finally {
+      if (usageConsumed) {
+        try { await supabase.rpc("refund_contract"); } catch { /* best-effort */ }
+        void refetchPlan();
+      }
       setGenerating(false);
     }
   };
+
 
   const handleExport = async (format: "pdf" | "docx") => {
     if (!document) return;
