@@ -63,16 +63,11 @@ const ClientPortal = () => {
   }, [token]);
 
   const validateAndLoad = async () => {
-    // Validate token
-    const { data: tokenData, error } = await supabase
-      .from("client_access_tokens")
-      .select("*")
-      .eq("token", token!)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+    // Validate token via security-definer RPC (does not expose token list)
+    const { data: rows, error } = await (supabase as any).rpc("validate_client_access_token", { _token: token! });
+    const tokenData = Array.isArray(rows) ? rows[0] : rows;
 
-    if (error || !tokenData) {
+    if (error || !tokenData?.client_id) {
       setValid(false);
       setLoading(false);
       return;
