@@ -39,6 +39,11 @@ import {
   triggerBrowserDownload,
 } from "@/lib/fileDownloads";
 import { DocumentUploadReview, type ReviewedDocument } from "@/components/app/DocumentUploadReview";
+import { COUNTRIES } from "@/data/countries";
+import { getJurisdictions } from "@/data/jurisdictions";
+import { ContractLimitDialog } from "@/components/payments/ContractLimitDialog";
+import { usePlan } from "@/hooks/usePlan";
+import { useNavigate } from "react-router-dom";
 
 interface SubClause {
   number: string;
@@ -146,7 +151,13 @@ const GenerateContract = () => {
   const [contractType, setContractType] = useState("Service Agreement");
   const [partyA, setPartyA] = useState("");
   const [partyB, setPartyB] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("United Kingdom");
+  const [countryCode, setCountryCode] = useState("GB");
+  const [jurisdiction, setJurisdiction] = useState("England and Wales");
+  const navigate = useNavigate();
+  const { used, limit, bonus, refetch } = usePlan();
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const subJurisdictions = getJurisdictions(countryCode);
+  const countryName = COUNTRIES.find((c) => c.code === countryCode)?.name ?? "";
   const [scopeOfWork, setScopeOfWork] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [duration, setDuration] = useState("");
@@ -205,13 +216,50 @@ const GenerateContract = () => {
 
     setGenerating(true);
     try {
+      // Pre-flight: consume usage atomically before AI spend.
+      const { data: usageData, error: usageErr } = await supabase.rpc("consume_contract", {
+        _contract_type: contractType,
+        _country: countryName,
+        _jurisdiction: jurisdiction || null,
+      });
+      if (usageErr) throw usageErr;
+      const usage = usageData as { allowed: boolean; reason?: string };
+      if (!usage?.allowed) {
+        if (usage?.reason === "pending_payment") {
+          toast.error("Subscribe to a plan to start generating contracts.");
+          navigate("/upgrade");
+          return;
+        }
+        if (usage?.reason === "limit_reached") {
+          setShowLimitDialog(true);
+          return;
+        }
+        toast.error("Unable to start generation.");
+        return;
+      }
+
+      const fullJurisdictionLabel = jurisdiction
+        ? `${jurisdiction}, ${countryName}`
+        : countryName;
+
       const { data, error } = await supabase.functions.invoke("generate-legal-document", {
         body: {
           action: "generate-contract",
           contractType,
           partyA: partyA.trim(),
           partyB: partyB.trim(),
-          jurisdiction,
+          jurisdiction: fullJurisdictionLabel,
+          country: countryName,
+          jurisdictionRegion: jurisdiction || null,
+          scopeOfWork,
+          paymentTerms,
+          duration,
+          terminationClause,
+          specialClauses,
+          specialInstructions,
+          generationMode,
+        },
+      });
           scopeOfWork,
           paymentTerms,
           duration,
@@ -250,6 +298,7 @@ const GenerateContract = () => {
       setVersions([doc]);
       setExpandedClauses(new Set());
       toast.success("Contract generated successfully");
+      void refetch();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to generate contract");
