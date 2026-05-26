@@ -103,7 +103,7 @@ type FormData = {
   declaration_confirmed: boolean;
 };
 
-export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, onComplete }: IntakeFormProps) {
+export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, intakeToken, onComplete }: IntakeFormProps) {
   const { user } = useAuth();
   const effectiveUserId = userIdProp || user?.id;
   const [step, setStep] = useState(1);
