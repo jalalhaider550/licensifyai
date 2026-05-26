@@ -50,6 +50,7 @@ interface IntakeFormProps {
     mortgage_status: string;
   };
   userId?: string;
+  intakeToken?: string;
   onComplete: () => void;
 }
 
