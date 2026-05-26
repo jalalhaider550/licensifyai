@@ -180,12 +180,9 @@ const ClientPortal = () => {
       const filePath = `portal/${clientId}/${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
 
-      // Get user_id from the token's associated client
-      const { data: tokenData } = await supabase
-        .from("client_access_tokens")
-        .select("user_id")
-        .eq("token", token!)
-        .single();
+      // Re-validate token via RPC to get the linked lawyer's user_id
+      const { data: tokenRows } = await (supabase as any).rpc("validate_client_access_token", { _token: token! });
+      const tokenData = Array.isArray(tokenRows) ? tokenRows[0] : tokenRows;
 
       if (selectedCaseId) {
         await supabase.from("case_documents").insert({
