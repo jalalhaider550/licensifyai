@@ -81,7 +81,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const { plan, isActive } = usePlan();
+  const { plan, isActive, loading: planLoading } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -118,11 +118,11 @@ export const AppShell = ({ children }: AppShellProps) => {
   // Hard gate: any user without an active paid subscription is forced to /upgrade.
   // Pending users cannot reach the dashboard or any feature until Stripe confirms payment.
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || planLoading || !user) return;
     if (!isPathAllowed(location.pathname, plan, isActive) && location.pathname !== "/upgrade") {
       navigate("/upgrade", { replace: true });
     }
-  }, [user, loading, plan, isActive, location.pathname, navigate]);
+  }, [user, loading, planLoading, plan, isActive, location.pathname, navigate]);
 
 
   useEffect(() => {
@@ -310,7 +310,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </aside>
 
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
-        {isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
+        {planLoading || isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
       </main>
 
       {/* Independent lawyer research panel — additive only */}
