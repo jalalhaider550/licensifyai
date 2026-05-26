@@ -483,7 +483,10 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
       default: return err("Unknown action");
     }
 
-    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens: 12000 });
+    // Contract generation needs a much larger token budget (20–30 pages of legal text).
+    // Other actions stay at their previous budget.
+    const maxTokens = action === "generate-contract" ? 32000 : 12000;
+    const result = await callAI(LOVABLE_API_KEY, "You are a practising senior commercial solicitor. Return valid JSON only. No markdown fences. No hedging.", prompt, { maxTokens });
     if (!result.ok) return err(result.error, result.errorType);
 
     const parsed = extractJson(result.content);
@@ -493,6 +496,7 @@ RULES: Analyze every clause. Include 1-3 REAL case law references. strengthScore
     }
 
     return ok({ success: true, document: parsed, clauseLibrary: CLAUSE_LIBRARY });
+
   } catch (e: any) {
     console.error("[generate-legal-document] Error:", e);
     return err(e.message || "Internal error");
