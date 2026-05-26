@@ -39,6 +39,7 @@ import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
 import { Logo } from "@/components/brand/Logo";
 import { usePlan, isPathAllowed } from "@/hooks/usePlan";
+import { LockedFeature } from "@/components/app/LockedFeature";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -80,7 +81,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const { plan } = usePlan();
+  const { plan, isActive } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -114,11 +115,8 @@ export const AppShell = ({ children }: AppShellProps) => {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (!loading && user && !isPathAllowed(location.pathname, plan)) {
-      navigate("/upgrade", { replace: true });
-    }
-  }, [location.pathname, plan, user, loading, navigate]);
+  // Locked routes are still rendered (with LockedFeature panel inside) — we
+  // no longer hard-redirect, so the sidebar lock UX is honoured.
 
   useEffect(() => {
     setMobileOpen(false);
@@ -153,13 +151,13 @@ export const AppShell = ({ children }: AppShellProps) => {
         </span>
       </div>
 
-      {plan === "free_trial" && (
+      {plan === "pending" && (
         <Link
           to="/upgrade"
           className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 px-3 py-2 text-[11px] font-semibold text-sidebar-primary hover:bg-sidebar-primary/15 transition-colors"
         >
-          <span>Free plan</span>
-          <span className="text-[9px] uppercase tracking-wider">Upgrade</span>
+          <span>Payment pending</span>
+          <span className="text-[9px] uppercase tracking-wider">Subscribe</span>
         </Link>
       )}
 
@@ -169,7 +167,7 @@ export const AppShell = ({ children }: AppShellProps) => {
         </p>
         {navItems.map((item) => {
           const active = location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
-          const locked = !isPathAllowed(item.to, plan);
+          const locked = !isPathAllowed(item.to, plan, isActive);
           return (
             <Link
               key={item.to}
@@ -305,7 +303,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </aside>
 
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
-        {children}
+        {isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
       </main>
 
       {/* Independent lawyer research panel — additive only */}

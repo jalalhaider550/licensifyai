@@ -114,9 +114,9 @@ async function callAI(
   userPrompt: string,
   opts: { maxTokens?: number; temperature?: number } = {},
 ): Promise<{ ok: true; content: string } | { ok: false; status: number; error: string; errorType?: string }> {
-  const { maxTokens = 12000, temperature = 0.3 } = opts;
+  const { maxTokens = 32000, temperature = 0.25 } = opts;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), 180_000);
 
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -126,7 +126,7 @@ async function callAI(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt + "\n\n" + DOCUMENT_OUTPUT_RULES },
           { role: "user", content: userPrompt },
@@ -196,7 +196,7 @@ function buildScenarioInstructions(risks: string[], partyA: string, partyB: stri
 // --- Prompt builders ---
 
 function buildContractPrompt(body: any) {
-  const { contractType, partyA, partyB, jurisdiction, scopeOfWork, paymentTerms, duration, terminationClause, specialClauses, specialInstructions, generationMode } = body;
+  const { contractType, partyA, partyB, jurisdiction, country, jurisdictionRegion, scopeOfWork, paymentTerms, duration, terminationClause, specialClauses, specialInstructions, generationMode } = body;
   const risks = detectScenarioRisks(body);
   const scenario = buildScenarioInstructions(risks, partyA, partyB);
   let modeInstr = "";
@@ -207,10 +207,14 @@ function buildContractPrompt(body: any) {
     case "balanced": modeInstr = "Balanced, fair terms for both parties."; break;
     default: modeInstr = "Standard professional clauses.";
   }
-  return `You are a practising senior commercial solicitor (15+ years PQE). Generate a COMPLETE, PROFESSIONAL ${contractType} contract. Write with authority — every clause must be definitive legal text ready for execution.
+  const jurisdictionLine = jurisdictionRegion && country
+    ? `JURISDICTION: ${jurisdictionRegion}, ${country} (law of ${jurisdictionRegion} governs; ${country} federal/national statutes apply where relevant).`
+    : `JURISDICTION: ${jurisdiction}`;
+  return `You are a practising senior commercial solicitor / attorney admitted in ${jurisdictionRegion || country || jurisdiction} with 15+ years PQE. Generate a COMPLETE, COURT-READY ${contractType} of 20 to 30 pages minimum. Every clause must be definitive, enforceable legal text drafted as if for execution today.
+
+${jurisdictionLine}
 PARTIES: Party A: ${partyA} | Party B: ${partyB}
-JURISDICTION: ${jurisdiction}
-SCOPE: ${scopeOfWork || "To be defined"}
+SCOPE: ${scopeOfWork || "To be defined with reasonable assumptions"}
 PAYMENT: ${paymentTerms || "As agreed"}
 DURATION: ${duration || "12 months"}
 ${terminationClause ? `TERMINATION: ${terminationClause}` : ""}
@@ -220,11 +224,22 @@ ${specialInstructions ? `INSTRUCTIONS: ${specialInstructions}` : ""}
 ${risks.length ? `RISK PROFILE: ${risks.join(", ")}` : ""}
 ${scenario}
 
-Return a JSON object (NO markdown fences):
-{"title":"...","date":"...","parties":{"partyA":"...","partyB":"..."},"recitals":"...","definitions":[{"term":"...","definition":"..."}],"clauses":[{"number":"1","title":"...","body":"...","subClauses":[{"number":"1.1","body":"..."}]}],"governingLaw":"...","signatureBlock":"...","warnings":[{"type":"missing_clause","message":"..."}]}
+JURISDICTION COMPLIANCE — MANDATORY:
+- The contract MUST be fully compliant with the statutes, regulations, bylaws, common-law principles, and procedural rules of the selected jurisdiction.
+- Cite specific named statutes, codes, regulations, and (where relevant) leading cases of the selected jurisdiction in the operative clauses (e.g. for England and Wales: Unfair Contract Terms Act 1977, Sale of Goods Act 1979, Consumer Rights Act 2015; for New York: UCC Article 2, NY GOL §5-701; for California: Cal. Civ. Code §1542; for Delaware corporate counterparties: DGCL; for the EU/EEA: GDPR, Rome I Regulation; for India: Indian Contract Act 1872, Specific Relief Act 1963; etc.). Use authorities that actually exist — never fabricate.
+- Governing-law and jurisdiction clauses MUST select the chosen jurisdiction and the appropriate courts/arbitral forum (e.g. Courts of England and Wales; State and Federal courts sitting in [State]; LCIA / ICC / SIAC seat where appropriate).
+- Dispute resolution must reflect local practice (e.g. pre-action protocols for England and Wales, mandatory mediation steps, FAA-governed arbitration in the US, etc.).
+- Data protection, consumer, employment, tax, IP, and anti-corruption obligations must be drafted to the jurisdiction's actual regime.
 
-MANDATORY: Definitions, Scope, Payment, Duration, Termination, Confidentiality, IP, Limitation of Liability, Indemnity, Dispute Resolution, Governing Law, Force Majeure, General Provisions.
-Each clause must be FULL legal text. Tailor to scenario. Do NOT use markdown.`;
+OUTPUT LENGTH — MANDATORY: Produce a comprehensive document with 20–30 pages of substantive content. Aim for at least 15 main clauses, each with multiple richly-drafted sub-clauses (1.1, 1.2, 1.3 …). Recitals must be at least 3 paragraphs. Definitions must contain at least 20 defined terms. Include schedules and annexures where useful (e.g. Schedule 1 – Specification of Services; Schedule 2 – Fees; Schedule 3 – Data Processing; Annexure A – Form of Variation).
+
+MANDATORY CLAUSES (each FULL legal text, multi-paragraph, jurisdiction-specific):
+1. Recitals; 2. Definitions and Interpretation; 3. Scope of Services / Subject Matter; 4. Commencement, Duration and Renewal; 5. Fees, Charges and Payment Terms (with interest on late payment under the applicable statute); 6. Taxes and Withholding; 7. Performance Standards / KPIs and Service Levels; 8. Representations, Warranties and Conditions; 9. Confidentiality and Non-Disclosure; 10. Data Protection and Privacy (jurisdiction-specific regime); 11. Intellectual Property (ownership, licence-back, moral rights where applicable); 12. Indemnities; 13. Limitation of Liability and Exclusions (drafted consistent with local enforceability rules); 14. Insurance; 15. Anti-Bribery, Anti-Money-Laundering and Sanctions Compliance; 16. Force Majeure; 17. Termination (for cause, for convenience, insolvency); 18. Consequences of Termination and Survival; 19. Assignment, Subcontracting and Novation; 20. Variation; 21. Notices; 22. Entire Agreement, Severability, Waiver, No Partnership, Third Party Rights; 23. Governing Law; 24. Dispute Resolution (negotiation → mediation → arbitration/litigation); 25. Counterparts and Electronic Execution; 26. Schedules; 27. Execution block appropriate for the jurisdiction (e.g. deed-style attestation for England and Wales when relevant; notarisation language for civil-law jurisdictions if required).
+
+ABSOLUTE PROHIBITIONS: no placeholder text such as [INSERT], no TBD, no "to be agreed" without a fallback mechanism, no markdown, no quotation marks around defined terms in the body text (use them only in the Definitions section), no generic filler. Every sentence must read as if drafted by a senior practitioner in the selected jurisdiction.
+
+Return a JSON object (NO markdown fences) using the schema below. Pack the bodies with substantive text — short bodies will be rejected.
+{"title":"...","date":"...","parties":{"partyA":"...","partyB":"..."},"recitals":"...","definitions":[{"term":"...","definition":"..."}],"clauses":[{"number":"1","title":"...","body":"...","subClauses":[{"number":"1.1","body":"..."}]}],"governingLaw":"...","signatureBlock":"...","warnings":[{"type":"missing_clause","message":"..."}]}`;
 }
 
 function buildNdaPrompt(body: any) {
