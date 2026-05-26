@@ -310,7 +310,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </aside>
 
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
-        {isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
+        {planLoading || isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
       </main>
 
       {/* Independent lawyer research panel — additive only */}
