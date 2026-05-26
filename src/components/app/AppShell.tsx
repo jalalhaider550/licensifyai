@@ -81,7 +81,7 @@ export const AppShell = ({ children }: AppShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const { plan, isActive } = usePlan();
+  const { plan, isActive, loading: planLoading } = usePlan();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
