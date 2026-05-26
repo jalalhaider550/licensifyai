@@ -2546,6 +2546,7 @@ export type Database = {
         Args: { _token: string }
         Returns: {
           client_id: string
+          user_id: string
         }[]
       }
     }
