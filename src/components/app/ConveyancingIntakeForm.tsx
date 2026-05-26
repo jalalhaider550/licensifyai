@@ -157,62 +157,62 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, i
   });
 
   useEffect(() => {
-    if (!effectiveUserId) return;
-    (supabase as any)
-      .from("conveyancing_client_intake")
-      .select("*")
-      .eq("case_id", caseId)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data) {
-          setExistingId(data.id);
-          setStep(Math.min(data.current_step || 1, TOTAL_STEPS));
-          setForm((prev) => ({
-            ...prev,
-            full_name: data.full_name || prev.full_name,
-            date_of_birth: data.date_of_birth || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            current_address: data.current_address || "",
-            address_postcode: data.address_postcode || "",
-            country: data.country || "United Kingdom",
-            id_document_type: data.id_document_type || "",
-            client_role: data.client_role || prev.client_role,
-            property_address: data.property_address || prev.property_address,
-            property_postcode: data.property_postcode || prev.property_postcode,
-            property_type: data.property_type || prev.property_type,
-            tenure: data.tenure || prev.tenure,
-            transaction_price: data.transaction_price > 0 ? String(data.transaction_price) : prev.transaction_price,
-            has_mortgage: data.has_mortgage ?? prev.has_mortgage,
-            lender_name: data.lender_name || "",
-            mortgage_broker: data.mortgage_broker || "",
-            source_of_funds: data.source_of_funds || "",
-            source_of_wealth: data.source_of_wealth || "",
-            first_time_buyer: data.first_time_buyer ?? false,
-            buying_with_another: data.buying_with_another ?? false,
-            second_buyer_name: data.second_buyer_name || "",
-            owns_property_fully: data.owns_property_fully ?? true,
-            existing_mortgage: data.existing_mortgage ?? false,
-            existing_lender_name: data.existing_lender_name || "",
-            property_vacant: data.property_vacant ?? false,
-            lease_years_remaining: data.lease_years_remaining ? String(data.lease_years_remaining) : "",
-            ground_rent: data.ground_rent || "",
-            ta6_disputes: data.ta6_disputes || "",
-            ta6_planning_works: data.ta6_planning_works || "",
-            ta6_guarantees: data.ta6_guarantees || "",
-            ta6_boundaries: data.ta6_boundaries || "",
-            ta6_rights_of_way: data.ta6_rights_of_way || "",
-            ta6_notices: data.ta6_notices || "",
-            ta6_services: data.ta6_services || "",
-            ta10_included_items: data.ta10_included_items || "",
-            ta10_excluded_items: data.ta10_excluded_items || "",
-            ta10_additional_items: data.ta10_additional_items || "",
-            special_instructions: data.special_instructions || "",
-            declaration_confirmed: data.declaration_confirmed ?? false,
-          }));
-        }
-      });
-  }, [effectiveUserId, caseId]);
+    if (!effectiveUserId && !intakeToken) return;
+    const loader = intakeToken
+      ? (supabase as any).rpc("get_conveyancing_intake_by_token", { _token: intakeToken })
+      : (supabase as any).from("conveyancing_client_intake").select("*").eq("case_id", caseId).maybeSingle();
+    Promise.resolve(loader).then(({ data }: any) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        const d = row;
+        setExistingId(d.id);
+        setStep(Math.min(d.current_step || 1, TOTAL_STEPS));
+        setForm((prev) => ({
+          ...prev,
+          full_name: d.full_name || prev.full_name,
+          date_of_birth: d.date_of_birth || "",
+          email: d.email || "",
+          phone: d.phone || "",
+          current_address: d.current_address || "",
+          address_postcode: d.address_postcode || "",
+          country: d.country || "United Kingdom",
+          id_document_type: d.id_document_type || "",
+          client_role: d.client_role || prev.client_role,
+          property_address: d.property_address || prev.property_address,
+          property_postcode: d.property_postcode || prev.property_postcode,
+          property_type: d.property_type || prev.property_type,
+          tenure: d.tenure || prev.tenure,
+          transaction_price: d.transaction_price > 0 ? String(d.transaction_price) : prev.transaction_price,
+          has_mortgage: d.has_mortgage ?? prev.has_mortgage,
+          lender_name: d.lender_name || "",
+          mortgage_broker: d.mortgage_broker || "",
+          source_of_funds: d.source_of_funds || "",
+          source_of_wealth: d.source_of_wealth || "",
+          first_time_buyer: d.first_time_buyer ?? false,
+          buying_with_another: d.buying_with_another ?? false,
+          second_buyer_name: d.second_buyer_name || "",
+          owns_property_fully: d.owns_property_fully ?? true,
+          existing_mortgage: d.existing_mortgage ?? false,
+          existing_lender_name: d.existing_lender_name || "",
+          property_vacant: d.property_vacant ?? false,
+          lease_years_remaining: d.lease_years_remaining ? String(d.lease_years_remaining) : "",
+          ground_rent: d.ground_rent || "",
+          ta6_disputes: d.ta6_disputes || "",
+          ta6_planning_works: d.ta6_planning_works || "",
+          ta6_guarantees: d.ta6_guarantees || "",
+          ta6_boundaries: d.ta6_boundaries || "",
+          ta6_rights_of_way: d.ta6_rights_of_way || "",
+          ta6_notices: d.ta6_notices || "",
+          ta6_services: d.ta6_services || "",
+          ta10_included_items: d.ta10_included_items || "",
+          ta10_excluded_items: d.ta10_excluded_items || "",
+          ta10_additional_items: d.ta10_additional_items || "",
+          special_instructions: d.special_instructions || "",
+          declaration_confirmed: d.declaration_confirmed ?? false,
+        }));
+      }
+    });
+  }, [effectiveUserId, caseId, intakeToken]);
 
   const set = (field: keyof FormData, value: any) => setForm((prev) => ({ ...prev, [field]: value }));
 
