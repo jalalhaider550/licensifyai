@@ -698,6 +698,33 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_usage_log: {
+        Row: {
+          contract_type: string | null
+          country: string | null
+          created_at: string | null
+          id: string
+          jurisdiction: string | null
+          user_id: string
+        }
+        Insert: {
+          contract_type?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          jurisdiction?: string | null
+          user_id: string
+        }
+        Update: {
+          contract_type?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          jurisdiction?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       conveyancing_cases: {
         Row: {
           client_id: string | null
@@ -1943,29 +1970,50 @@ export type Database = {
       }
       profiles: {
         Row: {
+          billing_cycle_start: string | null
+          contracts_bonus: number
+          contracts_limit: number
+          contracts_used: number
           created_at: string
           display_name: string | null
           firm_name: string
           id: string
           plan: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_cycle_start?: string | null
+          contracts_bonus?: number
+          contracts_limit?: number
+          contracts_used?: number
           created_at?: string
           display_name?: string | null
           firm_name?: string
           id?: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_cycle_start?: string | null
+          contracts_bonus?: number
+          contracts_limit?: number
+          contracts_used?: number
           created_at?: string
           display_name?: string | null
           firm_name?: string
           id?: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2002,6 +2050,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          price_id: string | null
+          product_id: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string | null
+          product_id?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {
@@ -2243,9 +2339,33 @@ export type Database = {
           user_id: string
         }[]
       }
+      apply_subscription_state: {
+        Args: {
+          _period_start: string
+          _plan: string
+          _reset_usage?: boolean
+          _status: string
+          _stripe_customer_id: string
+          _stripe_subscription_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       can_edit_case: {
         Args: { _case_id: string; _user_id: string }
         Returns: boolean
+      }
+      consume_contract: {
+        Args: {
+          _contract_type?: string
+          _country?: string
+          _jurisdiction?: string
+        }
+        Returns: Json
+      }
+      credit_contract_topup: {
+        Args: { _amount?: number; _user_id: string }
+        Returns: undefined
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
