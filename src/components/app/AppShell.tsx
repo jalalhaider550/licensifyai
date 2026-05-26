@@ -39,6 +39,7 @@ import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { SafeBoundary } from "@/components/app/SafeBoundary";
 import { Logo } from "@/components/brand/Logo";
 import { usePlan, isPathAllowed } from "@/hooks/usePlan";
+import { LockedFeature } from "@/components/app/LockedFeature";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -302,7 +303,7 @@ export const AppShell = ({ children }: AppShellProps) => {
       </aside>
 
       <main className="md:ml-64 flex-1 min-h-screen pt-14 md:pt-0">
-        {children}
+        {isPathAllowed(location.pathname, plan, isActive) ? children : <LockedFeature />}
       </main>
 
       {/* Independent lawyer research panel — additive only */}

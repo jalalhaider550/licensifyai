@@ -424,12 +424,29 @@ const GenerateContract = () => {
   return (
     <AppShell>
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold text-foreground">Generate Contract</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Professional contract drafting with full clause control and customization.
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground">Generate Contract</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Court-ready 20–30 page contracts tailored to any country and jurisdiction.
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card px-4 py-2 text-right">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">This cycle</p>
+            <p className="font-mono text-sm font-semibold text-foreground">
+              {used}/{limit + bonus} contracts used
+            </p>
+          </div>
         </div>
+
+        <ContractLimitDialog
+          open={showLimitDialog}
+          onClose={() => setShowLimitDialog(false)}
+          used={used}
+          limit={limit}
+          bonus={bonus}
+        />
+
 
         {!document ? (
           <div className="space-y-6">
@@ -474,9 +491,41 @@ const GenerateContract = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Jurisdiction</Label>
-                  <Input value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)} />
+                  <Label>Country</Label>
+                  <Select
+                    value={countryCode}
+                    onValueChange={(v) => {
+                      setCountryCode(v);
+                      const subs = getJurisdictions(v);
+                      setJurisdiction(subs[0] ?? "");
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {COUNTRIES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                {subJurisdictions.length > 0 ? (
+                  <div className="space-y-2">
+                    <Label>Jurisdiction</Label>
+                    <Select value={jurisdiction} onValueChange={setJurisdiction}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {subJurisdictions.map((j) => (
+                          <SelectItem key={j} value={j}>{j}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Jurisdiction</Label>
+                    <Input value={countryName} disabled />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Party A Name *</Label>
                   <Input value={partyA} onChange={(e) => setPartyA(e.target.value)} placeholder="e.g. Acme Ltd" />
