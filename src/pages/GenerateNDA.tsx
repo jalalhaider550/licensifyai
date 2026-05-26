@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { usePlan } from "@/hooks/usePlan";
+import { ContractLimitDialog } from "@/components/payments/ContractLimitDialog";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +127,9 @@ const GenerateNDA = () => {
   const [exportingFormat, setExportingFormat] = useState<"pdf" | "docx" | null>(null);
   const [addClauseFrom, setAddClauseFrom] = useState<string | null>(null);
   const [mode, setMode] = useState<"create" | "upload">("create");
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const navigate = useNavigate();
+  const { used, limit, bonus, refetch: refetchPlan } = usePlan();
 
   const handleUploadReviewed = (doc: ReviewedDocument, _review: any, _originalText: string) => {
     const mapped: GeneratedNDA = {
@@ -160,6 +166,26 @@ const GenerateNDA = () => {
     }
     setGenerating(true);
     try {
+      const { data: usageData, error: usageErr } = await supabase.rpc("consume_contract", {
+        _contract_type: "nda",
+        _country: jurisdiction,
+        _jurisdiction: null,
+      });
+      if (usageErr) throw usageErr;
+      const usage = usageData as { allowed: boolean; reason?: string };
+      if (!usage?.allowed) {
+        if (usage?.reason === "pending_payment") {
+          toast.error("Subscribe to a plan to start generating NDAs.");
+          navigate("/upgrade");
+          return;
+        }
+        if (usage?.reason === "limit_reached") {
+          setShowLimitDialog(true);
+          return;
+        }
+        toast.error("Unable to start generation.");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("generate-legal-document", {
         body: {
           action: "generate-nda",
@@ -327,6 +353,13 @@ const GenerateNDA = () => {
   return (
     <AppShell>
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <ContractLimitDialog
+          open={showLimitDialog}
+          onClose={() => { setShowLimitDialog(false); void refetchPlan(); }}
+          used={used}
+          limit={limit}
+          bonus={bonus}
+        />
         <div className="mb-6">
           <h1 className="font-display text-2xl font-bold text-foreground">Generate NDA</h1>
           <p className="mt-1 text-sm text-muted-foreground">
