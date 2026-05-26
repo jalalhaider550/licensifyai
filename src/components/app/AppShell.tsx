@@ -115,8 +115,15 @@ export const AppShell = ({ children }: AppShellProps) => {
     }
   }, [user, loading, navigate]);
 
-  // Locked routes are still rendered (with LockedFeature panel inside) — we
-  // no longer hard-redirect, so the sidebar lock UX is honoured.
+  // Hard gate: any user without an active paid subscription is forced to /upgrade.
+  // Pending users cannot reach the dashboard or any feature until Stripe confirms payment.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (!isPathAllowed(location.pathname, plan, isActive) && location.pathname !== "/upgrade") {
+      navigate("/upgrade", { replace: true });
+    }
+  }, [user, loading, plan, isActive, location.pathname, navigate]);
+
 
   useEffect(() => {
     setMobileOpen(false);
