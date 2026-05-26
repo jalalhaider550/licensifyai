@@ -23,7 +23,7 @@ const benefits = [
     icon: Globe,
     title: "Multi-Jurisdiction Support",
     description:
-      "Access UK regulatory workflows and US compliance and case processes — all managed in one unified platform with jurisdiction-specific automation.",
+      "Access regulatory workflows and compliance processes across jurisdictions worldwide — all managed in one unified platform with jurisdiction-specific automation.",
   },
 ];
 

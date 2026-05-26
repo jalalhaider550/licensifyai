@@ -113,11 +113,11 @@ const Dashboard = () => {
                 <Scale className="h-4 w-4" />
               </div>
               <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
-                UK Requirements
+                Regulatory Requirements
                 <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Reference regulatory requirements for UK fintech licenses.
+                Reference regulatory requirements for fintech licenses across jurisdictions.
               </p>
             </Link>
           </div>
