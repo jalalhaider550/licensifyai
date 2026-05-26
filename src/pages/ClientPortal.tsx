@@ -63,16 +63,11 @@ const ClientPortal = () => {
   }, [token]);
 
   const validateAndLoad = async () => {
-    // Validate token
-    const { data: tokenData, error } = await supabase
-      .from("client_access_tokens")
-      .select("*")
-      .eq("token", token!)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+    // Validate token via security-definer RPC (does not expose token list)
+    const { data: rows, error } = await (supabase as any).rpc("validate_client_access_token", { _token: token! });
+    const tokenData = Array.isArray(rows) ? rows[0] : rows;
 
-    if (error || !tokenData) {
+    if (error || !tokenData?.client_id) {
       setValid(false);
       setLoading(false);
       return;
@@ -185,12 +180,9 @@ const ClientPortal = () => {
       const filePath = `portal/${clientId}/${Date.now()}-${file.name}`;
       await supabase.storage.from("documents").upload(filePath, file);
 
-      // Get user_id from the token's associated client
-      const { data: tokenData } = await supabase
-        .from("client_access_tokens")
-        .select("user_id")
-        .eq("token", token!)
-        .single();
+      // Re-validate token via RPC to get the linked lawyer's user_id
+      const { data: tokenRows } = await (supabase as any).rpc("validate_client_access_token", { _token: token! });
+      const tokenData = Array.isArray(tokenRows) ? tokenRows[0] : tokenRows;
 
       if (selectedCaseId) {
         await supabase.from("case_documents").insert({

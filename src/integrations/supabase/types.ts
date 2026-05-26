@@ -2317,6 +2317,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_firm_invite: { Args: { _token: string }; Returns: string }
       admin_list_profiles: {
         Args: never
         Returns: {
@@ -2410,6 +2411,95 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_conveyancing_case_by_token: {
+        Args: { _token: string }
+        Returns: {
+          client_name: string
+          client_type: string
+          id: string
+          mortgage_status: string
+          postcode: string
+          price: number
+          property_address: string
+          property_category: string
+          tenure: string
+          user_id: string
+        }[]
+      }
+      get_conveyancing_intake_by_token: {
+        Args: { _token: string }
+        Returns: {
+          address_postcode: string
+          buying_with_another: boolean | null
+          case_id: string
+          client_role: string
+          country: string
+          created_at: string
+          current_address: string
+          current_step: number
+          date_of_birth: string | null
+          declaration_confirmed: boolean
+          email: string
+          existing_lender_name: string
+          existing_mortgage: boolean | null
+          first_time_buyer: boolean | null
+          full_name: string
+          ground_rent: string
+          has_mortgage: boolean
+          id: string
+          id_document_path: string | null
+          id_document_type: string
+          intake_complete: boolean
+          lease_years_remaining: number | null
+          lender_name: string
+          mortgage_broker: string
+          owns_property_fully: boolean | null
+          phone: string
+          proof_of_address_path: string | null
+          property_address: string
+          property_postcode: string
+          property_type: string
+          property_vacant: boolean | null
+          second_buyer_name: string
+          source_of_funds: string
+          source_of_funds_document_path: string | null
+          source_of_wealth: string
+          special_instructions: string
+          submitted_at: string | null
+          ta10_additional_items: string
+          ta10_excluded_items: string
+          ta10_included_items: string
+          ta6_boundaries: string
+          ta6_disputes: string
+          ta6_guarantees: string
+          ta6_notices: string
+          ta6_planning_works: string
+          ta6_rights_of_way: string
+          ta6_services: string
+          tenure: string
+          transaction_price: number
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "conveyancing_client_intake"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_firm_invite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          custom_role_label: string
+          email: string
+          expires_at: string
+          firm_id: string
+          id: string
+          role: string
+          status: string
+        }[]
+      }
       get_user_firm_id: { Args: { _user_id: string }; Returns: string }
       has_case_access: {
         Args: { _case_id: string; _user_id: string }
@@ -2448,6 +2538,17 @@ export type Database = {
         }[]
       }
       same_firm: { Args: { _a: string; _b: string }; Returns: boolean }
+      upsert_conveyancing_intake_by_token: {
+        Args: { _payload: Json; _token: string }
+        Returns: string
+      }
+      validate_client_access_token: {
+        Args: { _token: string }
+        Returns: {
+          client_id: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"

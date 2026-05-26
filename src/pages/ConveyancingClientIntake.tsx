@@ -23,18 +23,16 @@ export default function ConveyancingClientIntake() {
 
     const load = async () => {
       const { data, error: fetchErr } = await (supabase as any)
-        .from("conveyancing_cases")
-        .select("id, property_address, postcode, client_name, client_type, price, tenure, property_category, mortgage_status, user_id, intake_token")
-        .eq("intake_token", token)
-        .maybeSingle();
+        .rpc("get_conveyancing_case_by_token", { _token: token });
+      const row = Array.isArray(data) ? data[0] : data;
 
-      if (fetchErr || !data) {
+      if (fetchErr || !row) {
         setError("This intake link is invalid or has expired.");
         setLoading(false);
         return;
       }
 
-      setCaseData(data);
+      setCaseData({ ...row, intake_token: token });
       setLoading(false);
     };
 
@@ -92,6 +90,7 @@ export default function ConveyancingClientIntake() {
         <ConveyancingIntakeForm
           caseId={caseData.id}
           userId={caseData.user_id}
+          intakeToken={token!}
           caseData={{
             property_address: caseData.property_address,
             postcode: caseData.postcode,

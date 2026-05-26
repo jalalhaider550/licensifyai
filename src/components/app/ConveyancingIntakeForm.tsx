@@ -50,6 +50,7 @@ interface IntakeFormProps {
     mortgage_status: string;
   };
   userId?: string;
+  intakeToken?: string;
   onComplete: () => void;
 }
 
@@ -102,7 +103,7 @@ type FormData = {
   declaration_confirmed: boolean;
 };
 
-export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, onComplete }: IntakeFormProps) {
+export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, intakeToken, onComplete }: IntakeFormProps) {
   const { user } = useAuth();
   const effectiveUserId = userIdProp || user?.id;
   const [step, setStep] = useState(1);
@@ -156,62 +157,62 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
   });
 
   useEffect(() => {
-    if (!effectiveUserId) return;
-    (supabase as any)
-      .from("conveyancing_client_intake")
-      .select("*")
-      .eq("case_id", caseId)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data) {
-          setExistingId(data.id);
-          setStep(Math.min(data.current_step || 1, TOTAL_STEPS));
-          setForm((prev) => ({
-            ...prev,
-            full_name: data.full_name || prev.full_name,
-            date_of_birth: data.date_of_birth || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            current_address: data.current_address || "",
-            address_postcode: data.address_postcode || "",
-            country: data.country || "United Kingdom",
-            id_document_type: data.id_document_type || "",
-            client_role: data.client_role || prev.client_role,
-            property_address: data.property_address || prev.property_address,
-            property_postcode: data.property_postcode || prev.property_postcode,
-            property_type: data.property_type || prev.property_type,
-            tenure: data.tenure || prev.tenure,
-            transaction_price: data.transaction_price > 0 ? String(data.transaction_price) : prev.transaction_price,
-            has_mortgage: data.has_mortgage ?? prev.has_mortgage,
-            lender_name: data.lender_name || "",
-            mortgage_broker: data.mortgage_broker || "",
-            source_of_funds: data.source_of_funds || "",
-            source_of_wealth: data.source_of_wealth || "",
-            first_time_buyer: data.first_time_buyer ?? false,
-            buying_with_another: data.buying_with_another ?? false,
-            second_buyer_name: data.second_buyer_name || "",
-            owns_property_fully: data.owns_property_fully ?? true,
-            existing_mortgage: data.existing_mortgage ?? false,
-            existing_lender_name: data.existing_lender_name || "",
-            property_vacant: data.property_vacant ?? false,
-            lease_years_remaining: data.lease_years_remaining ? String(data.lease_years_remaining) : "",
-            ground_rent: data.ground_rent || "",
-            ta6_disputes: data.ta6_disputes || "",
-            ta6_planning_works: data.ta6_planning_works || "",
-            ta6_guarantees: data.ta6_guarantees || "",
-            ta6_boundaries: data.ta6_boundaries || "",
-            ta6_rights_of_way: data.ta6_rights_of_way || "",
-            ta6_notices: data.ta6_notices || "",
-            ta6_services: data.ta6_services || "",
-            ta10_included_items: data.ta10_included_items || "",
-            ta10_excluded_items: data.ta10_excluded_items || "",
-            ta10_additional_items: data.ta10_additional_items || "",
-            special_instructions: data.special_instructions || "",
-            declaration_confirmed: data.declaration_confirmed ?? false,
-          }));
-        }
-      });
-  }, [effectiveUserId, caseId]);
+    if (!effectiveUserId && !intakeToken) return;
+    const loader = intakeToken
+      ? (supabase as any).rpc("get_conveyancing_intake_by_token", { _token: intakeToken })
+      : (supabase as any).from("conveyancing_client_intake").select("*").eq("case_id", caseId).maybeSingle();
+    Promise.resolve(loader).then(({ data }: any) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        const d = row;
+        setExistingId(d.id);
+        setStep(Math.min(d.current_step || 1, TOTAL_STEPS));
+        setForm((prev) => ({
+          ...prev,
+          full_name: d.full_name || prev.full_name,
+          date_of_birth: d.date_of_birth || "",
+          email: d.email || "",
+          phone: d.phone || "",
+          current_address: d.current_address || "",
+          address_postcode: d.address_postcode || "",
+          country: d.country || "United Kingdom",
+          id_document_type: d.id_document_type || "",
+          client_role: d.client_role || prev.client_role,
+          property_address: d.property_address || prev.property_address,
+          property_postcode: d.property_postcode || prev.property_postcode,
+          property_type: d.property_type || prev.property_type,
+          tenure: d.tenure || prev.tenure,
+          transaction_price: d.transaction_price > 0 ? String(d.transaction_price) : prev.transaction_price,
+          has_mortgage: d.has_mortgage ?? prev.has_mortgage,
+          lender_name: d.lender_name || "",
+          mortgage_broker: d.mortgage_broker || "",
+          source_of_funds: d.source_of_funds || "",
+          source_of_wealth: d.source_of_wealth || "",
+          first_time_buyer: d.first_time_buyer ?? false,
+          buying_with_another: d.buying_with_another ?? false,
+          second_buyer_name: d.second_buyer_name || "",
+          owns_property_fully: d.owns_property_fully ?? true,
+          existing_mortgage: d.existing_mortgage ?? false,
+          existing_lender_name: d.existing_lender_name || "",
+          property_vacant: d.property_vacant ?? false,
+          lease_years_remaining: d.lease_years_remaining ? String(d.lease_years_remaining) : "",
+          ground_rent: d.ground_rent || "",
+          ta6_disputes: d.ta6_disputes || "",
+          ta6_planning_works: d.ta6_planning_works || "",
+          ta6_guarantees: d.ta6_guarantees || "",
+          ta6_boundaries: d.ta6_boundaries || "",
+          ta6_rights_of_way: d.ta6_rights_of_way || "",
+          ta6_notices: d.ta6_notices || "",
+          ta6_services: d.ta6_services || "",
+          ta10_included_items: d.ta10_included_items || "",
+          ta10_excluded_items: d.ta10_excluded_items || "",
+          ta10_additional_items: d.ta10_additional_items || "",
+          special_instructions: d.special_instructions || "",
+          declaration_confirmed: d.declaration_confirmed ?? false,
+        }));
+      }
+    });
+  }, [effectiveUserId, caseId, intakeToken]);
 
   const set = (field: keyof FormData, value: any) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -234,7 +235,7 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
   };
 
   const saveIntake = async (complete: boolean) => {
-    if (!effectiveUserId) return;
+    if (!effectiveUserId && !intakeToken) return;
     setSaving(true);
     try {
       let id_document_path: string | null = null;
@@ -247,7 +248,6 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
 
       const payload: Record<string, any> = {
         case_id: caseId,
-        user_id: effectiveUserId,
         full_name: form.full_name,
         date_of_birth: form.date_of_birth || null,
         email: form.email,
@@ -298,13 +298,24 @@ export function ConveyancingIntakeForm({ caseId, caseData, userId: userIdProp, o
       if (source_of_funds_document_path) payload.source_of_funds_document_path = source_of_funds_document_path;
 
       const db = supabase as any;
-      if (existingId) {
-        const { error } = await db.from("conveyancing_client_intake").update(payload).eq("id", existingId);
+      if (intakeToken) {
+        // Anonymous client flow — go through the token-validated RPC
+        const { data, error } = await db.rpc("upsert_conveyancing_intake_by_token", {
+          _token: intakeToken,
+          _payload: payload,
+        });
         if (error) throw error;
+        if (data) setExistingId(data);
       } else {
-        const { data, error } = await db.from("conveyancing_client_intake").insert(payload).select("id").single();
-        if (error) throw error;
-        setExistingId(data.id);
+        payload.user_id = effectiveUserId;
+        if (existingId) {
+          const { error } = await db.from("conveyancing_client_intake").update(payload).eq("id", existingId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await db.from("conveyancing_client_intake").insert(payload).select("id").single();
+          if (error) throw error;
+          setExistingId(data.id);
+        }
       }
 
       if (complete) {
