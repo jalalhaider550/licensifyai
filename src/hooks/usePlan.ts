@@ -44,16 +44,23 @@ export function usePlan(): PlanState {
       .eq("user_id", user.id)
       .maybeSingle();
     const raw = (data as any)?.plan;
-    const normalized: Plan =
-      raw === "starter" || raw === "professional" || raw === "law_firm"
-        ? raw
-        : raw === "pro"
-        ? "professional"
-        : raw === "free_trial"
-        ? "professional" // grandfathered
-        : "pending";
+    const rawStatus = (data as any)?.subscription_status ?? null;
+    // Strict gating: a paid plan only counts when Stripe has confirmed it
+    // (active/trialing) or the user was explicitly grandfathered/granted by an admin.
+    const isConfirmed =
+      rawStatus === "active" ||
+      rawStatus === "trialing" ||
+      rawStatus === "grandfathered";
+    let normalized: Plan = "pending";
+    if (isConfirmed) {
+      if (raw === "starter" || raw === "professional" || raw === "law_firm") {
+        normalized = raw;
+      } else if (raw === "pro" || raw === "free_trial") {
+        normalized = "professional"; // legacy grandfathered mapping
+      }
+    }
     setPlan(normalized);
-    setStatus((data as any)?.subscription_status ?? null);
+    setStatus(rawStatus);
     setUsed((data as any)?.contracts_used ?? 0);
     setLimit((data as any)?.contracts_limit ?? PLAN_LIMITS[normalized]);
     setBonus((data as any)?.contracts_bonus ?? 0);
@@ -65,20 +72,21 @@ export function usePlan(): PlanState {
     void load();
   }, [authLoading, load]);
 
-  const isActive =
-    plan === "law_firm" ||
-    (plan !== "pending" &&
-      (status === "active" || status === "trialing" || status === "grandfathered" || status === null));
+  // Active only when a paid plan was resolved above (which already requires a
+  // confirmed Stripe status). Pending users are never active.
+  const isActive = plan !== "pending";
 
   return { plan, status, used, limit, bonus, isActive, loading, refetch: load };
 }
 
-// Paths always accessible (even for pending users — needed for payment + account flow)
-const ALWAYS_ALLOWED = ["/upgrade", "/settings", "/help", "/checkout", "/admin", "/dashboard"];
+// Paths accessible to users WITHOUT an active paid subscription.
+// Dashboard and every feature are intentionally excluded — payment is required.
+const ALWAYS_ALLOWED = ["/upgrade", "/settings", "/help", "/checkout", "/admin"];
 
 // Paths accessible to active starter/professional plans (contracts only)
 const CONTRACT_PLAN_ALLOWED = [
   ...ALWAYS_ALLOWED,
+  "/dashboard",
   "/generate-contract",
   "/generate-nda",
 ];
