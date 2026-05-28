@@ -112,17 +112,13 @@ const ClientPortal = () => {
     }
   };
 
-  // Realtime messages
+  // Poll messages periodically (realtime disabled for tenant isolation)
   useEffect(() => {
     if (!clientId) return;
-    const channel = supabase
-      .channel(`portal-messages-${clientId}-${selectedCaseId || "all"}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "portal_messages", filter: `client_id=eq.${clientId}` }, (payload) => {
-        if (selectedCaseId && payload.new.case_id !== selectedCaseId) return;
-        setData((prev) => ({ ...prev, messages: [...prev.messages, payload.new] }));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => {
+      loadData(clientId).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
   }, [clientId, selectedCaseId]);
 
   useEffect(() => {
